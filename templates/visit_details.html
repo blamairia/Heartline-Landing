@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Visit Details - Visit #{{ visit.id }}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <style>
+    .section-card {
+      border-left: 4px solid #007bff;
+      margin-bottom: 1.5rem;
+    }
+    .ecg-card {
+      border-left: 4px solid #28a745;
+    }
+    .prescription-card {
+      border-left: 4px solid #ffc107;
+    }
+    .document-card {
+      border-left: 4px solid #17a2b8;
+    }
+    .progress {
+      background-color: #e9ecef;
+    }
+    .progress-bar {
+      background-color: #007bff;
+    }
+    .patient-info {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 10px;
+    }
+    .visit-status {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+    }
+  </style>
+</head>
+<body class="bg-light p-3">
+  <div class="container">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1><i class="fas fa-file-medical"></i> Visit #{{ visit.id }}</h1>
+      <div>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">
+          <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+        <a href="{{ url_for('create_visit') }}" class="btn btn-success">
+          <i class="fas fa-plus"></i> New Visit
+        </a>
+      </div>
+    </div>
+
+    <!-- Patient & Visit Info -->
+    <div class="card patient-info section-card mb-4">
+      <div class="card-body position-relative">
+        <div class="visit-status">
+          <span class="badge {% if visit.payment_status == 'paid' %}badge-success{% elif visit.payment_status == 'partial' %}badge-warning{% else %}badge-danger{% endif %} badge-lg">
+            {{ visit.payment_status | capitalize }}
+          </span>
+        </div>
+        <div class="row">
+          <div class="col-md-6">
+            <h4><i class="fas fa-user"></i> {{ visit.patient.first_name }} {{ visit.patient.last_name }}</h4>
+            <p class="mb-2">
+              <strong>Date of Birth:</strong> {{ visit.patient.date_of_birth.strftime('%Y-%m-%d') }}
+              <span class="ml-3"><strong>Gender:</strong> {{ visit.patient.gender }}</span>
+            </p>
+            {% if visit.patient.phone %}
+              <p class="mb-2"><strong>Phone:</strong> {{ visit.patient.phone }}</p>
+            {% endif %}
+            {% if visit.patient.email %}
+              <p class="mb-2"><strong>Email:</strong> {{ visit.patient.email }}</p>
+            {% endif %}
+            {% if visit.patient.address %}
+              <p class="mb-0"><strong>Address:</strong> {{ visit.patient.address }}</p>
+            {% endif %}
+          </div>
+          <div class="col-md-6">
+            <h5><i class="fas fa-calendar-alt"></i> Visit Information</h5>
+            <p class="mb-2"><strong>Visit Date:</strong> {{ visit.visit_date.strftime('%Y-%m-%d %H:%M') }}</p>
+            {% if visit.follow_up_date %}
+              <p class="mb-2"><strong>Follow-up:</strong> {{ visit.follow_up_date.strftime('%Y-%m-%d %H:%M') }}</p>
+            {% endif %}
+            <p class="mb-2">
+              <strong>Payment Total:</strong> ${{ "%.2f"|format(visit.payment_total) }}
+              {% if visit.payment_remaining > 0 %}
+                <span class="text-warning">(${{ "%.2f"|format(visit.payment_remaining) }} remaining)</span>
+              {% endif %}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Diagnosis -->
+    <div class="card section-card">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-stethoscope"></i> Diagnosis</h5>
+      </div>
+      <div class="card-body">
+        {% if visit.diagnosis %}
+          <p class="mb-0">{{ visit.diagnosis }}</p>
+        {% else %}
+          <em class="text-muted">No diagnosis recorded for this visit.</em>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- ECG Analysis -->
+    {% if ecg_analysis %}
+    <div class="card ecg-card">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-heartbeat"></i> ECG Analysis Results</h5>
+      </div>
+      <div class="card-body">
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <h6>Primary Diagnosis:</h6>
+            <div class="font-weight-bold text-success h5">
+              {{ ecg_analysis.primary_diagnosis.name }}
+            </div>
+          </div>          <div class="col-md-6">
+            <h6>Confidence Level:</h6>
+            <div class="font-weight-bold h5 {% if ecg_analysis.primary_diagnosis.probability > 0.7 %}text-success{% elif ecg_analysis.primary_diagnosis.probability > 0.5 %}text-warning{% else %}text-danger{% endif %}">
+              {{ "%.1f"|format(ecg_analysis.primary_diagnosis.probability * 100) }}%
+            </div>
+          </div>
+        </div>        <h6>Detailed Probabilities:</h6>
+        <div class="row">
+          {% for abbr, prob in ecg_analysis.probabilities.items() %}
+            {% set prob_percent = "%.1f"|format(prob * 100) %}
+            <div class="col-md-6 mb-2">
+              <small><strong>{{ ecg_analysis.class_names[abbr] }} ({{ abbr }}):</strong> {{ prob_percent }}%</small>
+              <div class="progress" style="height: 5px;">
+                <div class="progress-bar" role="progressbar" style="width: {{ prob_percent }}%;"></div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% elif visit.ecg_mat and visit.ecg_hea %}
+    <div class="card ecg-card">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-heartbeat"></i> ECG Files</h5>
+      </div>
+      <div class="card-body">
+        <p class="text-info"><i class="fas fa-info-circle"></i> ECG files uploaded but analysis not completed yet.</p>
+        <p><strong>MAT File:</strong> {{ visit.ecg_mat.split('/')[-1] if visit.ecg_mat else 'Not uploaded' }}</p>
+        <p><strong>HEA File:</strong> {{ visit.ecg_hea.split('/')[-1] if visit.ecg_hea else 'Not uploaded' }}</p>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Prescriptions -->
+    {% if prescriptions %}
+    <div class="card prescription-card">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-pills"></i> Prescriptions ({{ prescriptions|length }})</h5>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Medication</th>
+                <th>Dosage Instructions</th>
+                <th>Quantity</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for prescription in prescriptions %}
+                <tr>
+                  <td>
+                    <strong>{{ prescription.medicament.nom_com if prescription.medicament else 'Unknown' }}</strong>
+                    {% if prescription.medicament %}
+                      <br><small class="text-muted">{{ prescription.medicament.dosage }}{{ prescription.medicament.unite }}</small>
+                    {% endif %}
+                  </td>
+                  <td>{{ prescription.dosage_instructions }}</td>
+                  <td><span class="badge badge-primary">{{ prescription.quantity }}</span></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Documents -->
+    {% if documents %}
+    <div class="card document-card">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-file-alt"></i> Uploaded Documents ({{ documents|length }})</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          {% for document in documents %}
+            <div class="col-md-6 mb-3">
+              <div class="card h-100">
+                <div class="card-body">
+                  <h6 class="card-title">
+                    <i class="fas {% if document.doc_type == 'blood' %}fa-tint{% elif document.doc_type == 'mri' %}fa-brain{% else %}fa-x-ray{% endif %}"></i>
+                    {{ document.doc_type | title }} Work
+                  </h6>
+                  {% if document.notes %}
+                    <p class="card-text">{{ document.notes }}</p>
+                  {% endif %}
+                  {% if document.file_path %}
+                    <a href="#" class="btn btn-sm btn-outline-primary">
+                      <i class="fas fa-download"></i> Download
+                    </a>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Medical History (if available) -->
+    {% if visit.patient.medical_history %}
+    <div class="card section-card">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-history"></i> Medical History</h5>
+      </div>
+      <div class="card-body">
+        <p class="mb-0">{{ visit.patient.medical_history }}</p>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- No additional data message -->
+    {% if not prescriptions and not documents and not ecg_analysis and not visit.patient.medical_history %}
+    <div class="card">
+      <div class="card-body text-center text-muted">
+        <i class="fas fa-info-circle fa-2x mb-3"></i>
+        <p>No additional medical data recorded for this visit.</p>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
