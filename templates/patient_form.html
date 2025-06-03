@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>New Patient</title>
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+</head>
+<body class="p-3">
+  <div class="container">
+    <h1>Create Patient</h1>
+
+    <form method="POST">
+      {{ form.hidden_tag() }}
+
+      <div class="form-row">
+        <div class="form-group col-md-6">
+          {{ form.first_name.label(class="form-label") }}
+          {{ form.first_name(class="form-control") }}
+          {% for err in form.first_name.errors %}
+            <small class="text-danger">{{ err }}</small>
+          {% endfor %}
+        </div>
+        <div class="form-group col-md-6">
+          {{ form.last_name.label(class="form-label") }}
+          {{ form.last_name(class="form-control") }}
+          {% for err in form.last_name.errors %}
+            <small class="text-danger">{{ err }}</small>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group col-md-4">
+          {{ form.date_of_birth.label(class="form-label") }}
+          {{ form.date_of_birth(class="form-control") }}
+          {% for err in form.date_of_birth.errors %}
+            <small class="text-danger">{{ err }}</small>
+          {% endfor %}
+        </div>
+        <div class="form-group col-md-4">
+          {{ form.gender.label(class="form-label") }}
+          {{ form.gender(class="form-control") }}
+          {% for err in form.gender.errors %}
+            <small class="text-danger">{{ err }}</small>
+          {% endfor %}
+        </div>
+        <div class="form-group col-md-4">
+          {{ form.phone.label(class="form-label") }}
+          {{ form.phone(class="form-control") }}
+          {% for err in form.phone.errors %}
+            <small class="text-danger">{{ err }}</small>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="form-group">
+        {{ form.address.label(class="form-label") }}
+        {{ form.address(class="form-control", rows=2) }}
+        {% for err in form.address.errors %}
+          <small class="text-danger">{{ err }}</small>
+        {% endfor %}
+      </div>
+
+      <div class="form-row">
+        <div class="form-group col-md-6">
+          {{ form.email.label(class="form-label") }}
+          {{ form.email(class="form-control") }}
+          {% for err in form.email.errors %}
+            <small class="text-danger">{{ err }}</small>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="form-group">
+        {{ form.medical_history.label(class="form-label") }}
+        {{ form.medical_history(class="form-control", rows=3) }}
+        {% for err in form.medical_history.errors %}
+          <small class="text-danger">{{ err }}</small>
+        {% endfor %}
+      </div>
+
+      <button type="submit" class="btn btn-primary">Create Patient</button>
+      <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
+    </form>
+  </div>
+</body>
+</html>

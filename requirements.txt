@@ -3,7 +3,9 @@ Flask-Admin
 Flask-SQLAlchemy
 psycopg2-binary
 WTForms
+WTForms[sqlalchemy]
+email-validator
 torch
 wfdb
 numpy
-# plus any other dependencies your ResNet code needs
+werkzeug

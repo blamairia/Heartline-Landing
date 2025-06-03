@@ -46,9 +46,9 @@ from models import (
 # ----------------------------------------
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "replace-this-with-a-secure-random-string"
-# Use SQLite for testing - comment out PostgreSQL line below if PostgreSQL is not available
-# app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql+psycopg2://postgres:root@localhost:5432/nv"
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///hearline.db"  # Temporary for testing
+# Use PostgreSQL for production - comment out SQLite line below if PostgreSQL is available
+app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql+psycopg2://postgres:root@localhost:5432/nv"
+# app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///hearline.db"  # Fallback for testing
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # Folders where uploads will be saved
@@ -258,7 +258,8 @@ def create_visit():
                     visit_id             = v.id,
                     medicament_num_enr   = med_code,
                     dosage_instructions  = instr,
-                    quantity             = qty,                )
+                    quantity             = qty,
+                )
                 db.session.add(pr)
 
         # 4) Save nested Documents
@@ -312,9 +313,10 @@ def create_visit():
                 flash(f"ECG inference failed: {e}", "warning")
 
         flash("Visit created successfully!", "success")
+        flash(f"<a href='{url_for('visit_details', visit_id=v.id)}' class='alert-link'>View visit details</a>", "info")
         return redirect(url_for("visit_details", visit_id=v.id))
 
-    return render_template("visit_form_working.html", form=form)
+    return render_template("visit_form.html", form=form)
 
 
 @app.route("/visit/<int:visit_id>")

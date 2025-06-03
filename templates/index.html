@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Clinic Dashboard</title>
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+</head>
+<body class="p-3">
+  <div class="container">
+    <h1>Clinic Dashboard</h1>
+
+    <p class="mb-4">
+      <a href="{{ url_for('create_patient') }}" class="btn btn-primary">New Patient</a>
+      <a href="{{ url_for('create_visit') }}" class="btn btn-success">New Visit</a>
+    </p>
+
+    <h2>Recent Patients</h2>
+    <ul class="list-group mb-4">
+      {% for p in patients %}
+        <li class="list-group-item">
+          {{ p.first_name }} {{ p.last_name }} &mdash;
+          DOB: {{ p.date_of_birth.strftime('%Y-%m-%d') }}
+        </li>
+      {% else %}
+        <li class="list-group-item">No patients yet.</li>
+      {% endfor %}
+    </ul>
+
+    <h2>Recent Visits</h2>
+    <ul class="list-group">
+      {% for v in visits %}
+        <li class="list-group-item">
+          Visit #{{ v.id }} — Patient:
+          {{ v.patient.first_name }} {{ v.patient.last_name }} —
+          {{ v.visit_date.strftime('%Y-%m-%d %H:%M') }} —
+          Payment: {{ v.payment_status | capitalize }}
+        </li>
+      {% else %}
+        <li class="list-group-item">No visits yet.</li>
+      {% endfor %}
+    </ul>
+  </div>
+</body>
+</html>

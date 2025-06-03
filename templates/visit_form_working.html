@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>New Visit</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <style>
+    .ecg-analysis-card {
+      border-left: 4px solid #007bff;
+    }
+    .progress {
+      background-color: #e9ecef;
+    }
+    .progress-bar {
+      background-color: #007bff;
+    }    .spinner-border-sm {
+      width: 1rem;
+      height: 1rem;
+    }
+  </style>
+  <script>
+    // ECG Real-time Analysis Functions
+    function checkAndAnalyzeECG() {
+      const matFile = document.getElementById('ecg_mat_file').files[0];
+      const heaFile = document.getElementById('ecg_hea_file').files[0];
+      
+      if (matFile && heaFile) {
+        analyzeECGFiles(matFile, heaFile);
+      } else {
+        // Hide analysis section if one or both files are missing
+        const analysisSection = document.getElementById('ecg-analysis-section');
+        if (analysisSection) {
+          analysisSection.style.display = 'none';
+        }
+      }
+    }
+
+    function analyzeECGFiles(matFile, heaFile) {
+      const analysisSection = document.getElementById('ecg-analysis-section');
+      const loadingDiv = document.getElementById('ecg-analysis-loading');
+      const resultsDiv = document.getElementById('ecg-analysis-results');
+      const errorDiv = document.getElementById('ecg-analysis-error');
+      
+      // Show analysis section and loading
+      analysisSection.style.display = 'block';
+      loadingDiv.style.display = 'block';
+      resultsDiv.style.display = 'none';
+      errorDiv.style.display = 'none';
+      
+      // Create FormData for AJAX request
+      const formData = new FormData();
+      formData.append('mat_file', matFile);
+      formData.append('hea_file', heaFile);
+      
+      // Send AJAX request
+      fetch('/analyze_ecg', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        loadingDiv.style.display = 'none';
+        
+        if (data.success) {
+          displayECGResults(data);
+          resultsDiv.style.display = 'block';
+        } else {
+          errorDiv.textContent = data.error || 'Analysis failed';
+          errorDiv.style.display = 'block';
+        }
+      })
+      .catch(error => {
+        loadingDiv.style.display = 'none';
+        errorDiv.textContent = 'Network error: ' + error.message;
+        errorDiv.style.display = 'block';
+      });
+    }
+
+    function displayECGResults(data) {
+      // Display primary diagnosis
+      const primaryDiag = document.getElementById('primary-diagnosis');
+      primaryDiag.textContent = data.primary_diagnosis.name;
+      
+      // Display confidence level
+      const confidence = document.getElementById('confidence-level');
+      const confPercent = (data.primary_diagnosis.probability * 100).toFixed(1);
+      confidence.textContent = confPercent + '%';
+      confidence.className = 'font-weight-bold ' + 
+        (data.primary_diagnosis.probability > 0.7 ? 'text-success' : 
+         data.primary_diagnosis.probability > 0.5 ? 'text-warning' : 'text-danger');
+      
+      // Display detailed probabilities
+      const detailedProbs = document.getElementById('detailed-probabilities');
+      const classNames = {
+        'SNR': 'Sinus Rhythm',
+        'AF': 'Atrial Fibrillation',
+        'IAVB': 'AV Block',
+        'LBBB': 'Left Bundle Branch Block',
+        'RBBB': 'Right Bundle Branch Block',
+        'PAC': 'Premature Atrial Contraction',
+        'PVC': 'Premature Ventricular Contraction',
+        'STD': 'ST Depression',
+        'STE': 'ST Elevation'
+      };
+      
+      let probHtml = '<div class="row">';
+      Object.entries(data.probabilities).forEach(([abbr, prob]) => {
+        const percent = (prob * 100).toFixed(1);
+        const name = classNames[abbr] || abbr;
+        probHtml += `
+          <div class="col-md-6 mb-2">
+            <small><strong>${name} (${abbr}):</strong> ${percent}%</small>
+            <div class="progress" style="height: 5px;">
+              <div class="progress-bar" role="progressbar" style="width: ${percent}%"></div>
+            </div>
+          </div>
+        `;
+      });
+      probHtml += '</div>';
+      detailedProbs.innerHTML = probHtml;
+    }
+  </script>
+</head>
+<body class="p-3">
+  <div class="container">
+    <h1>Create Visit</h1>
+
+    <form method="POST" enctype="multipart/form-data">
+      {{ form.hidden_tag() }}
+
+      <!-- Patient Selection -->
+      <div class="form-group">
+        {{ form.patient_id.label(class="form-label") }}
+        {{ form.patient_id(class="form-control") }}
+        {% if not form.patient_id.choices or form.patient_id.choices|length == 0 %}
+          <small class="text-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            No patients found. Please <a href="{{ url_for('create_patient') }}">create a patient</a> first.
+          </small>
+        {% endif %}
+      </div>
+
+      <!-- Visit Date -->
+      <div class="form-group">
+        {{ form.visit_date.label(class="form-label") }}
+        {{ form.visit_date(class="form-control") }}
+      </div>
+
+      <!-- Diagnosis -->
+      <div class="form-group">
+        {{ form.diagnosis.label(class="form-label") }}
+        {{ form.diagnosis(class="form-control", rows=3) }}
+      </div>
+
+      <!-- Follow-up Date -->
+      <div class="form-group">
+        {{ form.follow_up_date.label(class="form-label") }}
+        {{ form.follow_up_date(class="form-control") }}
+      </div>      <!-- ECG Files -->
+      <div class="row">
+        <div class="col-md-6">
+          <div class="form-group">
+            {{ form.ecg_mat.label(class="form-label") }}
+            {{ form.ecg_mat(class="form-control-file", id="ecg_mat_file", onchange="checkAndAnalyzeECG()") }}
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="form-group">
+            {{ form.ecg_hea.label(class="form-label") }}
+            {{ form.ecg_hea(class="form-control-file", id="ecg_hea_file", onchange="checkAndAnalyzeECG()") }}
+          </div>
+        </div>
+      </div>
+      
+      <!-- Real-time ECG Analysis Results -->
+      <div id="ecg-analysis-section" style="display: none;">
+        <div class="alert alert-info ecg-analysis-card">
+          <h5><i class="fa fa-heartbeat"></i> ECG Analysis Results</h5>
+          <div id="ecg-analysis-loading" style="display: none;">
+            <div class="spinner-border spinner-border-sm" role="status">
+              <span class="sr-only">Analyzing...</span>
+            </div>
+            Analyzing ECG data...
+          </div>
+          <div id="ecg-analysis-results" style="display: none;">
+            <div class="row">
+              <div class="col-md-6">
+                <h6>Primary Diagnosis:</h6>
+                <div id="primary-diagnosis" class="font-weight-bold text-primary"></div>
+              </div>
+              <div class="col-md-6">
+                <h6>Confidence:</h6>
+                <div id="confidence-level" class="font-weight-bold"></div>
+              </div>
+            </div>
+            <div class="mt-3">
+              <h6>Detailed Probabilities:</h6>
+              <div id="detailed-probabilities"></div>
+            </div>
+          </div>
+          <div id="ecg-analysis-error" class="text-danger" style="display: none;"></div>
+        </div>
+      </div>
+
+      <!-- Payment Information -->
+      <div class="row">
+        <div class="col-md-4">
+          <div class="form-group">
+            {{ form.payment_total.label(class="form-label") }}
+            {{ form.payment_total(class="form-control") }}
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="form-group">
+            {{ form.payment_status.label(class="form-label") }}
+            {{ form.payment_status(class="form-control") }}
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="form-group">
+            {{ form.payment_remaining.label(class="form-label") }}
+            {{ form.payment_remaining(class="form-control") }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Prescriptions -->
+      <h4>Prescriptions</h4>
+      <div id="prescriptions-container">
+        {% for pres_sub in form.prescriptions %}
+          <div class="prescription-row border rounded p-3 mb-2">
+            <div class="row">
+              <div class="col-md-5">
+                <div class="form-group">
+                  {{ pres_sub.medicament_num_enr.label(class="form-label") }}
+                  {{ pres_sub.medicament_num_enr(class="form-control") }}
+                  {% if not pres_sub.medicament_num_enr.choices or pres_sub.medicament_num_enr.choices|length == 0 %}
+                    <small class="text-warning">
+                      <i class="fas fa-exclamation-triangle"></i>
+                      No medications found in database.
+                    </small>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="col-md-2">
+                <div class="form-group">
+                  {{ pres_sub.quantity.label(class="form-label") }}
+                  {{ pres_sub.quantity(class="form-control") }}
+                </div>
+              </div>
+              <div class="col-md-5">
+                <div class="form-group">
+                  {{ pres_sub.dosage_instructions.label(class="form-label") }}
+                  {{ pres_sub.dosage_instructions(class="form-control") }}
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <!-- Documents -->
+      <h4>Documents</h4>
+      <div id="documents-container">
+        {% for doc_sub in form.documents %}
+          <div class="document-row border rounded p-3 mb-2">
+            <div class="row">
+              <div class="col-md-3">
+                <div class="form-group">
+                  {{ doc_sub.doc_type.label(class="form-label") }}
+                  {{ doc_sub.doc_type(class="form-control") }}
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  {{ doc_sub.file_path.label(class="form-label") }}
+                  {{ doc_sub.file_path(class="form-control-file") }}
+                </div>
+              </div>
+              <div class="col-md-5">
+                <div class="form-group">
+                  {{ doc_sub.notes.label(class="form-label") }}
+                  {{ doc_sub.notes(class="form-control") }}
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <!-- Submit Button -->
+      <div class="form-group mt-4">
+        <button type="submit" class="btn btn-primary">Create Visit</button>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary ml-2">Cancel</a>
+      </div>
+    </form>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

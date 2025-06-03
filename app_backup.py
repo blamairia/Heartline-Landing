@@ -258,7 +258,8 @@ def create_visit():
                     visit_id             = v.id,
                     medicament_num_enr   = med_code,
                     dosage_instructions  = instr,
-                    quantity             = qty,                )
+                    quantity             = qty,
+                )
                 db.session.add(pr)
 
         # 4) Save nested Documents
@@ -282,8 +283,7 @@ def create_visit():
 
         # 5) OPTIONAL: Run ECG inference immediately after saving if both files exist
         if v.ecg_mat and v.ecg_hea and NET:
-            try:
-                rec_basename = os.path.splitext(os.path.basename(v.ecg_hea))[0]
+            try:                rec_basename = os.path.splitext(os.path.basename(v.ecg_hea))[0]
                 rec_dir = os.path.dirname(v.ecg_hea)
                 record = wfdb.rdrecord(os.path.join(rec_dir, rec_basename))
                 sig_all = record.p_signal  # shape [n_samples, n_leads]
@@ -312,9 +312,10 @@ def create_visit():
                 flash(f"ECG inference failed: {e}", "warning")
 
         flash("Visit created successfully!", "success")
+        flash(f"<a href='{url_for('visit_details', visit_id=v.id)}' class='alert-link'>View visit details</a>", "info")
         return redirect(url_for("visit_details", visit_id=v.id))
 
-    return render_template("visit_form_working.html", form=form)
+    return render_template("visit_form.html", form=form)
 
 
 @app.route("/visit/<int:visit_id>")
