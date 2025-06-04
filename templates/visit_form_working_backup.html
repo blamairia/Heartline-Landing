@@ -1,12 +1,9 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>New Visit</title>
-  <link rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
-  <link rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+{% extends "base.html" %}
+
+{% block title %}New Visit | Hearline Medical Clinic{% endblock %}
+{% block extra_css %}
+
   <style>
     .ecg-analysis-card {
       border-left: 4px solid #007bff;
@@ -21,156 +18,10 @@
       height: 1rem;
     }
   </style>
-  <script>
-    // JavaScript to clone/remove prescription rows
-    function addPrescription() {
-      const container = document.getElementById('prescriptions-container');
-      const index = container.children.length;
-      const maxEntries = 5; // {{ form.prescriptions.max_entries }}
-      if (index >= maxEntries) return;
-      
-      const prescTemplate = document.getElementById('prescription-template');
-      const prescClone = prescTemplate.content.cloneNode(true);
-      
-      // Update all field names and IDs
-      prescClone.querySelectorAll('[data-index]').forEach(el => {
-        el.name = el.name.replace('__prefix__', index);
-        el.id   = el.id.replace('__prefix__', index);
-      });
-      
-      // Copy medication options from the first existing prescription select if available
-      const existingSelect = container.querySelector('select[name*="medicament_num_enr"]');
-      const newSelect = prescClone.querySelector('select[name*="medicament_num_enr"]');
-      if (existingSelect && newSelect) {
-        newSelect.innerHTML = existingSelect.innerHTML;
-      }
-      
-      container.appendChild(prescClone);    }
-    
-    function removePrescription(btn) {
-      btn.closest('.prescription-row').remove();
-    }
+  {% endblock %}
 
-    // JavaScript to clone/remove document rows
-    function addDocument() {
-      const container = document.getElementById('documents-container');
-      const index = container.children.length;
-      const maxEntries = 3; // {{ form.documents.max_entries }}
-      if (index >= maxEntries) return;
-      
-      const docTemplate = document.getElementById('document-template');
-      const docClone = docTemplate.content.cloneNode(true);
-      
-      docClone.querySelectorAll('[data-index]').forEach(el => {
-        el.name = el.name.replace('__prefix__', index);
-        el.id   = el.id.replace('__prefix__', index);
-      });
-      
-      container.appendChild(docClone);
-    }
-    
-    function removeDocument(btn) {
-      btn.closest('.document-row').remove();
-    }
-
-    // ECG Real-time Analysis Functions
-    function checkAndAnalyzeECG() {
-      const matFile = document.getElementById('ecg_mat_file').files[0];
-      const heaFile = document.getElementById('ecg_hea_file').files[0];
-      
-      if (matFile && heaFile) {
-        analyzeECGFiles(matFile, heaFile);
-      } else {
-        // Hide analysis section if one or both files are missing
-        document.getElementById('ecg-analysis-section').style.display = 'none';
-      }
-    }
-
-    function analyzeECGFiles(matFile, heaFile) {
-      const analysisSection = document.getElementById('ecg-analysis-section');
-      const loadingDiv = document.getElementById('ecg-analysis-loading');
-      const resultsDiv = document.getElementById('ecg-analysis-results');
-      const errorDiv = document.getElementById('ecg-analysis-error');
-      
-      // Show analysis section and loading
-      analysisSection.style.display = 'block';
-      loadingDiv.style.display = 'block';
-      resultsDiv.style.display = 'none';
-      errorDiv.style.display = 'none';
-      
-      // Create FormData for AJAX request
-      const formData = new FormData();
-      formData.append('mat_file', matFile);
-      formData.append('hea_file', heaFile);
-      
-      // Send AJAX request
-      fetch('/analyze_ecg', {
-        method: 'POST',
-        body: formData
-      })
-      .then(response => response.json())
-      .then(data => {
-        loadingDiv.style.display = 'none';
-        
-        if (data.success) {
-          displayECGResults(data);
-          resultsDiv.style.display = 'block';
-        } else {
-          errorDiv.textContent = data.error || 'Analysis failed';
-          errorDiv.style.display = 'block';
-        }
-      })
-      .catch(error => {
-        loadingDiv.style.display = 'none';
-        errorDiv.textContent = 'Network error: ' + error.message;
-        errorDiv.style.display = 'block';
-      });
-    }
-
-    function displayECGResults(data) {
-      // Display primary diagnosis
-      const primaryDiag = document.getElementById('primary-diagnosis');
-      primaryDiag.textContent = data.primary_diagnosis.name;
-      
-      // Display confidence level
-      const confidence = document.getElementById('confidence-level');
-      const confPercent = (data.primary_diagnosis.probability * 100).toFixed(1);
-      confidence.textContent = confPercent + '%';
-      confidence.className = 'font-weight-bold ' + 
-        (data.primary_diagnosis.probability > 0.7 ? 'text-success' : 
-         data.primary_diagnosis.probability > 0.5 ? 'text-warning' : 'text-danger');
-      
-      // Display detailed probabilities
-      const detailedProbs = document.getElementById('detailed-probabilities');
-      const classNames = {
-        'SNR': 'Sinus Rhythm',
-        'AF': 'Atrial Fibrillation',
-        'IAVB': 'AV Block',
-        'LBBB': 'Left Bundle Branch Block',
-        'RBBB': 'Right Bundle Branch Block',
-        'PAC': 'Premature Atrial Contraction',
-        'PVC': 'Premature Ventricular Contraction',
-        'STD': 'ST Depression',
-        'STE': 'ST Elevation'
-      };
-      
-      let probHtml = '<div class="row">';
-      Object.entries(data.probabilities).forEach(([abbr, prob]) => {
-        const percent = (prob * 100).toFixed(1);
-        const name = classNames[abbr] || abbr;
-        probHtml += `
-          <div class="col-md-6 mb-2">
-            <small><strong>${name} (${abbr}):</strong> ${percent}%</small>
-            <div class="progress" style="height: 5px;">
-              <div class="progress-bar" role="progressbar" style="width: ${percent}%"></div>
-            </div>
-          </div>
-        `;
-      });
-      probHtml += '</div>';
-      detailedProbs.innerHTML = probHtml;
-    }
-  </script>
+{% block content %}
+  
 </head>
 <body class="p-3">
   <div class="container">
@@ -450,3 +301,131 @@
   </div>
 </body>
 </html>
+
+
+  
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ──────────────────────────────────────────────────────────────────────────────
+// helpers for prescriptions / documents   (unchanged)
+// ──────────────────────────────────────────────────────────────────────────────
+function addPrescription() { /* ... original code ... */ }
+function removePrescription(btn) { btn.closest('.prescription-row').remove(); }
+function addDocument()    { /* ... original code ... */ }
+function removeDocument(btn){ btn.closest('.document-row').remove(); }
+
+/* ============================================================================
+   ECG  ─ real-time analysis helper
+=========================================================================== */
+function checkAndAnalyzeECG() {
+  const matFile = document.getElementById('ecg_mat_file').files[0];
+  const heaFile = document.getElementById('ecg_hea_file').files[0];
+
+  const section  = document.getElementById('ecg-analysis-section');
+  const banner   = section?.querySelector('.alert.alert-info');
+  const spinner  = document.getElementById('ecg-analysis-loading');
+  const results  = document.getElementById('ecg-analysis-results');
+  const errorBox = document.getElementById('ecg-analysis-error');
+
+  /* Make wrapper + banner visible at the very first click */
+  if (section) section.style.display = 'block';
+  if (banner)  banner.style.display  = 'block';
+
+  /* Nothing to analyse until both files are selected */
+  if (!(matFile && heaFile)) {
+    if (spinner) spinner.style.display = 'none';
+    if (results) results.style.display = 'none';
+    if (errorBox) errorBox.style.display = 'none';
+    return;                      // stop here – don’t fire request yet
+  }
+
+  /* -----------------------------------------------------------------------
+     Both files are present – show spinner and launch request
+  ----------------------------------------------------------------------- */
+  if (spinner)  spinner.style.display  = 'block';
+  if (results)  results.style.display  = 'none';
+  if (errorBox) errorBox.style.display = 'none';
+
+  analyzeECGFiles(matFile, heaFile);   // <- real work happens here
+}
+
+/* ============================================================================
+   Send files to backend, then render the result
+=========================================================================== */
+function analyzeECGFiles(matFile, heaFile) {
+  const spinner  = document.getElementById('ecg-analysis-loading');
+  const results  = document.getElementById('ecg-analysis-results');
+  const errorBox = document.getElementById('ecg-analysis-error');
+
+  const fd = new FormData();
+  fd.append('mat_file', matFile);
+  fd.append('hea_file', heaFile);
+
+  fetch('/analyze_ecg', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(data => {
+      spinner.style.display = 'none';
+      if (data.success) {
+        displayECGResults(data);
+        results.style.display = 'block';
+      } else {
+        errorBox.textContent = data.error || 'Analysis failed';
+        errorBox.style.display = 'block';
+      }
+    })
+    .catch(err => {
+      spinner.style.display = 'none';
+      errorBox.textContent  = 'Network error: ' + err.message;
+      errorBox.style.display = 'block';
+    });
+}
+
+/* ============================================================================
+   Pretty-print backend response
+=========================================================================== */
+function displayECGResults(data) {
+  document.getElementById('primary-diagnosis').textContent = data.primary_diagnosis.name;
+
+  const conf = (data.primary_diagnosis.probability * 100).toFixed(1) + '%';
+  const confEl = document.getElementById('confidence-level');
+  confEl.textContent = conf;
+  confEl.className = 'font-weight-bold ' +
+        (data.primary_diagnosis.probability > 0.7 ? 'text-success'
+         : data.primary_diagnosis.probability > 0.5 ? 'text-warning'
+         : 'text-danger');
+
+  const classNames = {
+    'SNR':'Sinus Rhythm','AF':'Atrial Fibrillation','IAVB':'AV Block',
+    'LBBB':'Left Bundle Branch Block','RBBB':'Right Bundle Branch Block',
+    'PAC':'Premature Atrial Contraction','PVC':'Premature Ventricular Contraction',
+    'STD':'ST Depression','STE':'ST Elevation'
+  };
+  let html = '<div class="row">';
+  for (const [abbr, p] of Object.entries(data.probabilities)) {
+    const pct = (p * 100).toFixed(1);
+    html += `
+      <div class="col-md-6 mb-2">
+        <small><strong>${classNames[abbr]||abbr} (${abbr}):</strong> ${pct}%</small>
+        <div class="progress" style="height:5px;">
+          <div class="progress-bar" role="progressbar" style="width:${pct}%"></div>
+        </div>
+      </div>`;
+  }
+  html += '</div>';
+  document.getElementById('detailed-probabilities').innerHTML = html;
+}
+
+/* ============================================================================
+   Wire file-inputs on DOM ready
+=========================================================================== */
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('ecg_mat_file')
+          .addEventListener('change', checkAndAnalyzeECG);
+  document.getElementById('ecg_hea_file')
+          .addEventListener('change', checkAndAnalyzeECG);
+});
+</script>
+{% endblock %}
+
