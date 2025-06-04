@@ -1,12 +1,8 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>New Visit</title>
-  <link rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
-  <link rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+{% extends "base.html" %}
+
+{% block title %}New Patient | Hearline Medical Clinic{% endblock %}
+
+{% block content %}
   <style>
     .ecg-analysis-card {
       border-left: 4px solid #007bff;
@@ -450,3 +446,6 @@
   </div>
 </body>
 </html>
+{% endblock %}
+
+{% block extra_js %}
