@@ -314,7 +314,7 @@ def create_visit():
         flash("Visit created successfully!", "success")
         return redirect(url_for("visit_details", visit_id=v.id))
 
-    return render_template("visit_form_working_backup.html", form=form)
+    return render_template("forms/visit_form.html", form=form)
 
 
 @app.route("/visit/<int:visit_id>")
