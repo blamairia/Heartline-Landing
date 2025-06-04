@@ -1,60 +1,88 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Clinic Dashboard</title>  <link rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
-  <link rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-</head>
-<body class="p-3">
-  <div class="container">
-    <h1>Clinic Dashboard</h1>
+{% extends "base.html" %}
 
-    <p class="mb-4">
-      <a href="{{ url_for('create_patient') }}" class="btn btn-primary">New Patient</a>
-      <a href="{{ url_for('create_visit') }}" class="btn btn-success">New Visit</a>
-    </p>
+{% block title %}Dashboard | Hearline Medical Clinic{% endblock %}
 
-    <h2>Recent Patients</h2>
-    <ul class="list-group mb-4">
-      {% for p in patients %}
-        <li class="list-group-item">
-          {{ p.first_name }} {{ p.last_name }} &mdash;
-          DOB: {{ p.date_of_birth.strftime('%Y-%m-%d') }}
-        </li>
-      {% else %}
-        <li class="list-group-item">No patients yet.</li>
-      {% endfor %}
-    </ul>    <h2>Recent Visits</h2>
-    <div class="list-group">
-      {% for v in visits %}
-        <a href="{{ url_for('visit_details', visit_id=v.id) }}" class="list-group-item list-group-item-action">
-          <div class="d-flex w-100 justify-content-between">
-            <h6 class="mb-1">Visit #{{ v.id }} - {{ v.patient.first_name }} {{ v.patient.last_name }}</h6>
-            <small class="text-muted">{{ v.visit_date.strftime('%Y-%m-%d %H:%M') }}</small>
-          </div>
-          <p class="mb-1">
-            {% if v.diagnosis %}
-              <strong>Diagnosis:</strong> {{ v.diagnosis[:100] }}{% if v.diagnosis|length > 100 %}...{% endif %}
-            {% else %}
-              <em>No diagnosis recorded</em>
-            {% endif %}
-          </p>
-          <small class="text-muted">
-            Payment: 
-            <span class="badge {% if v.payment_status == 'paid' %}badge-success{% elif v.payment_status == 'partial' %}badge-warning{% else %}badge-danger{% endif %}">
-              {{ v.payment_status | capitalize }}
-            </span>
-            {% if v.ecg_mat and v.ecg_hea %}
-              <span class="badge badge-info ml-2"><i class="fas fa-heartbeat"></i> ECG Available</span>
-            {% endif %}
-          </small>
-        </a>
-      {% else %}
-        <div class="list-group-item">No visits yet.</div>
-      {% endfor %}
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-tachometer-alt"></i> Clinic Dashboard</h1>
+        <div>
+          <a href="{{ url_for('create_patient') }}" class="btn btn-primary">
+            <i class="fas fa-user-plus"></i> New Patient
+          </a>
+          <a href="{{ url_for('create_visit') }}" class="btn btn-success ml-2">
+            <i class="fas fa-file-medical-alt"></i> New Visit
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>  <div class="row">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5><i class="fas fa-users"></i> Recent Patients</h5>
+        </div>
+        <div class="card-body">
+          {% if patients %}
+            <div class="list-group list-group-flush">
+              {% for p in patients %}
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="mb-1">{{ p.first_name }} {{ p.last_name }}</h6>
+                    <small class="text-muted">DOB: {{ p.date_of_birth.strftime('%Y-%m-%d') }}</small>
+                  </div>
+                  <i class="fas fa-user text-muted"></i>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="text-muted mb-0">No patients yet.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5><i class="fas fa-history"></i> Recent Visits</h5>
+        </div>
+        <div class="card-body">
+          {% if visits %}
+            <div class="list-group list-group-flush">
+              {% for v in visits %}
+                <a href="{{ url_for('visit_details', visit_id=v.id) }}" class="list-group-item list-group-item-action">
+                  <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1">Visit #{{ v.id }} - {{ v.patient.first_name }} {{ v.patient.last_name }}</h6>
+                    <small class="text-muted">{{ v.visit_date.strftime('%Y-%m-%d %H:%M') }}</small>
+                  </div>
+                  <p class="mb-1">
+                    {% if v.diagnosis %}
+                      <strong>Diagnosis:</strong> {{ v.diagnosis[:100] }}{% if v.diagnosis|length > 100 %}...{% endif %}
+                    {% else %}
+                      <em>No diagnosis recorded</em>
+                    {% endif %}
+                  </p>
+                  <small class="text-muted">
+                    Payment: 
+                    <span class="badge {% if v.payment_status == 'paid' %}badge-success{% elif v.payment_status == 'partial' %}badge-warning{% else %}badge-danger{% endif %}">
+                      {{ v.payment_status | capitalize }}
+                    </span>
+                    {% if v.ecg_mat and v.ecg_hea %}
+                      <span class="badge badge-info ml-2"><i class="fas fa-heartbeat"></i> ECG Available</span>
+                    {% endif %}
+                  </small>
+                </a>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="text-muted mb-0">No visits yet.</p>
+          {% endif %}
+        </div>
+      </div>
     </div>
   </div>
-</body>
-</html>
+</div>
+{% endblock %}
