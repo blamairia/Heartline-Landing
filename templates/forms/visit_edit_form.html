@@ -1,0 +1,346 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Visit | Hearline Medical Clinic{% endblock %}
+
+{% block extra_css %}
+<style>
+  .ecg-analysis-card {
+    border-left: 4px solid #007bff;
+  }
+  .progress {
+    background-color: #e9ecef;
+  }
+  .progress-bar {
+    background-color: #007bff;
+  }
+  .spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+  }
+  .current-file-info {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h1>Edit Visit</h1>
+  <p class="text-muted">Visit ID: {{ visit.id }} | Patient: {{ visit.patient.first_name }} {{ visit.patient.last_name }}</p>
+
+  <form method="POST" enctype="multipart/form-data">
+    {{ form.hidden_tag() }}
+
+    <div class="form-row">
+      <div class="form-group col-md-6">
+        {{ form.patient_id.label(class="form-label") }}
+        {{ form.patient_id(class="form-control") }}
+        {% if not form.patient_id.choices or form.patient_id.choices|length == 0 %}
+          <small class="text-warning">No patients found. Please create patients first.</small>
+        {% endif %}
+        {% for err in form.patient_id.errors %}
+          <small class="text-danger">{{ err }}</small>
+        {% endfor %}
+      </div>
+      <div class="form-group col-md-6">
+        {{ form.visit_date.label(class="form-label") }}
+        {{ form.visit_date(class="form-control") }}
+        <small class="form-text text-muted">Format: YYYY-MM-DD HH:MM</small>
+        {% for err in form.visit_date.errors %}
+          <small class="text-danger">{{ err }}</small>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="form-group">
+      {{ form.diagnosis.label(class="form-label") }}
+      {{ form.diagnosis(class="form-control", rows=3) }}
+      {% for err in form.diagnosis.errors %}
+        <small class="text-danger">{{ err }}</small>
+      {% endfor %}
+    </div>
+
+    <div class="form-row">
+      <div class="form-group col-md-6">
+        {{ form.follow_up_date.label(class="form-label") }}
+        {{ form.follow_up_date(class="form-control") }}
+        <small class="form-text text-muted">Format: YYYY-MM-DD HH:MM (optional)</small>
+        {% for err in form.follow_up_date.errors %}
+          <small class="text-danger">{{ err }}</small>
+        {% endfor %}
+      </div>
+      <div class="form-group col-md-3">
+        {{ form.payment_total.label(class="form-label") }}
+        {{ form.payment_total(class="form-control") }}
+        {% for err in form.payment_total.errors %}
+          <small class="text-danger">{{ err }}</small>
+        {% endfor %}
+      </div>
+      <div class="form-group col-md-3">
+        {{ form.payment_status.label(class="form-label") }}
+        {{ form.payment_status(class="form-control") }}
+        {% for err in form.payment_status.errors %}
+          <small class="text-danger">{{ err }}</small>
+        {% endfor %}
+      </div>
+    </div>
+    
+    <div class="form-group col-md-4 px-0">
+      {{ form.payment_remaining.label(class="form-label") }}
+      {{ form.payment_remaining(class="form-control") }}
+      {% for err in form.payment_remaining.errors %}
+        <small class="text-danger">{{ err }}</small>
+      {% endfor %}
+    </div>
+    
+    <hr>
+    <h4>Upload ECG Files (Optional)</h4>
+    
+    <!-- Show current ECG files if they exist -->
+    {% if visit.ecg_mat or visit.ecg_hea %}
+      <div class="current-file-info">
+        <h6>Current ECG Files:</h6>
+        {% if visit.ecg_mat %}
+          <small><strong>MAT File:</strong> {{ visit.ecg_mat|basename }}</small><br>
+        {% endif %}
+        {% if visit.ecg_hea %}
+          <small><strong>HEA File:</strong> {{ visit.ecg_hea|basename }}</small><br>
+        {% endif %}
+        <small class="text-muted">Upload new files below to replace existing ones.</small>
+      </div>
+    {% endif %}
+    
+    <div class="form-row">
+      <div class="form-group col-md-6">
+        {{ form.ecg_mat.label(class="form-label") }}
+        {{ form.ecg_mat(class="form-control-file", id="ecg_mat_file") }}
+        {% for err in form.ecg_mat.errors %}
+          <small class="text-danger">{{ err }}</small>
+        {% endfor %}
+      </div>
+      <div class="form-group col-md-6">
+        {{ form.ecg_hea.label(class="form-label") }}
+        {{ form.ecg_hea(class="form-control-file", id="ecg_hea_file") }}
+        {% for err in form.ecg_hea.errors %}
+          <small class="text-danger">{{ err }}</small>
+        {% endfor %}
+      </div>
+    </div>
+    
+    <!-- Real-time ECG Analysis Results -->
+    <div id="ecg-analysis-section" style="display: none;">
+      <div class="alert alert-info">
+        <h5><i class="fa fa-heartbeat"></i> ECG Analysis Results</h5>
+        <div id="ecg-analysis-loading" style="display: none;">
+          <div class="spinner-border spinner-border-sm" role="status">
+            <span class="sr-only">Analyzing...</span>
+          </div>
+          Analyzing ECG data...
+        </div>
+        <div id="ecg-analysis-results" style="display: none;">
+          <div class="row">
+            <div class="col-md-6">
+              <h6>Primary Diagnosis:</h6>
+              <div id="primary-diagnosis" class="font-weight-bold text-primary"></div>
+            </div>
+            <div class="col-md-6">
+              <h6>Confidence:</h6>
+              <div id="confidence-level" class="font-weight-bold"></div>
+            </div>
+          </div>
+          <div class="mt-3">
+            <h6>Detailed Probabilities:</h6>
+            <div id="detailed-probabilities"></div>
+          </div>
+        </div>
+        <div id="ecg-analysis-error" class="text-danger" style="display: none;"></div>
+      </div>
+    </div>
+    
+    <hr>
+    <h4>Prescriptions</h4>
+    <div id="prescriptions-container">
+      {% for pres_sub in form.prescriptions %}
+        <div class="prescription-row border rounded p-3 mb-2">
+          <button type="button" class="btn btn-sm btn-danger float-right"
+                  onclick="removePrescription(this)">Remove</button>
+          <div class="form-row">
+            <div class="form-group col-md-4">
+              {{ pres_sub.medicament_num_enr.label(class="form-label") }}
+              {{ pres_sub.medicament_num_enr(class="form-control") }}
+              {% if not pres_sub.medicament_num_enr.choices or pres_sub.medicament_num_enr.choices|length == 0 %}
+                <small class="text-warning">No medications found. Check database connection.</small>
+              {% endif %}
+              {% for err in pres_sub.medicament_num_enr.errors %}
+                <small class="text-danger">{{ err }}</small>
+              {% endfor %}
+            </div>
+            <div class="form-group col-md-4">
+              {{ pres_sub.dosage_instructions.label(class="form-label") }}
+              {{ pres_sub.dosage_instructions(class="form-control", rows=1) }}
+              {% for err in pres_sub.dosage_instructions.errors %}
+                <small class="text-danger">{{ err }}</small>
+              {% endfor %}
+            </div>
+            <div class="form-group col-md-3">
+              {{ pres_sub.quantity.label(class="form-label") }}
+              {{ pres_sub.quantity(class="form-control") }}
+              {% for err in pres_sub.quantity.errors %}
+                <small class="text-danger">{{ err }}</small>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+    <button type="button" class="btn btn-sm btn-secondary mb-3" onclick="addPrescription()">Add Prescription</button>
+    
+    {% if not form.prescriptions or not form.prescriptions.entries or (form.prescriptions.entries and (not form.prescriptions.entries[0].medicament_num_enr.choices or form.prescriptions.entries[0].medicament_num_enr.choices|length == 0)) %}
+      <div class="alert alert-warning" role="alert">
+        <strong>Note:</strong> Medications are not available. Please ensure the PostgreSQL database is connected and contains medication data.
+      </div>
+    {% endif %}
+    
+    <!-- Hidden template for new prescription rows -->
+    <template id="prescription-template">
+      <div class="prescription-row border rounded p-3 mb-2">
+        <button type="button" class="btn btn-sm btn-danger float-right"
+                onclick="removePrescription(this)">Remove</button>
+        <div class="form-row">
+          <div class="form-group col-md-4">
+            <label for="prescriptions-__prefix__-medicament_num_enr">Medicament (num_enr)</label>
+            <select class="form-control"
+                    id="prescriptions-__prefix__-medicament_num_enr"
+                    name="prescriptions-__prefix__-medicament_num_enr"
+                    data-index="__prefix__">
+              <option value="">Select a medication...</option>
+              {% if form.prescriptions and form.prescriptions.entries and form.prescriptions.entries[0].medicament_num_enr.choices %}
+                {% for val, label in form.prescriptions.entries[0].medicament_num_enr.choices %}
+                  <option value="{{ val }}">{{ label }}</option>
+                {% endfor %}
+              {% else %}
+                <option value="" disabled>No medications available</option>
+              {% endif %}
+            </select>
+          </div>
+          <div class="form-group col-md-4">
+            <label for="prescriptions-__prefix__-dosage_instructions">Dosage / Instructions</label>
+            <textarea class="form-control"
+                      id="prescriptions-__prefix__-dosage_instructions"
+                      name="prescriptions-__prefix__-dosage_instructions"
+                      data-index="__prefix__"
+                      rows="1"></textarea>
+          </div>
+          <div class="form-group col-md-3">
+            <label for="prescriptions-__prefix__-quantity">Quantity</label>
+            <input class="form-control"
+                   id="prescriptions-__prefix__-quantity"
+                   name="prescriptions-__prefix__-quantity"
+                   data-index="__prefix__"
+                   type="number" min="1" />
+          </div>
+        </div>
+      </div>
+    </template>
+    
+    <hr>
+    <h4>Scanned Documents</h4>
+    
+    <!-- Show current documents if they exist -->
+    {% if visit.documents.count() > 0 %}
+      <div class="current-file-info">
+        <h6>Current Documents:</h6>
+        {% for doc in visit.documents %}
+          <small><strong>{{ doc.doc_type|title }}:</strong> {{ doc.file_path|basename }} 
+          {% if doc.notes %}({{ doc.notes }}){% endif %}</small><br>
+        {% endfor %}
+        <small class="text-muted">Add new documents below. Existing documents will be replaced.</small>
+      </div>
+    {% endif %}
+    
+    <div id="documents-container">
+      {% for doc_sub in form.documents %}
+        <div class="document-row border rounded p-3 mb-2">
+          <button type="button" class="btn btn-sm btn-danger float-right"
+                  onclick="removeDocument(this)">Remove</button>
+          <div class="form-row">
+            <div class="form-group col-md-3">
+              {{ doc_sub.doc_type.label(class="form-label") }}
+              {{ doc_sub.doc_type(class="form-control") }}
+              {% for err in doc_sub.doc_type.errors %}
+                <small class="text-danger">{{ err }}</small>
+              {% endfor %}
+            </div>
+            <div class="form-group col-md-4">
+              {{ doc_sub.file_path.label(class="form-label") }}
+              {{ doc_sub.file_path(class="form-control-file") }}
+              {% for err in doc_sub.file_path.errors %}
+                <small class="text-danger">{{ err }}</small>
+              {% endfor %}
+            </div>
+            <div class="form-group col-md-4">
+              {{ doc_sub.notes.label(class="form-label") }}
+              {{ doc_sub.notes(class="form-control", rows=1) }}
+              {% for err in doc_sub.notes.errors %}
+                <small class="text-danger">{{ err }}</small>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+    <button type="button" class="btn btn-sm btn-secondary mb-3" onclick="addDocument()">Add Document</button>
+    
+    <!-- Hidden template for new document rows -->
+    <template id="document-template">
+      <div class="document-row border rounded p-3 mb-2">
+        <button type="button" class="btn btn-sm btn-danger float-right"
+                onclick="removeDocument(this)">Remove</button>
+        <div class="form-row">
+          <div class="form-group col-md-3">
+            <label for="documents-__prefix__-doc_type">Document Type</label>
+            <select class="form-control"
+                    id="documents-__prefix__-doc_type"
+                    name="documents-__prefix__-doc_type"
+                    data-index="__prefix__">
+              <option value="blood">Blood Work</option>
+              <option value="mri">MRI Scan</option>
+              <option value="xray">X-Ray Scan</option>
+            </select>
+          </div>
+          <div class="form-group col-md-4">
+            <label for="documents-__prefix__-file_path">Upload File</label>
+            <input class="form-control-file"
+                   id="documents-__prefix__-file_path"
+                   name="documents-__prefix__-file_path"
+                   data-index="__prefix__"
+                   type="file" />
+          </div>
+          <div class="form-group col-md-4">
+            <label for="documents-__prefix__-notes">Notes</label>
+            <textarea class="form-control"
+                      id="documents-__prefix__-notes"
+                      name="documents-__prefix__-notes"
+                      data-index="__prefix__"
+                      rows="1"></textarea>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <div class="mt-4">
+      <button type="submit" class="btn btn-success">Update Visit</button>
+      <a href="{{ url_for('visit_details', visit_id=visit.id) }}" class="btn btn-secondary">Cancel</a>
+      <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">Back to Dashboard</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/visit_form.js') }}"></script>
+{% endblock %}
