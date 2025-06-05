@@ -128,10 +128,9 @@
                             <small class="text-muted">ID: #{{ patient.id }}</small>
                           </div>
                         </div>
-                      </td>
-                      <td>
-                        {% set today = moment() %}
-                        {% set birth_date = moment(patient.date_of_birth) %}
+                      </td>                      <td>
+                        {% set today = date.today() %}
+                        {% set birth_date = patient.date_of_birth %}
                         {% set age = today.year - birth_date.year %}
                         {% if today.month < birth_date.month or (today.month == birth_date.month and today.day < birth_date.day) %}
                           {% set age = age - 1 %}

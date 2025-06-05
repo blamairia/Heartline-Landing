@@ -232,14 +232,13 @@
                           <div>
                             <span class="badge badge-warning">
                               <i class="fas fa-calendar-check"></i> {{ visit.follow_up_date.strftime('%Y-%m-%d') }}
-                            </span>
-                          </div>
-                          {% set today = moment() %}
-                          {% if visit.follow_up_date.date() < today.date() %}
+                            </span>                        </div>
+                          {% set today = date.today() %}
+                          {% if visit.follow_up_date.date() < today %}
                             <small class="text-danger">
                               <i class="fas fa-exclamation-triangle"></i> Overdue
                             </small>
-                          {% elif visit.follow_up_date.date() == today.date() %}
+                          {% elif visit.follow_up_date.date() == today %}
                             <small class="text-warning">
                               <i class="fas fa-clock"></i> Today
                             </small>
