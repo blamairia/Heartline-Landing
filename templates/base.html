@@ -215,11 +215,10 @@
           <span class="nav-text">Visits History</span>
         </a>
       </li>
-      
-      <li class="nav-item">
-        <a href="#" class="nav-link" onclick="showComingSoon('ECG Analysis')">
+        <li class="nav-item">
+        <a href="{{ url_for('ecg_history') }}" class="nav-link {% if request.endpoint == 'ecg_history' %}active{% endif %}">
           <i class="fas fa-heartbeat"></i>
-          <span class="nav-text">ECG Analysis</span>
+          <span class="nav-text">ECG History</span>
         </a>
       </li>
       
