@@ -34,6 +34,35 @@
       background-color: #f9f9f9;
     }
 
+    /* ─── Real-time validation styles ─── */
+    .field-invalid {
+      border-color: #dc3545 !important;
+      box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+    }
+    
+    .field-valid {
+      border-color: #28a745 !important;
+      box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25) !important;
+    }
+    
+    .validation-message {
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+    }
+    
+    .validation-message.invalid {
+      color: #dc3545;
+    }
+    
+    .validation-message.valid {
+      color: #28a745;
+    }
+    
+    #submit-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
     /* ─── Custom dropdown styles ─── */
     .dropdown-search-container {
       position: relative;
@@ -523,14 +552,19 @@
       </div>
     </template>
 
-    <div class="mt-4">
-      <button type="submit" class="btn btn-success">Update Visit</button>
+    <div class="mt-4">      <button type="submit" id="submit-btn" class="btn btn-success" disabled>Update Visit</button>
       <a href="{{ url_for('visit_details', visit_id=visit.id) }}" class="btn btn-secondary">
         Cancel
       </a>
       <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
         Back to Dashboard
       </a>
+      <div id="validation-summary" class="mt-2" style="display: none;">
+        <small class="text-danger">
+          <i class="fa fa-exclamation-triangle"></i>
+          Please fix the validation errors above before submitting.
+        </small>
+      </div>
     </div>
   </form>
 </div>
@@ -538,6 +572,183 @@
 
 {% block extra_js %}
   <script>
+    // ─── Real-time validation system ───
+    function validateAllFields() {
+      let isValid = true;
+      const validationSummary = document.getElementById('validation-summary');
+      const submitBtn = document.getElementById('submit-btn');
+      
+      // Required fields validation
+      const requiredFields = [
+        { id: 'patient_id', name: 'Patient' },
+        { id: 'visit_date', name: 'Visit Date' },
+        { id: 'payment_status', name: 'Payment Status' }
+      ];
+      
+      // Validate basic required fields
+      requiredFields.forEach(field => {
+        const element = document.getElementById(field.id);
+        if (element) {
+          const value = element.value.trim();
+          if (!value) {
+            showValidationMessage(element, `${field.name} is required`, false);
+            isValid = false;
+          } else {
+            showValidationMessage(element, `${field.name} is valid`, true);
+          }
+        }
+      });
+      
+      // Validate prescriptions
+      const prescriptionRows = document.querySelectorAll('.prescription-row');
+      prescriptionRows.forEach((row, index) => {
+        const medInput = row.querySelector('input[name*="medicament_num_enr"]');
+        const dosageInput = row.querySelector('textarea[name*="dosage_instructions"]');
+        const quantityInput = row.querySelector('input[name*="quantity"]');
+        
+        if (medInput && !medInput.value.trim()) {
+          showValidationMessage(medInput, 'Medication is required', false);
+          isValid = false;
+        } else if (medInput && medInput.value.trim()) {
+          showValidationMessage(medInput, 'Medication is valid', true);
+        }
+        
+        if (dosageInput && !dosageInput.value.trim()) {
+          showValidationMessage(dosageInput, 'Dosage instructions are required', false);
+          isValid = false;
+        } else if (dosageInput && dosageInput.value.trim()) {
+          showValidationMessage(dosageInput, 'Dosage is valid', true);
+        }
+        
+        if (quantityInput && (!quantityInput.value || quantityInput.value <= 0)) {
+          showValidationMessage(quantityInput, 'Quantity must be greater than 0', false);
+          isValid = false;
+        } else if (quantityInput && quantityInput.value > 0) {
+          showValidationMessage(quantityInput, 'Quantity is valid', true);
+        }
+      });
+      
+      // Validate documents
+      const documentRows = document.querySelectorAll('.document-row');
+      documentRows.forEach((row, index) => {
+        const docTypeSelect = row.querySelector('select[name*="doc_type"]');
+        if (docTypeSelect && !docTypeSelect.value.trim()) {
+          showValidationMessage(docTypeSelect, 'Document type is required', false);
+          isValid = false;
+        } else if (docTypeSelect && docTypeSelect.value.trim()) {
+          showValidationMessage(docTypeSelect, 'Document type is valid', true);
+        }
+      });
+      
+      // Update submit button and validation summary
+      submitBtn.disabled = !isValid;
+      if (isValid) {
+        validationSummary.style.display = 'none';
+      } else {
+        validationSummary.style.display = 'block';
+      }
+      
+      return isValid;
+    }
+    
+    function showValidationMessage(element, message, isValid) {
+      // Remove existing validation classes and messages
+      element.classList.remove('field-invalid', 'field-valid');
+      const existingMessage = element.parentNode.querySelector('.validation-message');
+      if (existingMessage) {
+        existingMessage.remove();
+      }
+      
+      // Add appropriate class
+      element.classList.add(isValid ? 'field-valid' : 'field-invalid');
+      
+      // Create and add validation message
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `validation-message ${isValid ? 'valid' : 'invalid'}`;
+      messageDiv.textContent = message;
+      element.parentNode.appendChild(messageDiv);
+    }
+    
+    // ─── Event listeners for real-time validation ───
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initial validation
+      setTimeout(validateAllFields, 100);
+      
+      // Basic field validation
+      const basicFields = ['patient_id', 'visit_date', 'payment_status'];
+      basicFields.forEach(fieldId => {
+        const element = document.getElementById(fieldId);
+        if (element) {
+          element.addEventListener('input', debounce(validateAllFields, 300));
+          element.addEventListener('change', validateAllFields);
+        }
+      });
+      
+      // Patient search field special handling
+      const patientSearch = document.getElementById('patient-search');
+      if (patientSearch) {
+        patientSearch.addEventListener('input', debounce(validateAllFields, 300));
+      }
+      
+      // Prescription and document validation
+      function addValidationToRow(row) {
+        const inputs = row.querySelectorAll('input, textarea, select');
+        inputs.forEach(input => {
+          input.addEventListener('input', debounce(validateAllFields, 300));
+          input.addEventListener('change', validateAllFields);
+        });
+      }
+      
+      // Add validation to existing rows
+      document.querySelectorAll('.prescription-row, .document-row').forEach(addValidationToRow);
+      
+      // Override add functions to include validation
+      if (typeof window.addPrescription === 'function') {
+        const originalAddPrescription = window.addPrescription;
+        window.addPrescription = function(...args) {
+          originalAddPrescription.apply(this, args);
+          setTimeout(() => {
+            const newRows = document.querySelectorAll('.prescription-row');
+            if (newRows.length > 0) {
+              addValidationToRow(newRows[newRows.length - 1]);
+              validateAllFields();
+            }
+          }, 100);
+        };
+      }
+      
+      if (typeof window.addDocument === 'function') {
+        const originalAddDocument = window.addDocument;
+        window.addDocument = function(...args) {
+          originalAddDocument.apply(this, args);
+          setTimeout(() => {
+            const newRows = document.querySelectorAll('.document-row');
+            if (newRows.length > 0) {
+              addValidationToRow(newRows[newRows.length - 1]);
+              validateAllFields();
+            }
+          }, 100);
+        };
+      }
+      
+      // Override remove functions to revalidate
+      if (typeof window.removePrescription === 'function') {
+        const originalRemovePrescription = window.removePrescription;
+        window.removePrescription = function(...args) {
+          originalRemovePrescription.apply(this, args);
+          setTimeout(validateAllFields, 100);
+        };
+      }
+      
+      if (typeof window.removeDocument === 'function') {
+        const originalRemoveDocument = window.removeDocument;
+        window.removeDocument = function(...args) {
+          originalRemoveDocument.apply(this, args);
+          setTimeout(validateAllFields, 100);
+        };
+      }
+    });
+
     // ─── Debounce helper (wait 200ms after last keystroke) ───
     function debounce(func, delay) {
       let timeoutId;
@@ -662,19 +873,35 @@
       document.querySelectorAll('.prescription-row').forEach(row => {
         initializeMedSearch(row);
       });
-    });
-
-    // ─── Wrap your existing addPrescription() so new rows get initialized ───
+    });    // ─── Wrap your existing addPrescription() so new rows get initialized ───
     (function() {
-      const originalAddPrescription = window.addPrescription;
-      if (typeof originalAddPrescription === 'function') {
-        window.addPrescription = function(...args) {
-          originalAddPrescription.apply(this, args);
-          const allRows = document.querySelectorAll('.prescription-row');
-          const newRow = allRows[allRows.length - 1];
-          initializeMedSearch(newRow);
-        };
+      // Wait for visit_form.js to load and define addPrescription
+      function wrapAddPrescription() {
+        if (typeof window.addPrescription === 'function') {
+          const originalAddPrescription = window.addPrescription;
+          window.addPrescription = function(...args) {
+            // Call the original function
+            originalAddPrescription.apply(this, args);
+            
+            // Wait a moment for DOM to update, then initialize search on the new row
+            setTimeout(() => {
+              const allRows = document.querySelectorAll('.prescription-row');
+              if (allRows.length > 0) {
+                const newRow = allRows[allRows.length - 1];
+                console.log('Initializing medicament search for new prescription row');
+                initializeMedSearch(newRow);
+              }
+            }, 100);
+          };
+          console.log('Successfully wrapped addPrescription function');
+        } else {
+          // If addPrescription is not ready yet, try again in 100ms
+          setTimeout(wrapAddPrescription, 100);
+        }
       }
+      
+      // Start trying to wrap the function
+      wrapAddPrescription();
     })();
   </script>
 

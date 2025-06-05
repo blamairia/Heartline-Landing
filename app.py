@@ -134,13 +134,13 @@ class VisitForm(FlaskForm):
     visit_date = DateTimeField(
         "Visit Date & Time",
         default=datetime.utcnow,
-        format="%Y-%m-%d %H:%M",
+        format="%Y-%m-%dT%H:%M",
         validators=[validators.DataRequired()],
     )
     diagnosis = TextAreaField("Diagnosis", validators=[validators.Optional()])
     follow_up_date = DateTimeField(
         "Follow-up Date & Time",
-        format="%Y-%m-%d %H:%M",
+        format="%Y-%m-%dT%H:%M",
         validators=[validators.Optional()],
     )
     ecg_mat = FileField("Upload .mat File", validators=[validators.Optional()])
