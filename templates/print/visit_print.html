@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visit Report - {{ visit.patient.first_name }} {{ visit.patient.last_name }}</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .clinic-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+            margin: 0;
+        }
+        
+        .report-title {
+            font-size: 18px;
+            color: #666;
+            margin: 5px 0;
+        }
+        
+        .visit-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .info-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        
+        .info-section h3 {
+            margin-top: 0;
+            color: #007bff;
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 5px;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        
+        .label {
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .value {
+            color: #333;
+        }
+        
+        .diagnosis-section {
+            margin: 30px 0;
+        }
+        
+        .diagnosis-content {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            border-radius: 5px;
+            min-height: 100px;
+        }
+        
+        .prescriptions-section, .documents-section {
+            margin: 30px 0;
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        .table th, .table td {
+            border: 1px solid #dee2e6;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        
+        .table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #495057;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+            border-top: 1px solid #dee2e6;
+            padding-top: 20px;
+        }
+        
+        @media print {
+            body {
+                padding: 10px;
+            }
+            
+            .no-print {
+                display: none;
+            }
+        }
+        
+        .print-controls {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+        }
+        
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 5px;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="print-controls no-print">
+        <button class="btn" onclick="window.print()">Print</button>
+        <button class="btn" onclick="window.close()">Close</button>
+    </div>
+
+    <div class="header">
+        <h1 class="clinic-name">Hearline Medical Clinic</h1>
+        <p class="report-title">Patient Visit Report</p>
+    </div>
+
+    <div class="visit-info">
+        <div class="info-section">
+            <h3>Patient Information</h3>
+            <div class="info-row">
+                <span class="label">Name:</span>
+                <span class="value">{{ visit.patient.first_name }} {{ visit.patient.last_name }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Patient ID:</span>
+                <span class="value">#{{ visit.patient.id }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Date of Birth:</span>
+                <span class="value">{{ visit.patient.date_of_birth.strftime('%B %d, %Y') if visit.patient.date_of_birth else 'Not provided' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Gender:</span>
+                <span class="value">{{ visit.patient.gender.title() if visit.patient.gender else 'Not specified' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Phone:</span>
+                <span class="value">{{ visit.patient.phone or 'Not provided' }}</span>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h3>Visit Information</h3>
+            <div class="info-row">
+                <span class="label">Visit ID:</span>
+                <span class="value">#{{ visit.id }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Visit Date:</span>
+                <span class="value">{{ visit.visit_date.strftime('%B %d, %Y at %I:%M %p') }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Payment Status:</span>
+                <span class="value">{{ visit.payment_status.title() if visit.payment_status else 'Unpaid' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Total Amount:</span>
+                <span class="value">${{ "%.2f"|format(visit.payment_total) if visit.payment_total else '0.00' }}</span>
+            </div>
+            {% if visit.follow_up_date %}
+            <div class="info-row">
+                <span class="label">Follow-up:</span>
+                <span class="value">{{ visit.follow_up_date.strftime('%B %d, %Y') }}</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="diagnosis-section">
+        <h3>Diagnosis & Notes</h3>
+        <div class="diagnosis-content">
+            {% if visit.diagnosis %}
+                {{ visit.diagnosis }}
+            {% else %}
+                <em>No diagnosis recorded for this visit.</em>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if visit.prescriptions.count() > 0 %}
+    <div class="prescriptions-section">
+        <h3>Prescriptions ({{ visit.prescriptions.count() }})</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Medication</th>
+                    <th>Dosage</th>
+                    <th>Frequency</th>
+                    <th>Duration</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for prescription in visit.prescriptions %}
+                <tr>
+                    <td>{{ prescription.medication_name }}</td>
+                    <td>{{ prescription.dosage or '-' }}</td>
+                    <td>{{ prescription.frequency or '-' }}</td>
+                    <td>{{ prescription.duration or '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if visit.documents.count() > 0 %}
+    <div class="documents-section">
+        <h3>Documents & Test Results ({{ visit.documents.count() }})</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Document Type</th>
+                    <th>Upload Date</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for document in visit.documents %}
+                <tr>
+                    <td>
+                        {% if document.doc_type == 'blood' %}
+                            Blood Work
+                        {% elif document.doc_type == 'mri' %}
+                            MRI Scan
+                        {% elif document.doc_type == 'xray' %}
+                            X-Ray
+                        {% else %}
+                            {{ document.doc_type.title() }}
+                        {% endif %}
+                    </td>
+                    <td>{{ document.upload_date.strftime('%B %d, %Y') if document.upload_date else '-' }}</td>
+                    <td>{{ document.notes or '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if visit.ecg_mat and visit.ecg_hea %}
+    <div class="documents-section">
+        <h3>ECG Analysis</h3>
+        <div class="info-section">
+            <div class="info-row">
+                <span class="label">ECG Recorded:</span>
+                <span class="value">Yes</span>
+            </div>
+            {% if visit.ecg_prediction %}
+            <div class="info-row">
+                <span class="label">AI Analysis:</span>
+                <span class="value">{{ visit.ecg_prediction }}</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        <p>This report was generated on {{ now.strftime('%B %d, %Y at %I:%M %p') }}</p>
+        <p>Hearline Medical Clinic - Comprehensive Healthcare Solutions</p>
+    </div>
+
+    <script>
+        // Auto-focus for print dialog
+        window.addEventListener('load', function() {
+            // Small delay to ensure page is fully loaded
+            setTimeout(function() {
+                window.print();
+            }, 500);
+        });
+    </script>
+</body>
+</html>

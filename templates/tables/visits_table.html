@@ -64,11 +64,10 @@
               </div>
             </form>
             <div class="row">
-              <div class="col-12">
-                <button type="button" class="btn btn-secondary" onclick="clearVisitFilters()">
+              <div class="col-12">                <button type="button" class="btn btn-secondary clear-filters-btn">
                   <i class="fas fa-times"></i> Clear Filters
                 </button>
-                <button type="button" class="btn btn-info ml-2" onclick="exportVisits()">
+                <button type="button" class="btn btn-info ml-2 export-visits-btn">
                   <i class="fas fa-download"></i> Export
                 </button>
               </div>
@@ -256,8 +255,8 @@
                           <a href="{{ url_for('edit_visit', visit_id=visit.id) }}" 
                              class="btn btn-warning btn-sm" title="Edit Visit">
                             <i class="fas fa-edit"></i>
-                          </a>
-                          <button class="btn btn-secondary btn-sm" onclick="printVisit({{ visit.id }})" title="Print">
+                          </a>                          <button class="btn btn-secondary btn-sm print-visit-btn" 
+                                  data-visit-id="{{ visit.id }}" title="Print">
                             <i class="fas fa-print"></i>
                           </button>
                         </div>
@@ -330,6 +329,17 @@ document.addEventListener('DOMContentLoaded', function() {
   [patientNameFilter, paymentStatusFilter, dateFromFilter, dateToFilter, sortByVisit].forEach(filter => {
     filter.addEventListener('input', filterAndSortVisits);
     filter.addEventListener('change', filterAndSortVisits);
+  });
+    // Event delegation for print buttons
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.print-visit-btn')) {
+      const visitId = e.target.closest('.print-visit-btn').getAttribute('data-visit-id');
+      printVisit(visitId);
+    } else if (e.target.closest('.clear-filters-btn')) {
+      clearVisitFilters();
+    } else if (e.target.closest('.export-visits-btn')) {
+      exportVisits();
+    }
   });
 });
 

@@ -611,6 +611,67 @@ def visits_table():
                          date=date)
 
 
+@app.route("/visit/<int:visit_id>/print")
+def print_visit(visit_id):
+    """
+    Generate a printable version of a visit report.
+    """
+    from datetime import datetime
+    visit = Visit.query.get_or_404(visit_id)
+    return render_template("print/visit_print.html", visit=visit, now=datetime.now())
+
+
+@app.route("/visits/export")
+def export_visits():
+    """
+    Export visits data to CSV format.
+    """
+    import csv
+    from io import StringIO
+    from flask import make_response
+    from sqlalchemy import desc
+    
+    # Get all visits data
+    visits = Visit.query.order_by(desc(Visit.visit_date)).all()
+    
+    # Create CSV content
+    output = StringIO()
+    writer = csv.writer(output)
+    
+    # Write header
+    writer.writerow([
+        'Visit ID', 'Patient Name', 'Visit Date', 'Diagnosis', 
+        'Payment Total', 'Payment Status', 'Prescriptions Count',
+        'ECG Available', 'Documents Count', 'Follow-up Date'
+    ])
+    
+    # Write data rows
+    for visit in visits:
+        prescription_count = visit.prescriptions.count()
+        document_count = visit.documents.count()
+        has_ecg = bool(visit.ecg_mat and visit.ecg_hea)
+        
+        writer.writerow([
+            visit.id,
+            f"{visit.patient.first_name} {visit.patient.last_name}",
+            visit.visit_date.strftime('%Y-%m-%d %H:%M'),
+            visit.diagnosis or '',
+            visit.payment_total or 0,
+            visit.payment_status or 'unpaid',
+            prescription_count,
+            'Yes' if has_ecg else 'No',
+            document_count,
+            visit.follow_up_date.strftime('%Y-%m-%d') if visit.follow_up_date else ''
+        ])
+    
+    # Create response
+    response = make_response(output.getvalue())
+    response.headers["Content-Disposition"] = "attachment; filename=visits_export.csv"
+    response.headers["Content-type"] = "text/csv"
+    
+    return response
+
+
 @app.route("/analyze_ecg", methods=["POST"])
 def analyze_ecg():
     """

@@ -126,9 +126,9 @@
                             <strong>{{ patient.first_name }} {{ patient.last_name }}</strong>
                             <br>
                             <small class="text-muted">ID: #{{ patient.id }}</small>
-                          </div>
-                        </div>
-                      </td>                      <td>
+                          </div>                        </div>
+                      </td>
+                      <td>
                         {% set today = date.today() %}
                         {% set birth_date = patient.date_of_birth %}
                         {% set age = today.year - birth_date.year %}
@@ -220,17 +220,22 @@
                         {% else %}
                           <span class="text-muted">No visits</span>
                         {% endif %}
-                      </td>
-                      <td>
+                      </td>                      <td>
                         <div class="btn-group" role="group">
                           <a href="{{ url_for('create_visit') }}?patient_id={{ patient.id }}" 
                              class="btn btn-success btn-sm" title="New Visit">
                             <i class="fas fa-file-medical-alt"></i>
                           </a>
-                          <button class="btn btn-info btn-sm" onclick="viewPatientDetails({{ patient.id }})" title="View Details">
+                          <button class="btn btn-info btn-sm" 
+                                  data-patient-id="{{ patient.id }}" 
+                                  data-action="view"
+                                  title="View Details">
                             <i class="fas fa-eye"></i>
                           </button>
-                          <button class="btn btn-warning btn-sm" onclick="editPatient({{ patient.id }})" title="Edit Patient">
+                          <button class="btn btn-warning btn-sm" 
+                                  data-patient-id="{{ patient.id }}" 
+                                  data-action="edit"
+                                  title="Edit Patient">
                             <i class="fas fa-edit"></i>
                           </button>
                         </div>
@@ -298,6 +303,21 @@ document.addEventListener('DOMContentLoaded', function() {
   [nameFilter, genderFilter, ageMinFilter, ageMaxFilter, sortBy].forEach(filter => {
     filter.addEventListener('input', filterAndSortPatients);
     filter.addEventListener('change', filterAndSortPatients);
+  });
+  
+  // Add event listeners for action buttons
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('button[data-action]')) {
+      const button = e.target.closest('button[data-action]');
+      const patientId = button.getAttribute('data-patient-id');
+      const action = button.getAttribute('data-action');
+      
+      if (action === 'view') {
+        viewPatientDetails(patientId);
+      } else if (action === 'edit') {
+        editPatient(patientId);
+      }
+    }
   });
 });
 
