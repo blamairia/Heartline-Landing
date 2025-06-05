@@ -134,13 +134,13 @@ class VisitForm(FlaskForm):
     visit_date = DateTimeField(
         "Visit Date & Time",
         default=datetime.utcnow,
-        format="%Y-%m-%dT%H:%M",
+        format="%Y-%m-%d %H:%M",
         validators=[validators.DataRequired()],
     )
     diagnosis = TextAreaField("Diagnosis", validators=[validators.Optional()])
     follow_up_date = DateTimeField(
         "Follow-up Date & Time",
-        format="%Y-%m-%dT%H:%M",
+        format="%Y-%m-%d %H:%M",
         validators=[validators.Optional()],
     )
     ecg_mat = FileField("Upload .mat File", validators=[validators.Optional()])
@@ -571,36 +571,44 @@ def search_patients():
 
 
 # ─── Route to search medicaments by name ───
-@app.route('/search_medicaments')
-def search_medicaments():
-    q = request.args.get('q', '', type=str).strip()
-    # If q is empty, we return the first 10 medicaments alphabetically.
-    # If q is nonempty, we filter by nom_com ILIKE.
-    if q == "":
-        medicaments = (
-            Medicament.query
-            .order_by(Medicament.nom_com)
-            .limit(10)
-            .all()
-        )
-    else:
-        pattern = f'%{q}%'
-        medicaments = (
-            Medicament.query
-            .filter(Medicament.nom_com.ilike(pattern))
-            .order_by(Medicament.nom_com)
-            .limit(10)
-            .all()
-        )
 
-    results = [
-        {
-            'id': m.num_enr,
-            'label': f"{m.nom_com} ({m.dosage}{m.unite})"
-        }
-        for m in medicaments
-    ]
-    return jsonify(results)
+
+@app.route("/patients")
+def patients_table():
+    """
+    Display comprehensive patients table with filtering and sorting capabilities.
+    """
+    from datetime import date
+    
+    # Get all patients with their related data
+    patients = Patient.query.order_by(Patient.last_name, Patient.first_name).all()
+    
+    return render_template("tables/patients_table.html", 
+                         patients=patients,
+                         Patient=Patient,
+                         Visit=Visit,
+                         Prescription=Prescription,
+                         date=date)
+
+
+@app.route("/visits")
+def visits_table():
+    """
+    Display comprehensive visits table with filtering and sorting capabilities.
+    """
+    from datetime import date
+    from sqlalchemy import desc
+    
+    # Get all visits with their related data, ordered by visit date (newest first)
+    visits = Visit.query.order_by(desc(Visit.visit_date)).all()
+    
+    return render_template("tables/visits_table.html", 
+                         visits=visits,
+                         Patient=Patient,
+                         Visit=Visit,
+                         Prescription=Prescription,
+                         VisitDocument=VisitDocument,
+                         date=date)
 
 
 @app.route("/analyze_ecg", methods=["POST"])
@@ -698,6 +706,39 @@ def analyze_ecg():
             
     except Exception as e:
         return jsonify({"error": f"ECG analysis failed: {str(e)}"}), 500
+
+
+@app.route("/patient/<int:patient_id>")
+def patient_details(patient_id):
+    """
+    Display patient details page.
+    """
+    from datetime import date
+    
+    patient = Patient.query.get_or_404(patient_id)
+    visits = patient.visits.order_by(Visit.visit_date.desc()).all()
+    
+    return render_template("patient_details.html", 
+                         patient=patient, 
+                         visits=visits,
+                         date=date)
+
+
+@app.route("/patient/<int:patient_id>/edit", methods=["GET", "POST"])
+def edit_patient(patient_id):
+    """
+    Edit patient information.
+    """
+    patient = Patient.query.get_or_404(patient_id)
+    form = PatientForm(obj=patient)
+    
+    if form.validate_on_submit():
+        form.populate_obj(patient)
+        db.session.commit()
+        flash("Patient updated successfully!", "success")
+        return redirect(url_for("patient_details", patient_id=patient.id))
+    
+    return render_template("forms/patient_form.html", form=form, patient=patient)
 
 
 # ----------------------------------------

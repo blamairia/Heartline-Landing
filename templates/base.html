@@ -204,16 +204,15 @@
           <span class="nav-text">New Visit</span>
         </a>
       </li>
-      
-      <li class="nav-item">
-        <a href="#" class="nav-link" onclick="showComingSoon('Patients List')">
+        <li class="nav-item">
+        <a href="{{ url_for('patients_table') }}" class="nav-link {% if request.endpoint == 'patients_table' %}active{% endif %}">
           <i class="fas fa-users"></i>
           <span class="nav-text">All Patients</span>
         </a>
       </li>
       
       <li class="nav-item">
-        <a href="#" class="nav-link" onclick="showComingSoon('Visits History')">
+        <a href="{{ url_for('visits_table') }}" class="nav-link {% if request.endpoint == 'visits_table' %}active{% endif %}">
           <i class="fas fa-history"></i>
           <span class="nav-text">Visits History</span>
         </a>

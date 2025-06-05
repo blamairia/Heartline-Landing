@@ -1,0 +1,434 @@
+{% extends "base.html" %}
+
+{% block title %}Visits | Hearline Medical Clinic{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-file-medical"></i> All Visits</h1>
+        <div>
+          <a href="{{ url_for('create_visit') }}" class="btn btn-success">
+            <i class="fas fa-file-medical-alt"></i> New Visit
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5><i class="fas fa-filter"></i> Filters</h5>
+          <button class="btn btn-sm btn-outline-secondary float-right" type="button" data-toggle="collapse" data-target="#filtersCollapse" aria-expanded="false" aria-controls="filtersCollapse">
+            <i class="fas fa-chevron-down"></i> Toggle Filters
+          </button>
+        </div>
+        <div class="collapse" id="filtersCollapse">
+          <div class="card-body">
+            <form id="visitFilters" class="row">
+              <div class="col-md-3 mb-3">
+                <label for="patientNameFilter" class="form-label">Patient Name</label>
+                <input type="text" class="form-control" id="patientNameFilter" placeholder="Patient name">
+              </div>
+              <div class="col-md-2 mb-3">
+                <label for="paymentStatusFilter" class="form-label">Payment Status</label>
+                <select class="form-control" id="paymentStatusFilter">
+                  <option value="">All Statuses</option>
+                  <option value="paid">Paid</option>
+                  <option value="partial">Partial</option>
+                  <option value="unpaid">Unpaid</option>
+                </select>
+              </div>
+              <div class="col-md-2 mb-3">
+                <label for="dateFromFilter" class="form-label">From Date</label>
+                <input type="date" class="form-control" id="dateFromFilter">
+              </div>
+              <div class="col-md-2 mb-3">
+                <label for="dateToFilter" class="form-label">To Date</label>
+                <input type="date" class="form-control" id="dateToFilter">
+              </div>
+              <div class="col-md-3 mb-3">
+                <label for="sortByVisit" class="form-label">Sort By</label>
+                <select class="form-control" id="sortByVisit">
+                  <option value="date_desc">Recent First</option>
+                  <option value="date_asc">Oldest First</option>
+                  <option value="patient_asc">Patient Name (A-Z)</option>
+                  <option value="patient_desc">Patient Name (Z-A)</option>
+                  <option value="payment_desc">Payment High to Low</option>
+                  <option value="payment_asc">Payment Low to High</option>
+                </select>
+              </div>
+            </form>
+            <div class="row">
+              <div class="col-12">
+                <button type="button" class="btn btn-secondary" onclick="clearVisitFilters()">
+                  <i class="fas fa-times"></i> Clear Filters
+                </button>
+                <button type="button" class="btn btn-info ml-2" onclick="exportVisits()">
+                  <i class="fas fa-download"></i> Export
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Visits Table -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5><i class="fas fa-table"></i> Visits List</h5>
+          <small class="text-muted">
+            Total: <span id="visitCount">{{ visits|length }}</span> visits
+          </small>
+        </div>
+        <div class="card-body">
+          {% if visits %}
+            <div class="table-responsive">
+              <table class="table table-striped table-hover" id="visitsTable">
+                <thead class="thead-dark">
+                  <tr>
+                    <th scope="col"><i class="fas fa-hashtag"></i> Visit ID</th>
+                    <th scope="col"><i class="fas fa-user"></i> Patient</th>
+                    <th scope="col"><i class="fas fa-calendar"></i> Visit Date</th>
+                    <th scope="col"><i class="fas fa-stethoscope"></i> Diagnosis</th>
+                    <th scope="col"><i class="fas fa-dollar-sign"></i> Payment</th>
+                    <th scope="col"><i class="fas fa-credit-card"></i> Status</th>
+                    <th scope="col"><i class="fas fa-pills"></i> Prescriptions</th>
+                    <th scope="col"><i class="fas fa-heartbeat"></i> ECG</th>
+                    <th scope="col"><i class="fas fa-file-medical"></i> Documents</th>
+                    <th scope="col"><i class="fas fa-calendar-check"></i> Follow-up</th>
+                    <th scope="col"><i class="fas fa-cogs"></i> Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for visit in visits %}
+                    {% set prescription_count = visit.prescriptions.count() %}
+                    {% set document_count = visit.documents.count() %}
+                    {% set has_ecg = visit.ecg_mat and visit.ecg_hea %}
+                    
+                    <tr data-visit-id="{{ visit.id }}">
+                      <td>
+                        <div class="d-flex align-items-center">
+                          <div class="visit-id-circle mr-2">
+                            <i class="fas fa-file-medical"></i>
+                          </div>
+                          <div>
+                            <strong>#{{ visit.id }}</strong>
+                            <br>
+                            <small class="text-muted">{{ visit.visit_date.strftime('%H:%M') }}</small>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div>
+                          <strong>{{ visit.patient.first_name }} {{ visit.patient.last_name }}</strong>
+                          <br>
+                          <small class="text-muted">ID: #{{ visit.patient.id }}</small>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="badge badge-light">{{ visit.visit_date.strftime('%Y-%m-%d') }}</span>
+                        <br>
+                        <small class="text-muted">{{ visit.visit_date.strftime('%A') }}</small>
+                      </td>
+                      <td>
+                        {% if visit.diagnosis %}
+                          <div class="diagnosis-text" title="{{ visit.diagnosis }}">
+                            {{ visit.diagnosis[:50] }}{% if visit.diagnosis|length > 50 %}...{% endif %}
+                          </div>
+                        {% else %}
+                          <span class="text-muted"><i class="fas fa-minus"></i> No diagnosis</span>
+                        {% endif %}
+                      </td>
+                      <td class="text-center">
+                        {% if visit.payment_total %}
+                          <span class="badge badge-info">${{ "%.2f"|format(visit.payment_total) }}</span>
+                          {% if visit.payment_remaining and visit.payment_remaining > 0 %}
+                            <br>
+                            <small class="text-warning">
+                              <i class="fas fa-exclamation-triangle"></i> ${{ "%.2f"|format(visit.payment_remaining) }} due
+                            </small>
+                          {% endif %}
+                        {% else %}
+                          <span class="badge badge-light">$0.00</span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% if visit.payment_status == 'paid' %}
+                          <span class="badge badge-success">
+                            <i class="fas fa-check-circle"></i> Paid
+                          </span>
+                        {% elif visit.payment_status == 'partial' %}
+                          <span class="badge badge-warning">
+                            <i class="fas fa-clock"></i> Partial
+                          </span>
+                        {% else %}
+                          <span class="badge badge-danger">
+                            <i class="fas fa-exclamation-triangle"></i> Unpaid
+                          </span>
+                        {% endif %}
+                      </td>
+                      <td class="text-center">
+                        {% if prescription_count > 0 %}
+                          <span class="badge badge-info">
+                            <i class="fas fa-pills"></i> {{ prescription_count }}
+                          </span>
+                        {% else %}
+                          <span class="badge badge-light">
+                            <i class="fas fa-pills"></i> 0
+                          </span>
+                        {% endif %}
+                      </td>
+                      <td class="text-center">
+                        {% if has_ecg %}
+                          <span class="badge badge-success">
+                            <i class="fas fa-heartbeat"></i> Available
+                          </span>
+                          {% if visit.ecg_prediction %}
+                            <br>
+                            <small class="text-success">
+                              <i class="fas fa-brain"></i> Analyzed
+                            </small>
+                          {% endif %}
+                        {% else %}
+                          <span class="badge badge-light">
+                            <i class="fas fa-heartbeat"></i> None
+                          </span>
+                        {% endif %}
+                      </td>
+                      <td class="text-center">
+                        {% if document_count > 0 %}
+                          <span class="badge badge-info">
+                            <i class="fas fa-file-medical"></i> {{ document_count }}
+                          </span>
+                          <br>
+                          <small class="text-muted">
+                            {% for doc in visit.documents %}
+                              {% if doc.doc_type == 'blood' %}
+                                <i class="fas fa-tint text-danger" title="Blood Work"></i>
+                              {% elif doc.doc_type == 'mri' %}
+                                <i class="fas fa-brain text-info" title="MRI Scan"></i>
+                              {% elif doc.doc_type == 'xray' %}
+                                <i class="fas fa-x-ray text-secondary" title="X-Ray"></i>
+                              {% endif %}
+                            {% endfor %}
+                          </small>
+                        {% else %}
+                          <span class="badge badge-light">
+                            <i class="fas fa-file-medical"></i> 0
+                          </span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% if visit.follow_up_date %}
+                          <div>
+                            <span class="badge badge-warning">
+                              <i class="fas fa-calendar-check"></i> {{ visit.follow_up_date.strftime('%Y-%m-%d') }}
+                            </span>
+                          </div>
+                          {% set today = moment() %}
+                          {% if visit.follow_up_date.date() < today.date() %}
+                            <small class="text-danger">
+                              <i class="fas fa-exclamation-triangle"></i> Overdue
+                            </small>
+                          {% elif visit.follow_up_date.date() == today.date() %}
+                            <small class="text-warning">
+                              <i class="fas fa-clock"></i> Today
+                            </small>
+                          {% endif %}
+                        {% else %}
+                          <span class="text-muted">-</span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        <div class="btn-group" role="group">
+                          <a href="{{ url_for('visit_details', visit_id=visit.id) }}" 
+                             class="btn btn-info btn-sm" title="View Details">
+                            <i class="fas fa-eye"></i>
+                          </a>
+                          <a href="{{ url_for('edit_visit', visit_id=visit.id) }}" 
+                             class="btn btn-warning btn-sm" title="Edit Visit">
+                            <i class="fas fa-edit"></i>
+                          </a>
+                          <button class="btn btn-secondary btn-sm" onclick="printVisit({{ visit.id }})" title="Print">
+                            <i class="fas fa-print"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="text-center py-5">
+              <i class="fas fa-file-medical fa-3x text-muted mb-3"></i>
+              <h5 class="text-muted">No visits found</h5>
+              <p class="text-muted">Start by creating your first visit</p>
+              <a href="{{ url_for('create_visit') }}" class="btn btn-success">
+                <i class="fas fa-file-medical-alt"></i> Create First Visit
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .visit-id-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+  }
+  
+  .table-hover tbody tr:hover {
+    background-color: rgba(40, 167, 69, 0.05);
+  }
+  
+  .badge {
+    font-size: 0.75em;
+  }
+  
+  .btn-group .btn {
+    margin-right: 2px;
+  }
+  
+  .card-header h5 {
+    margin-bottom: 0;
+  }
+  
+  .diagnosis-text {
+    max-width: 200px;
+    word-wrap: break-word;
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Filter functionality
+  const patientNameFilter = document.getElementById('patientNameFilter');
+  const paymentStatusFilter = document.getElementById('paymentStatusFilter');
+  const dateFromFilter = document.getElementById('dateFromFilter');
+  const dateToFilter = document.getElementById('dateToFilter');
+  const sortByVisit = document.getElementById('sortByVisit');
+  
+  // Add event listeners for real-time filtering
+  [patientNameFilter, paymentStatusFilter, dateFromFilter, dateToFilter, sortByVisit].forEach(filter => {
+    filter.addEventListener('input', filterAndSortVisits);
+    filter.addEventListener('change', filterAndSortVisits);
+  });
+});
+
+function filterAndSortVisits() {
+  const patientNameValue = document.getElementById('patientNameFilter').value.toLowerCase();
+  const paymentStatusValue = document.getElementById('paymentStatusFilter').value;
+  const dateFromValue = document.getElementById('dateFromFilter').value;
+  const dateToValue = document.getElementById('dateToFilter').value;
+  const sortValue = document.getElementById('sortByVisit').value;
+  
+  const table = document.getElementById('visitsTable');
+  const tbody = table.querySelector('tbody');
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  
+  // Filter rows
+  let visibleCount = 0;
+  rows.forEach(row => {
+    const patientNameCell = row.cells[1].textContent.toLowerCase();
+    const paymentStatusCell = row.cells[5].textContent.toLowerCase();
+    const visitDateCell = row.cells[2].querySelector('.badge').textContent; // YYYY-MM-DD format
+    
+    const patientNameMatch = patientNameValue === '' || patientNameCell.includes(patientNameValue);
+    const paymentStatusMatch = paymentStatusValue === '' || paymentStatusCell.includes(paymentStatusValue);
+    
+    let dateMatch = true;
+    if (dateFromValue || dateToValue) {
+      const visitDate = new Date(visitDateCell);
+      if (dateFromValue) {
+        const fromDate = new Date(dateFromValue);
+        dateMatch = dateMatch && visitDate >= fromDate;
+      }
+      if (dateToValue) {
+        const toDate = new Date(dateToValue);
+        dateMatch = dateMatch && visitDate <= toDate;
+      }
+    }
+    
+    if (patientNameMatch && paymentStatusMatch && dateMatch) {
+      row.style.display = '';
+      visibleCount++;
+    } else {
+      row.style.display = 'none';
+    }
+  });
+  
+  // Update count
+  document.getElementById('visitCount').textContent = visibleCount;
+  
+  // Sort visible rows
+  const visibleRows = rows.filter(row => row.style.display !== 'none');
+  visibleRows.sort((a, b) => {
+    switch(sortValue) {
+      case 'date_desc':
+        const dateA = new Date(a.cells[2].querySelector('.badge').textContent);
+        const dateB = new Date(b.cells[2].querySelector('.badge').textContent);
+        return dateB - dateA;
+      case 'date_asc':
+        const dateA2 = new Date(a.cells[2].querySelector('.badge').textContent);
+        const dateB2 = new Date(b.cells[2].querySelector('.badge').textContent);
+        return dateA2 - dateB2;
+      case 'patient_asc':
+        return a.cells[1].textContent.localeCompare(b.cells[1].textContent);
+      case 'patient_desc':
+        return b.cells[1].textContent.localeCompare(a.cells[1].textContent);
+      case 'payment_desc':
+        const payA = parseFloat(a.cells[4].querySelector('.badge').textContent.replace('$', '')) || 0;
+        const payB = parseFloat(b.cells[4].querySelector('.badge').textContent.replace('$', '')) || 0;
+        return payB - payA;
+      case 'payment_asc':
+        const payA2 = parseFloat(a.cells[4].querySelector('.badge').textContent.replace('$', '')) || 0;
+        const payB2 = parseFloat(b.cells[4].querySelector('.badge').textContent.replace('$', '')) || 0;
+        return payA2 - payB2;
+      default:
+        return 0;
+    }
+  });
+  
+  // Reorder rows in DOM
+  visibleRows.forEach(row => tbody.appendChild(row));
+}
+
+function clearVisitFilters() {
+  document.getElementById('patientNameFilter').value = '';
+  document.getElementById('paymentStatusFilter').value = '';
+  document.getElementById('dateFromFilter').value = '';
+  document.getElementById('dateToFilter').value = '';
+  document.getElementById('sortByVisit').value = 'date_desc';
+  filterAndSortVisits();
+}
+
+function printVisit(visitId) {
+  // Implement print functionality
+  window.open(`/visit/${visitId}/print`, '_blank');
+}
+
+function exportVisits() {
+  // Implement export functionality
+  window.location.href = '/visits/export';
+}
+</script>
+{% endblock %}

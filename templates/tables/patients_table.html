@@ -1,0 +1,388 @@
+{% extends "base.html" %}
+
+{% block title %}Patients | Hearline Medical Clinic{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-users"></i> All Patients</h1>
+        <div>
+          <a href="{{ url_for('create_patient') }}" class="btn btn-primary">
+            <i class="fas fa-user-plus"></i> New Patient
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5><i class="fas fa-filter"></i> Filters</h5>
+          <button class="btn btn-sm btn-outline-secondary float-right" type="button" data-toggle="collapse" data-target="#filtersCollapse" aria-expanded="false" aria-controls="filtersCollapse">
+            <i class="fas fa-chevron-down"></i> Toggle Filters
+          </button>
+        </div>
+        <div class="collapse" id="filtersCollapse">
+          <div class="card-body">
+            <form id="patientFilters" class="row">
+              <div class="col-md-3 mb-3">
+                <label for="nameFilter" class="form-label">Search Name</label>
+                <input type="text" class="form-control" id="nameFilter" placeholder="First or Last Name">
+              </div>
+              <div class="col-md-2 mb-3">
+                <label for="genderFilter" class="form-label">Gender</label>
+                <select class="form-control" id="genderFilter">
+                  <option value="">All Genders</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="col-md-2 mb-3">
+                <label for="ageMinFilter" class="form-label">Min Age</label>
+                <input type="number" class="form-control" id="ageMinFilter" min="0" max="150">
+              </div>
+              <div class="col-md-2 mb-3">
+                <label for="ageMaxFilter" class="form-label">Max Age</label>
+                <input type="number" class="form-control" id="ageMaxFilter" min="0" max="150">
+              </div>
+              <div class="col-md-3 mb-3">
+                <label for="sortBy" class="form-label">Sort By</label>
+                <select class="form-control" id="sortBy">
+                  <option value="name_asc">Name (A-Z)</option>
+                  <option value="name_desc">Name (Z-A)</option>
+                  <option value="age_asc">Age (Youngest First)</option>
+                  <option value="age_desc">Age (Oldest First)</option>
+                  <option value="created_desc">Recently Added</option>
+                  <option value="created_asc">Oldest Records</option>
+                </select>
+              </div>
+            </form>
+            <div class="row">
+              <div class="col-12">
+                <button type="button" class="btn btn-secondary" onclick="clearFilters()">
+                  <i class="fas fa-times"></i> Clear Filters
+                </button>
+                <button type="button" class="btn btn-info ml-2" onclick="exportPatients()">
+                  <i class="fas fa-download"></i> Export
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Patients Table -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5><i class="fas fa-table"></i> Patients List</h5>
+          <small class="text-muted">
+            Total: <span id="patientCount">{{ patients|length }}</span> patients
+          </small>
+        </div>
+        <div class="card-body">
+          {% if patients %}
+            <div class="table-responsive">
+              <table class="table table-striped table-hover" id="patientsTable">
+                <thead class="thead-dark">
+                  <tr>
+                    <th scope="col"><i class="fas fa-user"></i> Name</th>
+                    <th scope="col"><i class="fas fa-birthday-cake"></i> Age</th>
+                    <th scope="col"><i class="fas fa-venus-mars"></i> Gender</th>
+                    <th scope="col"><i class="fas fa-phone"></i> Contact</th>
+                    <th scope="col"><i class="fas fa-file-medical"></i> Visits</th>
+                    <th scope="col"><i class="fas fa-credit-card"></i> Payment Status</th>
+                    <th scope="col"><i class="fas fa-pills"></i> Prescriptions</th>
+                    <th scope="col"><i class="fas fa-heartbeat"></i> ECG</th>
+                    <th scope="col"><i class="fas fa-calendar-plus"></i> Last Visit</th>
+                    <th scope="col"><i class="fas fa-cogs"></i> Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for patient in patients %}
+                    {% set latest_visit = patient.visits.order_by(Visit.visit_date.desc()).first() %}
+                    {% set total_visits = patient.visits.count() %}
+                    {% set unpaid_visits = patient.visits.filter_by(payment_status='unpaid').count() %}
+                    {% set partial_visits = patient.visits.filter_by(payment_status='partial').count() %}
+                    {% set has_prescriptions = patient.visits.join(Prescription).count() > 0 %}
+                    {% set has_ecg = patient.visits.filter(Visit.ecg_mat.isnot(None)).count() > 0 %}
+                    
+                    <tr data-patient-id="{{ patient.id }}">
+                      <td>
+                        <div class="d-flex align-items-center">
+                          <div class="avatar-circle mr-2">
+                            <i class="fas fa-user"></i>
+                          </div>
+                          <div>
+                            <strong>{{ patient.first_name }} {{ patient.last_name }}</strong>
+                            <br>
+                            <small class="text-muted">ID: #{{ patient.id }}</small>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        {% set today = moment() %}
+                        {% set birth_date = moment(patient.date_of_birth) %}
+                        {% set age = today.year - birth_date.year %}
+                        {% if today.month < birth_date.month or (today.month == birth_date.month and today.day < birth_date.day) %}
+                          {% set age = age - 1 %}
+                        {% endif %}
+                        <span class="badge badge-light">{{ age }} years</span>
+                        <br>
+                        <small class="text-muted">{{ patient.date_of_birth.strftime('%Y-%m-%d') }}</small>
+                      </td>
+                      <td>
+                        {% if patient.gender == 'Male' %}
+                          <i class="fas fa-mars text-primary"></i> Male
+                        {% elif patient.gender == 'Female' %}
+                          <i class="fas fa-venus text-danger"></i> Female
+                        {% else %}
+                          <i class="fas fa-genderless text-secondary"></i> Other
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% if patient.phone %}
+                          <div><i class="fas fa-phone text-success"></i> {{ patient.phone }}</div>
+                        {% endif %}
+                        {% if patient.email %}
+                          <div><i class="fas fa-envelope text-info"></i> {{ patient.email }}</div>
+                        {% endif %}
+                        {% if not patient.phone and not patient.email %}
+                          <span class="text-muted">No contact info</span>
+                        {% endif %}
+                      </td>
+                      <td class="text-center">
+                        {% if total_visits > 0 %}
+                          <span class="badge badge-primary">{{ total_visits }}</span>
+                        {% else %}
+                          <span class="badge badge-light">0</span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% if unpaid_visits > 0 %}
+                          <span class="badge badge-danger" title="{{ unpaid_visits }} unpaid visits">
+                            <i class="fas fa-exclamation-triangle"></i> {{ unpaid_visits }} Unpaid
+                          </span>
+                        {% elif partial_visits > 0 %}
+                          <span class="badge badge-warning" title="{{ partial_visits }} partially paid visits">
+                            <i class="fas fa-clock"></i> {{ partial_visits }} Partial
+                          </span>
+                        {% elif total_visits > 0 %}
+                          <span class="badge badge-success">
+                            <i class="fas fa-check"></i> All Paid
+                          </span>
+                        {% else %}
+                          <span class="badge badge-light">-</span>
+                        {% endif %}
+                      </td>
+                      <td class="text-center">
+                        {% if has_prescriptions %}
+                          <span class="badge badge-info">
+                            <i class="fas fa-pills"></i> Available
+                          </span>
+                        {% else %}
+                          <span class="badge badge-light">
+                            <i class="fas fa-pills"></i> None
+                          </span>
+                        {% endif %}
+                      </td>
+                      <td class="text-center">
+                        {% if has_ecg %}
+                          <span class="badge badge-success">
+                            <i class="fas fa-heartbeat"></i> Available
+                          </span>
+                        {% else %}
+                          <span class="badge badge-light">
+                            <i class="fas fa-heartbeat"></i> None
+                          </span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% if latest_visit %}
+                          <div>
+                            <small class="text-muted">{{ latest_visit.visit_date.strftime('%Y-%m-%d') }}</small>
+                          </div>
+                          {% if latest_visit.follow_up_date %}
+                            <div>
+                              <small class="text-info">
+                                <i class="fas fa-calendar-check"></i> Follow-up: {{ latest_visit.follow_up_date.strftime('%Y-%m-%d') }}
+                              </small>
+                            </div>
+                          {% endif %}
+                        {% else %}
+                          <span class="text-muted">No visits</span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        <div class="btn-group" role="group">
+                          <a href="{{ url_for('create_visit') }}?patient_id={{ patient.id }}" 
+                             class="btn btn-success btn-sm" title="New Visit">
+                            <i class="fas fa-file-medical-alt"></i>
+                          </a>
+                          <button class="btn btn-info btn-sm" onclick="viewPatientDetails({{ patient.id }})" title="View Details">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn btn-warning btn-sm" onclick="editPatient({{ patient.id }})" title="Edit Patient">
+                            <i class="fas fa-edit"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="text-center py-5">
+              <i class="fas fa-users fa-3x text-muted mb-3"></i>
+              <h5 class="text-muted">No patients found</h5>
+              <p class="text-muted">Start by adding your first patient</p>
+              <a href="{{ url_for('create_patient') }}" class="btn btn-primary">
+                <i class="fas fa-user-plus"></i> Add First Patient
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+  }
+  
+  .table-hover tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+  }
+  
+  .badge {
+    font-size: 0.75em;
+  }
+  
+  .btn-group .btn {
+    margin-right: 2px;
+  }
+  
+  .card-header h5 {
+    margin-bottom: 0;
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Filter functionality
+  const nameFilter = document.getElementById('nameFilter');
+  const genderFilter = document.getElementById('genderFilter');
+  const ageMinFilter = document.getElementById('ageMinFilter');
+  const ageMaxFilter = document.getElementById('ageMaxFilter');
+  const sortBy = document.getElementById('sortBy');
+  
+  // Add event listeners for real-time filtering
+  [nameFilter, genderFilter, ageMinFilter, ageMaxFilter, sortBy].forEach(filter => {
+    filter.addEventListener('input', filterAndSortPatients);
+    filter.addEventListener('change', filterAndSortPatients);
+  });
+});
+
+function filterAndSortPatients() {
+  const nameValue = document.getElementById('nameFilter').value.toLowerCase();
+  const genderValue = document.getElementById('genderFilter').value;
+  const ageMin = parseInt(document.getElementById('ageMinFilter').value) || 0;
+  const ageMax = parseInt(document.getElementById('ageMaxFilter').value) || 150;
+  const sortValue = document.getElementById('sortBy').value;
+  
+  const table = document.getElementById('patientsTable');
+  const tbody = table.querySelector('tbody');
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  
+  // Filter rows
+  let visibleCount = 0;
+  rows.forEach(row => {
+    const nameCell = row.cells[0].textContent.toLowerCase();
+    const genderCell = row.cells[2].textContent;
+    const ageText = row.cells[1].querySelector('.badge').textContent;
+    const age = parseInt(ageText.match(/\d+/)[0]);
+    
+    const nameMatch = nameValue === '' || nameCell.includes(nameValue);
+    const genderMatch = genderValue === '' || genderCell.includes(genderValue);
+    const ageMatch = age >= ageMin && age <= ageMax;
+    
+    if (nameMatch && genderMatch && ageMatch) {
+      row.style.display = '';
+      visibleCount++;
+    } else {
+      row.style.display = 'none';
+    }
+  });
+  
+  // Update count
+  document.getElementById('patientCount').textContent = visibleCount;
+  
+  // Sort visible rows
+  const visibleRows = rows.filter(row => row.style.display !== 'none');
+  visibleRows.sort((a, b) => {
+    switch(sortValue) {
+      case 'name_asc':
+        return a.cells[0].textContent.localeCompare(b.cells[0].textContent);
+      case 'name_desc':
+        return b.cells[0].textContent.localeCompare(a.cells[0].textContent);
+      case 'age_asc':
+        const ageA = parseInt(a.cells[1].querySelector('.badge').textContent.match(/\d+/)[0]);
+        const ageB = parseInt(b.cells[1].querySelector('.badge').textContent.match(/\d+/)[0]);
+        return ageA - ageB;
+      case 'age_desc':
+        const ageA2 = parseInt(a.cells[1].querySelector('.badge').textContent.match(/\d+/)[0]);
+        const ageB2 = parseInt(b.cells[1].querySelector('.badge').textContent.match(/\d+/)[0]);
+        return ageB2 - ageA2;
+      default:
+        return 0;
+    }
+  });
+  
+  // Reorder rows in DOM
+  visibleRows.forEach(row => tbody.appendChild(row));
+}
+
+function clearFilters() {
+  document.getElementById('nameFilter').value = '';
+  document.getElementById('genderFilter').value = '';
+  document.getElementById('ageMinFilter').value = '';
+  document.getElementById('ageMaxFilter').value = '';
+  document.getElementById('sortBy').value = 'name_asc';
+  filterAndSortPatients();
+}
+
+function viewPatientDetails(patientId) {
+  // Implement patient details view
+  window.location.href = `/patient/${patientId}`;
+}
+
+function editPatient(patientId) {
+  // Implement patient edit
+  window.location.href = `/patient/${patientId}/edit`;
+}
+
+function exportPatients() {
+  // Implement export functionality
+  window.location.href = '/patients/export';
+}
+</script>
+{% endblock %}
