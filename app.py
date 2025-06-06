@@ -66,7 +66,7 @@ app = Flask(__name__)
 moment = Moment(app) # Add this line to initialize Flask-Moment
 app.config["SECRET_KEY"] = "replace-this-with-a-secure-random-string"
 # Use PostgreSQL database with medicament table
-app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:root@localhost:5432/nv"
+app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres.efgqnqwjuoeywepqkwxy:Billel159@aws-0-eu-west-3.pooler.supabase.com:5432/DoctorNv"
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
@@ -2363,4 +2363,4 @@ if __name__ == "__main__":
         
         load_model()      # instantiate and load state_dict, then .eval()
     
-    app.run(debug=True)
+    app.run(host='0.0.0.0',debug=False)
