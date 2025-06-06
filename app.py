@@ -976,6 +976,43 @@ def patients_table():
                          date=date)
 
 
+@app.route("/patient/<int:patient_id>")
+def patient_details(patient_id):
+    """
+    Display patient details page.
+    """
+    from datetime import date
+    
+    patient = Patient.query.get_or_404(patient_id)
+    visits = patient.visits.order_by(Visit.visit_date.desc()).all()
+    
+    return render_template("patient_details.html", 
+                         patient=patient, 
+                         visits=visits,
+                         date=date)
+
+
+@app.route("/patient/<int:patient_id>/edit", methods=["GET", "POST"])
+def edit_patient(patient_id):
+    """
+    Edit patient information.
+    """
+    patient = Patient.query.get_or_404(patient_id)
+    form = PatientForm(obj=patient)
+    
+    if form.validate_on_submit():
+        form.populate_obj(patient)
+        db.session.commit()
+        flash("Patient updated successfully!", "success")
+        return redirect(url_for("patient_details", patient_id=patient.id))
+    
+    return render_template("forms/patient_form.html", form=form, patient=patient)
+
+
+@login_required
+@any_role_required
+
+
 @app.route("/visits")
 @login_required
 @any_role_required
@@ -1202,9 +1239,42 @@ def api_doctors():
 @login_required
 @role_required(['doctor', 'assistant'])
 def api_users():
-    """API endpoint to get user data for user management"""
+    """API endpoint to get user data for user management with pagination and filters"""
     try:
-        users = User.query.order_by(User.created_at.desc()).all()
+        # Pagination and filters
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        search = request.args.get('search', '', type=str).strip()
+        role = request.args.get('role', '', type=str)
+        status = request.args.get('status', '', type=str)
+        
+        query = User.query
+        # Filter by search term
+        if search:
+            pattern = f"%{search}%"
+            query = query.filter(
+                or_(
+                    User.first_name.ilike(pattern),
+                    User.last_name.ilike(pattern),
+                    User.username.ilike(pattern),
+                    User.email.ilike(pattern)
+                )
+            )
+        # Filter by role
+        if role:
+            query = query.filter(User.role == role)
+        # Filter by status
+        if status:
+            if status == 'active':
+                query = query.filter(User.is_active.is_(True))
+            elif status == 'inactive':
+                query = query.filter(User.is_active.is_(False))
+        # Order by created date
+        query = query.order_by(User.created_at.desc())
+        # Paginate
+        paginated = query.paginate(page=page, per_page=per_page, error_out=False)
+        users = paginated.items
+        # Serialize results
         user_list = [
             {
                 'id': u.id,
@@ -1219,9 +1289,39 @@ def api_users():
             }
             for u in users
         ]
-        return jsonify({'users': user_list})
+        return jsonify({
+            'users': user_list,
+            'pagination': {
+                'page': paginated.page,
+                'per_page': paginated.per_page,
+                'total': paginated.total,
+                'pages': paginated.pages
+            }
+        })
     except Exception as e:
         app.logger.error(f"Error in /api/users: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+    
+
+# --- Users Statistics ---
+@app.route('/api/users/stats')
+@login_required
+@role_required(['doctor', 'assistant'])
+def api_users_stats():
+    """API endpoint to get statistics for users"""
+    try:
+        total_users = User.query.count()
+        total_doctors = User.query.filter(User.role == 'doctor').count()
+        total_assistants = User.query.filter(User.role == 'assistant').count()
+        active_users = User.query.filter(User.is_active.is_(True)).count()
+        return jsonify({
+            'total_users': total_users,
+            'total_doctors': total_doctors,
+            'total_assistants': total_assistants,
+            'active_users': active_users
+        })
+    except Exception as e:
+        app.logger.error(f"Error in /api/users/stats: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 # --- Visits ---
