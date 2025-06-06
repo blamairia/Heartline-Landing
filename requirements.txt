@@ -11,3 +11,5 @@ torch
 wfdb
 numpy
 werkzeug
+Flask-WTF
+flask-moment
