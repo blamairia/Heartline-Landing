@@ -66,7 +66,7 @@ app = Flask(__name__)
 moment = Moment(app) # Add this line to initialize Flask-Moment
 app.config["SECRET_KEY"] = "replace-this-with-a-secure-random-string"
 # Use PostgreSQL database with medicament table
-app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql+psycopg2://postgres:root@localhost:5432/nv"
+app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql+psycopg2://postgres.efgqnqwjuoeywepqkwxy:Billel159@aws-0-eu-west-3.pooler.supabase.com:5432/DoctorNv"
 # app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///hearline.db"  # Temporary for testing
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
