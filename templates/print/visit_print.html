@@ -215,27 +215,27 @@
                 <em>No diagnosis recorded for this visit.</em>
             {% endif %}
         </div>
-    </div>
-
-    {% if visit.prescriptions.count() > 0 %}
+    </div>    {% if visit.prescriptions.count() > 0 %}
     <div class="prescriptions-section">
         <h3>Prescriptions ({{ visit.prescriptions.count() }})</h3>
         <table class="table">
             <thead>
                 <tr>
-                    <th>Medication</th>
+                    <th>Medication Name</th>
+                    <th>Commercial Name</th>
                     <th>Dosage</th>
-                    <th>Frequency</th>
-                    <th>Duration</th>
+                    <th>Instructions</th>
+                    <th>Quantity</th>
                 </tr>
             </thead>
             <tbody>
                 {% for prescription in visit.prescriptions %}
                 <tr>
-                    <td>{{ prescription.medication_name }}</td>
-                    <td>{{ prescription.dosage or '-' }}</td>
-                    <td>{{ prescription.frequency or '-' }}</td>
-                    <td>{{ prescription.duration or '-' }}</td>
+                    <td>{{ prescription.medicament.nom_dci if prescription.medicament else 'N/A' }}</td>
+                    <td>{{ prescription.medicament.nom_com if prescription.medicament else 'N/A' }}</td>
+                    <td>{{ prescription.medicament.dosage ~ ' ' ~ prescription.medicament.unite if prescription.medicament else 'N/A' }}</td>
+                    <td>{{ prescription.dosage_instructions or '-' }}</td>
+                    <td>{{ prescription.quantity or '-' }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
