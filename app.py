@@ -46,6 +46,8 @@ from models import (
     VisitDocument,
     Medicament,
     Prescription,
+    ClinicInfo,
+    GeneralSettings,
 )
 
 # ----------------------------------------
@@ -1255,6 +1257,284 @@ def delete_appointment(appointment_id):
     db.session.commit()
     
     return jsonify({"success": True, "message": "Appointment deleted successfully"})
+
+
+# ----------------------------------------
+# SETTINGS ROUTES
+# ----------------------------------------
+
+@app.route("/settings")
+def settings():
+    """
+    Display the settings page with clinic info, doctors, and general settings.
+    """
+    # Get clinic information
+    clinic_info = ClinicInfo.query.first()
+    
+    # Get general settings
+    general_settings = GeneralSettings.query.first()
+    
+    # Get all doctors
+    doctors = Doctor.query.order_by(Doctor.first_name, Doctor.last_name).all()
+    
+    # Get database statistics
+    patients_count = Patient.query.count()
+    visits_count = Visit.query.count()
+    appointments_count = Appointment.query.count()
+    
+    return render_template("pages/settings.html",
+                         clinic_info=clinic_info,
+                         general_settings=general_settings,
+                         doctors=doctors,
+                         patients_count=patients_count,
+                         visits_count=visits_count,
+                         appointments_count=appointments_count)
+
+
+# ----------------------------------------
+# SETTINGS API ROUTES
+# ----------------------------------------
+
+@app.route("/api/settings/clinic-info", methods=["POST"])
+def save_clinic_info():
+    """
+    Save or update clinic information.
+    """
+    try:
+        data = request.get_json()
+        
+        # Get existing clinic info or create new
+        clinic_info = ClinicInfo.query.first()
+        if not clinic_info:
+            clinic_info = ClinicInfo()
+            db.session.add(clinic_info)
+        
+        # Update fields
+        clinic_info.name = data.get('name', '')
+        clinic_info.phone = data.get('phone', '')
+        clinic_info.address = data.get('address', '')
+        clinic_info.email = data.get('email', '')
+        clinic_info.website = data.get('website', '')
+        clinic_info.operating_hours = data.get('operating_hours', '')
+        clinic_info.specialties = data.get('specialties', '')
+        
+        db.session.commit()
+        
+        return jsonify({"success": True, "message": "Clinic information saved successfully"})
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route("/api/settings/general", methods=["POST"])
+def save_general_settings():
+    """
+    Save or update general settings.
+    """
+    try:
+        data = request.get_json()
+        
+        # Get existing settings or create new
+        settings = GeneralSettings.query.first()
+        if not settings:
+            settings = GeneralSettings()
+            db.session.add(settings)
+        
+        # Update fields
+        settings.default_appointment_duration = int(data.get('default_appointment_duration', 30))
+        settings.appointment_interval = int(data.get('appointment_interval', 15))
+        settings.weekend_appointments = bool(data.get('weekend_appointments', True))
+        settings.currency = data.get('currency', 'DZD')
+        settings.date_format = data.get('date_format', 'YYYY-MM-DD')
+        settings.auto_backup = bool(data.get('auto_backup', True))
+        
+        db.session.commit()
+        
+        return jsonify({"success": True, "message": "General settings saved successfully"})
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+# ----------------------------------------
+# DOCTOR MANAGEMENT API ROUTES
+# ----------------------------------------
+
+@app.route("/api/doctors", methods=["POST"])
+def create_doctor():
+    """
+    Create a new doctor.
+    """
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        if not data.get('first_name') or not data.get('last_name') or not data.get('specialty'):
+            return jsonify({"success": False, "message": "First name, last name, and specialty are required"}), 400
+        
+        # Create new doctor
+        doctor = Doctor(
+            first_name=data['first_name'],
+            last_name=data['last_name'],
+            specialty=data['specialty'],
+            phone=data.get('phone', ''),
+            email=data.get('email', ''),
+            bio=data.get('bio', '')
+        )
+        
+        db.session.add(doctor)
+        db.session.commit()
+        
+        return jsonify({"success": True, "message": "Doctor created successfully", "doctor_id": doctor.id})
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route("/api/doctors/<int:doctor_id>", methods=["GET"])
+def get_doctor(doctor_id):
+    """
+    Get doctor information by ID.
+    """
+    try:
+        doctor = Doctor.query.get_or_404(doctor_id)
+        
+        doctor_data = {
+            "id": doctor.id,
+            "first_name": doctor.first_name,
+            "last_name": doctor.last_name,
+            "specialty": doctor.specialty,
+            "phone": doctor.phone,
+            "email": doctor.email,
+            "bio": doctor.bio
+        }
+        
+        return jsonify({"success": True, "doctor": doctor_data})
+    
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route("/api/doctors/<int:doctor_id>", methods=["PUT"])
+def update_doctor(doctor_id):
+    """
+    Update doctor information.
+    """
+    try:
+        doctor = Doctor.query.get_or_404(doctor_id)
+        data = request.get_json()
+        
+        # Validate required fields
+        if not data.get('first_name') or not data.get('last_name') or not data.get('specialty'):
+            return jsonify({"success": False, "message": "First name, last name, and specialty are required"}), 400
+        
+        # Update doctor fields
+        doctor.first_name = data['first_name']
+        doctor.last_name = data['last_name']
+        doctor.specialty = data['specialty']
+        doctor.phone = data.get('phone', '')
+        doctor.email = data.get('email', '')
+        doctor.bio = data.get('bio', '')
+        
+        db.session.commit()
+        
+        return jsonify({"success": True, "message": "Doctor updated successfully"})
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route("/api/doctors/<int:doctor_id>", methods=["DELETE"])
+def delete_doctor(doctor_id):
+    """
+    Delete a doctor.
+    """
+    try:
+        doctor = Doctor.query.get_or_404(doctor_id)
+        
+        # Check if doctor has appointments or visits
+        if doctor.appointments.count() > 0 or doctor.visits.count() > 0:
+            return jsonify({
+                "success": False, 
+                "message": "Cannot delete doctor with existing appointments or visits"
+            }), 400
+        
+        db.session.delete(doctor)
+        db.session.commit()
+        
+        return jsonify({"success": True, "message": "Doctor deleted successfully"})
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+# ----------------------------------------
+# BACKUP API ROUTES
+# ----------------------------------------
+
+@app.route("/api/backup/create", methods=["POST"])
+def create_backup():
+    """
+    Create a database backup.
+    """
+    try:
+        import datetime
+        import subprocess
+        import tempfile
+        import os
+        from flask import send_file
+        
+        # Create timestamp for backup filename
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_filename = f"hearline_backup_{timestamp}.sql"
+        
+        # Create temporary file
+        temp_dir = tempfile.gettempdir()
+        backup_path = os.path.join(temp_dir, backup_filename)
+        
+        # PostgreSQL backup command
+        db_url = app.config["SQLALCHEMY_DATABASE_URI"]
+        if "postgresql" in db_url:
+            # Extract database details from URL
+            # postgresql+psycopg2://postgres:root@localhost:5432/nv
+            import re
+            match = re.match(r'postgresql\+psycopg2://([^:]+):([^@]+)@([^:]+):(\d+)/(.+)', db_url)
+            if match:
+                username, password, host, port, database = match.groups()
+                
+                # Set PGPASSWORD environment variable
+                env = os.environ.copy()
+                env['PGPASSWORD'] = password
+                
+                # Run pg_dump
+                cmd = [
+                    'pg_dump',
+                    '-h', host,
+                    '-p', port,
+                    '-U', username,
+                    '-d', database,
+                    '-f', backup_path,
+                    '--no-password'
+                ]
+                
+                subprocess.run(cmd, env=env, check=True)
+                
+                # Return the backup file
+                return send_file(backup_path, as_attachment=True, download_name=backup_filename)
+            else:
+                return jsonify({"success": False, "message": "Invalid database URL format"}), 500
+        else:
+            return jsonify({"success": False, "message": "Backup only supported for PostgreSQL"}), 500
+            
+    except subprocess.CalledProcessError as e:
+        return jsonify({"success": False, "message": f"Backup failed: {str(e)}"}), 500
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
 
 
 # ----------------------------------------

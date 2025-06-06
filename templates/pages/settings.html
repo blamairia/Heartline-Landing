@@ -1,0 +1,832 @@
+{% extends "base.html" %}
+
+{% block title %}Settings | Hearline Medical Clinic{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-cog"></i> Settings</h1>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Settings Navigation -->
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-header">
+          <h5><i class="fas fa-list"></i> Settings Categories</h5>
+        </div>
+        <div class="list-group list-group-flush">
+          <a href="#clinic-info" class="list-group-item list-group-item-action active" data-bs-toggle="pill">
+            <i class="fas fa-hospital"></i> Clinic Information
+          </a>
+          <a href="#doctors" class="list-group-item list-group-item-action" data-bs-toggle="pill">
+            <i class="fas fa-user-md"></i> Doctors Management
+          </a>
+          <a href="#general" class="list-group-item list-group-item-action" data-bs-toggle="pill">
+            <i class="fas fa-cogs"></i> General Settings
+          </a>
+          <a href="#backup" class="list-group-item list-group-item-action" data-bs-toggle="pill">
+            <i class="fas fa-database"></i> Data & Backup
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Content -->
+    <div class="col-md-9">
+      <div class="tab-content">
+        
+        <!-- Clinic Information Tab -->
+        <div class="tab-pane fade show active" id="clinic-info">
+          <div class="card">
+            <div class="card-header bg-primary text-white">
+              <h5 class="mb-0"><i class="fas fa-hospital"></i> Clinic Information</h5>
+            </div>
+            <div class="card-body">
+              <form id="clinic-info-form">
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-group mb-3">
+                      <label for="clinic-name" class="form-label">Clinic Name</label>
+                      <input type="text" class="form-control" id="clinic-name" 
+                             value="{{ clinic_info.name if clinic_info else 'Hearline Medical Clinic' }}">
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-group mb-3">
+                      <label for="clinic-phone" class="form-label">Phone Number</label>
+                      <input type="tel" class="form-control" id="clinic-phone" 
+                             value="{{ clinic_info.phone if clinic_info else '' }}">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group mb-3">
+                  <label for="clinic-address" class="form-label">Address</label>
+                  <textarea class="form-control" id="clinic-address" rows="2">{{ clinic_info.address if clinic_info else '' }}</textarea>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-group mb-3">
+                      <label for="clinic-email" class="form-label">Email</label>
+                      <input type="email" class="form-control" id="clinic-email" 
+                             value="{{ clinic_info.email if clinic_info else '' }}">
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-group mb-3">
+                      <label for="clinic-website" class="form-label">Website</label>
+                      <input type="url" class="form-control" id="clinic-website" 
+                             value="{{ clinic_info.website if clinic_info else '' }}">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-group mb-3">
+                      <label for="clinic-hours" class="form-label">Operating Hours</label>
+                      <textarea class="form-control" id="clinic-hours" rows="3">{{ clinic_info.operating_hours if clinic_info else 'Monday - Friday: 8:00 AM - 6:00 PM\nSaturday: 9:00 AM - 2:00 PM\nSunday: Emergency only' }}</textarea>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-group mb-3">
+                      <label for="clinic-specialties" class="form-label">Specialties</label>
+                      <textarea class="form-control" id="clinic-specialties" rows="3">{{ clinic_info.specialties if clinic_info else 'Cardiology\nGeneral Medicine\nPediatrics' }}</textarea>
+                    </div>
+                  </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-save"></i> Save Clinic Information
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- Doctors Management Tab -->
+        <div class="tab-pane fade" id="doctors">
+          <div class="card">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+              <h5 class="mb-0"><i class="fas fa-user-md"></i> Doctors Management</h5>
+              <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#addDoctorModal">
+                <i class="fas fa-plus"></i> Add Doctor
+              </button>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-striped">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Specialty</th>
+                      <th>Phone</th>
+                      <th>Email</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for doctor in doctors %}
+                    <tr>
+                      <td>
+                        <div class="d-flex align-items-center">
+                          <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2">
+                            {{ doctor.first_name[0] }}{{ doctor.last_name[0] }}
+                          </div>
+                          Dr. {{ doctor.first_name }} {{ doctor.last_name }}
+                        </div>
+                      </td>
+                      <td>{{ doctor.specialty }}</td>
+                      <td>{{ doctor.phone or '-' }}</td>
+                      <td>{{ doctor.email or '-' }}</td>
+                      <td>
+                        <span class="badge bg-success">Active</span>
+                      </td>
+                      <td>
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editDoctor({{ doctor.id }})">
+                          <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteDoctor({{ doctor.id }})">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- General Settings Tab -->
+        <div class="tab-pane fade" id="general">
+          <div class="card">
+            <div class="card-header bg-info text-white">
+              <h5 class="mb-0"><i class="fas fa-cogs"></i> General Settings</h5>
+            </div>
+            <div class="card-body">
+              <form id="general-settings-form">
+                <div class="row">
+                  <div class="col-md-6">
+                    <h6>Appointment Settings</h6>
+                    <div class="form-group mb-3">
+                      <label for="default-appointment-duration" class="form-label">Default Appointment Duration (minutes)</label>
+                      <input type="number" class="form-control" id="default-appointment-duration" value="30" min="15" max="120">
+                    </div>
+                    <div class="form-group mb-3">
+                      <label for="appointment-interval" class="form-label">Appointment Interval (minutes)</label>
+                      <input type="number" class="form-control" id="appointment-interval" value="15" min="5" max="60">
+                    </div>
+                    <div class="form-check mb-3">
+                      <input class="form-check-input" type="checkbox" id="weekend-appointments" checked>
+                      <label class="form-check-label" for="weekend-appointments">
+                        Allow weekend appointments
+                      </label>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <h6>System Preferences</h6>
+                    <div class="form-group mb-3">
+                      <label for="currency" class="form-label">Currency</label>
+                      <select class="form-control" id="currency">
+                        <option value="USD">USD ($)</option>
+                        <option value="EUR">EUR (€)</option>
+                        <option value="DZD" selected>DZD (د.ج)</option>
+                      </select>
+                    </div>
+                    <div class="form-group mb-3">
+                      <label for="date-format" class="form-label">Date Format</label>
+                      <select class="form-control" id="date-format">
+                        <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                        <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                        <option value="YYYY-MM-DD" selected>YYYY-MM-DD</option>
+                      </select>
+                    </div>
+                    <div class="form-check mb-3">
+                      <input class="form-check-input" type="checkbox" id="auto-backup" checked>
+                      <label class="form-check-label" for="auto-backup">
+                        Enable automatic daily backup
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <button type="submit" class="btn btn-info">
+                  <i class="fas fa-save"></i> Save General Settings
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- Data & Backup Tab -->
+        <div class="tab-pane fade" id="backup">
+          <div class="card">
+            <div class="card-header bg-warning text-dark">
+              <h5 class="mb-0"><i class="fas fa-database"></i> Data & Backup</h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <h6>Database Information</h6>
+                  <div class="alert alert-info">
+                    <strong>Database Size:</strong> {{ db_stats.size if db_stats else 'Calculating...' }}<br>
+                    <strong>Total Patients:</strong> {{ db_stats.patients if db_stats else patients_count }}<br>
+                    <strong>Total Visits:</strong> {{ db_stats.visits if db_stats else visits_count }}<br>
+                    <strong>Total Appointments:</strong> {{ db_stats.appointments if db_stats else appointments_count }}
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <h6>Backup Operations</h6>
+                  <div class="d-grid gap-2">
+                    <button class="btn btn-success" onclick="createBackup()">
+                      <i class="fas fa-download"></i> Create Backup
+                    </button>
+                    <button class="btn btn-secondary" onclick="document.getElementById('restore-file').click()">
+                      <i class="fas fa-upload"></i> Restore from Backup
+                    </button>
+                    <input type="file" id="restore-file" style="display: none;" accept=".sql,.db" onchange="restoreBackup(this)">
+                  </div>
+                </div>
+              </div>
+
+              <hr>
+
+              <div class="row">
+                <div class="col-md-12">
+                  <h6>Export Data</h6>
+                  <div class="btn-group" role="group">
+                    <button class="btn btn-outline-primary" onclick="exportData('patients')">
+                      <i class="fas fa-users"></i> Export Patients
+                    </button>
+                    <button class="btn btn-outline-primary" onclick="exportData('visits')">
+                      <i class="fas fa-history"></i> Export Visits
+                    </button>
+                    <button class="btn btn-outline-primary" onclick="exportData('appointments')">
+                      <i class="fas fa-calendar"></i> Export Appointments
+                    </button>
+                    <button class="btn btn-outline-primary" onclick="exportData('all')">
+                      <i class="fas fa-file-export"></i> Export All Data
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Doctor Modal -->
+<div class="modal fade" id="addDoctorModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title"><i class="fas fa-user-plus"></i> Add New Doctor</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="add-doctor-form">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group mb-3">
+                <label for="doctor-first-name" class="form-label">First Name</label>
+                <input type="text" class="form-control" id="doctor-first-name" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group mb-3">
+                <label for="doctor-last-name" class="form-label">Last Name</label>
+                <input type="text" class="form-control" id="doctor-last-name" required>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group mb-3">
+            <label for="doctor-specialty" class="form-label">Specialty</label>
+            <select class="form-control" id="doctor-specialty" required>
+              <option value="">Select Specialty</option>
+              <option value="Cardiologist">Cardiologist</option>
+              <option value="General Practitioner">General Practitioner</option>
+              <option value="Pediatrician">Pediatrician</option>
+              <option value="Internist">Internist</option>
+              <option value="Emergency Medicine">Emergency Medicine</option>
+              <option value="Family Medicine">Family Medicine</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group mb-3">
+                <label for="doctor-phone" class="form-label">Phone</label>
+                <input type="tel" class="form-control" id="doctor-phone">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group mb-3">
+                <label for="doctor-email" class="form-label">Email</label>
+                <input type="email" class="form-control" id="doctor-email">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group mb-3">
+            <label for="doctor-bio" class="form-label">Bio / Notes</label>
+            <textarea class="form-control" id="doctor-bio" rows="3"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success" onclick="saveDoctorForm()">
+          <i class="fas fa-save"></i> Save Doctor
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Doctor Modal -->
+<div class="modal fade" id="editDoctorModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title"><i class="fas fa-user-edit"></i> Edit Doctor</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="edit-doctor-form">
+          <input type="hidden" id="edit-doctor-id">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group mb-3">
+                <label for="edit-doctor-first-name" class="form-label">First Name</label>
+                <input type="text" class="form-control" id="edit-doctor-first-name" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group mb-3">
+                <label for="edit-doctor-last-name" class="form-label">Last Name</label>
+                <input type="text" class="form-control" id="edit-doctor-last-name" required>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group mb-3">
+            <label for="edit-doctor-specialty" class="form-label">Specialty</label>
+            <select class="form-control" id="edit-doctor-specialty" required>
+              <option value="">Select Specialty</option>
+              <option value="Cardiologist">Cardiologist</option>
+              <option value="General Practitioner">General Practitioner</option>
+              <option value="Pediatrician">Pediatrician</option>
+              <option value="Internist">Internist</option>
+              <option value="Emergency Medicine">Emergency Medicine</option>
+              <option value="Family Medicine">Family Medicine</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group mb-3">
+                <label for="edit-doctor-phone" class="form-label">Phone</label>
+                <input type="tel" class="form-control" id="edit-doctor-phone">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group mb-3">
+                <label for="edit-doctor-email" class="form-label">Email</label>
+                <input type="email" class="form-control" id="edit-doctor-email">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group mb-3">
+            <label for="edit-doctor-bio" class="form-label">Bio / Notes</label>
+            <textarea class="form-control" id="edit-doctor-bio" rows="3"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="updateDoctorForm()">
+          <i class="fas fa-save"></i> Update Doctor
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.avatar-sm {
+  width: 32px;
+  height: 32px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.list-group-item {
+  border: none;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.list-group-item.active {
+  background-color: #007bff;
+  border-color: #007bff;
+}
+
+.list-group-item:hover {
+  background-color: #f8f9fa;
+}
+
+.list-group-item.active:hover {
+  background-color: #0056b3;
+}
+
+.tab-content {
+  min-height: 500px;
+}
+
+.card-header h5 {
+  margin-bottom: 0;
+}
+
+.form-label {
+  font-weight: 600;
+  color: #495057;
+}
+
+.btn-group .btn {
+  margin-right: 5px;
+}
+
+.btn-group .btn:last-child {
+  margin-right: 0;
+}
+
+.alert {
+  border-radius: 8px;
+}
+
+.modal-content {
+  border-radius: 10px;
+}
+
+.table td {
+  vertical-align: middle;
+}
+
+@media (max-width: 768px) {
+  .col-md-3 {
+    margin-bottom: 20px;
+  }
+  
+  .btn-group {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .btn-group .btn {
+    margin-right: 0;
+    margin-bottom: 5px;
+  }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Bootstrap tabs
+    var triggerTabList = [].slice.call(document.querySelectorAll('[data-bs-toggle="pill"]'));
+    triggerTabList.forEach(function (triggerEl) {
+        var tabTrigger = new bootstrap.Tab(triggerEl);
+        
+        triggerEl.addEventListener('click', function (event) {
+            event.preventDefault();
+            tabTrigger.show();
+        });
+    });
+
+    // Form submissions
+    document.getElementById('clinic-info-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        saveClinicInfo();
+    });
+
+    document.getElementById('general-settings-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        saveGeneralSettings();
+    });
+});
+
+// Clinic Information Functions
+function saveClinicInfo() {
+    const formData = {
+        name: document.getElementById('clinic-name').value,
+        phone: document.getElementById('clinic-phone').value,
+        address: document.getElementById('clinic-address').value,
+        email: document.getElementById('clinic-email').value,
+        website: document.getElementById('clinic-website').value,
+        operating_hours: document.getElementById('clinic-hours').value,
+        specialties: document.getElementById('clinic-specialties').value
+    };
+
+    fetch('/api/settings/clinic-info', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Clinic information saved successfully!', 'success');
+        } else {
+            showAlert('Error saving clinic information: ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        showAlert('Error saving clinic information', 'error');
+        console.error('Error:', error);
+    });
+}
+
+// General Settings Functions
+function saveGeneralSettings() {
+    const formData = {
+        default_appointment_duration: document.getElementById('default-appointment-duration').value,
+        appointment_interval: document.getElementById('appointment-interval').value,
+        weekend_appointments: document.getElementById('weekend-appointments').checked,
+        currency: document.getElementById('currency').value,
+        date_format: document.getElementById('date-format').value,
+        auto_backup: document.getElementById('auto-backup').checked
+    };
+
+    fetch('/api/settings/general', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('General settings saved successfully!', 'success');
+        } else {
+            showAlert('Error saving general settings: ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        showAlert('Error saving general settings', 'error');
+        console.error('Error:', error);
+    });
+}
+
+// Doctor Management Functions
+function saveDoctorForm() {
+    const formData = {
+        first_name: document.getElementById('doctor-first-name').value,
+        last_name: document.getElementById('doctor-last-name').value,
+        specialty: document.getElementById('doctor-specialty').value,
+        phone: document.getElementById('doctor-phone').value,
+        email: document.getElementById('doctor-email').value,
+        bio: document.getElementById('doctor-bio').value
+    };
+
+    if (!formData.first_name || !formData.last_name || !formData.specialty) {
+        showAlert('Please fill in all required fields', 'error');
+        return;
+    }
+
+    fetch('/api/doctors', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Doctor added successfully!', 'success');
+            var modal = bootstrap.Modal.getInstance(document.getElementById('addDoctorModal'));
+            modal.hide();
+            location.reload();
+        } else {
+            showAlert('Error adding doctor: ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        showAlert('Error adding doctor', 'error');
+        console.error('Error:', error);
+    });
+}
+
+function editDoctor(doctorId) {
+    fetch(`/api/doctors/${doctorId}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const doctor = data.doctor;
+            document.getElementById('edit-doctor-id').value = doctor.id;
+            document.getElementById('edit-doctor-first-name').value = doctor.first_name;
+            document.getElementById('edit-doctor-last-name').value = doctor.last_name;
+            document.getElementById('edit-doctor-specialty').value = doctor.specialty;
+            document.getElementById('edit-doctor-phone').value = doctor.phone || '';
+            document.getElementById('edit-doctor-email').value = doctor.email || '';
+            document.getElementById('edit-doctor-bio').value = doctor.bio || '';
+
+            var modal = new bootstrap.Modal(document.getElementById('editDoctorModal'));
+            modal.show();
+        } else {
+            showAlert('Error loading doctor information', 'error');
+        }
+    })
+    .catch(error => {
+        showAlert('Error loading doctor information', 'error');
+        console.error('Error:', error);
+    });
+}
+
+function updateDoctorForm() {
+    const doctorId = document.getElementById('edit-doctor-id').value;
+    const formData = {
+        first_name: document.getElementById('edit-doctor-first-name').value,
+        last_name: document.getElementById('edit-doctor-last-name').value,
+        specialty: document.getElementById('edit-doctor-specialty').value,
+        phone: document.getElementById('edit-doctor-phone').value,
+        email: document.getElementById('edit-doctor-email').value,
+        bio: document.getElementById('edit-doctor-bio').value
+    };
+
+    if (!formData.first_name || !formData.last_name || !formData.specialty) {
+        showAlert('Please fill in all required fields', 'error');
+        return;
+    }
+
+    fetch(`/api/doctors/${doctorId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Doctor updated successfully!', 'success');
+            var modal = bootstrap.Modal.getInstance(document.getElementById('editDoctorModal'));
+            modal.hide();
+            location.reload();
+        } else {
+            showAlert('Error updating doctor: ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        showAlert('Error updating doctor', 'error');
+        console.error('Error:', error);
+    });
+}
+
+function deleteDoctor(doctorId) {
+    if (confirm('Are you sure you want to delete this doctor? This action cannot be undone.')) {
+        fetch(`/api/doctors/${doctorId}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('Doctor deleted successfully!', 'success');
+                location.reload();
+            } else {
+                showAlert('Error deleting doctor: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            showAlert('Error deleting doctor', 'error');
+            console.error('Error:', error);
+        });
+    }
+}
+
+// Backup and Data Functions
+function createBackup() {
+    showAlert('Creating backup...', 'info');
+    
+    fetch('/api/backup/create', {
+        method: 'POST'
+    })
+    .then(response => response.blob())
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `hearline_backup_${new Date().toISOString().split('T')[0]}.sql`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        showAlert('Backup created and downloaded successfully!', 'success');
+    })
+    .catch(error => {
+        showAlert('Error creating backup', 'error');
+        console.error('Error:', error);
+    });
+}
+
+function restoreBackup(fileInput) {
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    if (confirm('This will restore your database from the backup file. Current data will be replaced. Continue?')) {
+        const formData = new FormData();
+        formData.append('backup_file', file);
+
+        showAlert('Restoring backup...', 'info');
+
+        fetch('/api/backup/restore', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('Backup restored successfully!', 'success');
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                showAlert('Error restoring backup: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            showAlert('Error restoring backup', 'error');
+            console.error('Error:', error);
+        });
+    }
+    
+    // Reset file input
+    fileInput.value = '';
+}
+
+function exportData(type) {
+    showAlert(`Exporting ${type} data...`, 'info');
+    
+    fetch(`/api/export/${type}`)
+    .then(response => response.blob())
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `hearline_${type}_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        showAlert(`${type.charAt(0).toUpperCase() + type.slice(1)} data exported successfully!`, 'success');
+    })
+    .catch(error => {
+        showAlert(`Error exporting ${type} data`, 'error');
+        console.error('Error:', error);
+    });
+}
+
+// Utility Functions
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.top = '20px';
+    alertDiv.style.right = '20px';
+    alertDiv.style.zIndex = '9999';
+    alertDiv.style.minWidth = '300px';
+    
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.parentNode.removeChild(alertDiv);
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}
