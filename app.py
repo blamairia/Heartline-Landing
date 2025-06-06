@@ -91,6 +91,37 @@ login_manager.login_message_category = 'info'
 # Initialize Bcrypt
 bcrypt.init_app(app)
 
+# ----------------------------------------
+# 2) PYTORCH MODEL LOADING (ECG)
+# ----------------------------------------
+MODEL_PATH = os.path.join(BASE_DIR, "resnet34_model.pth")
+DEVICE = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
+NET = None
+
+def load_model():
+    global NET
+    try:
+        # 2a) Instantiate the ResNet34 architecture (12 input channels, 9 classes)
+        model = resnet34(input_channels=12, num_classes=9)
+        # 2b) Load the saved state_dict
+        if os.path.exists(MODEL_PATH):
+            state_dict = torch.load(MODEL_PATH, map_location=DEVICE)
+            model.load_state_dict(state_dict)
+            # 2c) Move to device and switch to eval mode
+            model.to(DEVICE)
+            model.eval()
+            NET = model
+            print(f"Model loaded successfully from {MODEL_PATH}")
+        else:
+            print(f"Model file not found at {MODEL_PATH}. ECG inference will be disabled.")
+            NET = None
+    except Exception as e:
+        print(f"Error loading model: {e}. ECG inference will be disabled.")
+        NET = None
+
+# Load the model when the app starts
+load_model()
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -145,35 +176,6 @@ def basename_filter(path):
     if path:
         return os.path.basename(path)
     return ''
-
-# ----------------------------------------
-# 2) PYTORCH MODEL LOADING (ECG)
-# ----------------------------------------
-MODEL_PATH = os.path.join(BASE_DIR, "resnet34_model.pth")
-DEVICE = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
-NET = None
-
-def load_model():
-    global NET
-    try:
-        # 2a) Instantiate the ResNet34 architecture (12 input channels, 9 classes)
-        model = resnet34(input_channels=12, num_classes=9)
-        # 2b) Load the saved state_dict
-        if os.path.exists(MODEL_PATH):
-            state_dict = torch.load(MODEL_PATH, map_location=DEVICE)
-            model.load_state_dict(state_dict)
-            # 2c) Move to device and switch to eval mode
-            model.to(DEVICE)
-            model.eval()
-            NET = model
-            print(f"Model loaded successfully from {MODEL_PATH}")
-        else:
-            print(f"Model file not found at {MODEL_PATH}. ECG inference will be disabled.")
-            NET = None
-    except Exception as e:
-        print(f"Error loading model: {e}. ECG inference will be disabled.")
-        NET = None
-
 
 # ----------------------------------------
 # 3) WTForms DEFINITIONS
@@ -470,6 +472,287 @@ def visit_details(visit_id):
                          documents=documents,
                          ecg_analysis=ecg_analysis)
 
+@app.route("/ecg_history")
+def ecg_history():
+    """
+    Display comprehensive ECG history table with filtering and sorting capabilities.
+    """
+    from datetime import date
+    from sqlalchemy import desc
+    
+    # Get all visits that have ECG data, ordered by visit date (newest first)
+    ecg_records = Visit.query.filter(
+        Visit.ecg_prediction.isnot(None)
+    ).order_by(desc(Visit.visit_date)).all()
+    
+    # Process ECG records to extract primary diagnosis and confidence
+    for record in ecg_records:
+        if record.ecg_prediction:
+            # Find primary diagnosis (highest probability)
+            max_prob_abbr = max(record.ecg_prediction, key=record.ecg_prediction.get)
+            max_prob_value = record.ecg_prediction[max_prob_abbr]
+            
+            # Class names mapping
+            class_names = {
+                "SNR": "Sinus Rhythm",
+                "AF": "Atrial Fibrillation", 
+                "IAVB": "AV Block",
+                "LBBB": "Left Bundle Branch Block",
+                "RBBB": "Right Bundle Branch Block", 
+                "PAC": "Premature Atrial Contraction",
+                "PVC": "Premature Ventricular Contraction",
+                "STD": "ST Depression",
+                "STE": "ST Elevation"
+            }
+            
+            # Attach processed data to record
+            record.ecg_primary_diagnosis = {
+                'abbreviation': max_prob_abbr,
+                'name': class_names.get(max_prob_abbr, max_prob_abbr)
+            }
+            record.ecg_confidence = max_prob_value
+    
+    # Calculate summary statistics
+    total_ecgs = len(ecg_records)
+    normal_rhythm_count = sum(1 for r in ecg_records 
+                             if r.ecg_primary_diagnosis['abbreviation'] == 'SNR')
+    abnormal_count = total_ecgs - normal_rhythm_count
+    high_confidence_count = sum(1 for r in ecg_records if r.ecg_confidence >= 0.8)
+    
+    return render_template("tables/ecg_history_table.html", 
+                         ecg_records=ecg_records,
+                         total_ecgs=total_ecgs,
+                         normal_rhythm_count=normal_rhythm_count,
+                         abnormal_count=abnormal_count,
+                         high_confidence_count=high_confidence_count,
+                         date=date)
+
+
+@app.route("/ecg_history/export")
+def export_ecg_history():
+    """
+    Export ECG history data to CSV format.
+    """
+    import csv
+    from io import StringIO
+    from flask import make_response
+    from sqlalchemy import desc
+    
+    # Get all visits with ECG data
+    ecg_records = Visit.query.filter(
+        Visit.ecg_prediction.isnot(None)
+    ).order_by(desc(Visit.visit_date)).all()
+    
+    # Create CSV content
+    output = StringIO()
+    writer = csv.writer(output)
+    
+    # Write header
+    writer.writerow([
+        'Visit ID', 'Patient Name', 'Patient Age', 'Gender', 'Visit Date', 
+        'Primary ECG Diagnosis', 'Confidence', 'Clinical Diagnosis',
+        'All ECG Findings', 'Files Available'
+    ])
+    
+    # Write data rows
+    for record in ecg_records:
+        if record.ecg_prediction:
+            # Calculate patient age
+            from datetime import date
+            birth_date = record.patient.date_of_birth
+            today = date.today()
+            age = today.year - birth_date.year
+            if today.month < birth_date.month or (today.month == birth_date.month and today.day < birth_date.day):
+                age = age - 1
+            
+            # Find primary diagnosis
+            max_prob_abbr = max(record.ecg_prediction, key=record.ecg_prediction.get)
+            max_prob_value = record.ecg_prediction[max_prob_abbr]
+            
+            class_names = {
+                "SNR": "Sinus Rhythm", "AF": "Atrial Fibrillation", "IAVB": "AV Block",
+                "LBBB": "Left Bundle Branch Block", "RBBB": "Right Bundle Branch Block", 
+                "PAC": "Premature Atrial Contraction", "PVC": "Premature Ventricular Contraction",
+                "STD": "ST Depression", "STE": "ST Elevation"
+            }
+            
+            primary_diagnosis = class_names.get(max_prob_abbr, max_prob_abbr)
+            
+            # Format all findings
+            all_findings = "; ".join([
+                f"{class_names.get(abbr, abbr)}: {prob:.1%}" 
+                for abbr, prob in record.ecg_prediction.items()
+            ])
+            
+            # File availability
+            files_available = []
+            if record.ecg_mat:
+                files_available.append("MAT")
+            if record.ecg_hea:
+                files_available.append("HEA")
+            files_str = ", ".join(files_available) if files_available else "None"
+            
+            writer.writerow([
+                record.id,
+                f"{record.patient.first_name} {record.patient.last_name}",
+                age,
+                record.patient.gender,
+                record.visit_date.strftime('%Y-%m-%d %H:%M'),
+                primary_diagnosis,
+                f"{max_prob_value:.1%}",
+                record.diagnosis or "No clinical diagnosis",
+                all_findings,
+                files_str
+            ])
+    
+    # Create response
+    output.seek(0)
+    response = make_response(output.getvalue())
+    response.headers['Content-Type'] = 'text/csv'
+    response.headers['Content-Disposition'] = 'attachment; filename=ecg_history.csv'
+    
+    return response
+
+
+@app.route("/api/ecg_details/<int:visit_id>")
+def api_ecg_details(visit_id):
+    """
+    API endpoint to get detailed ECG analysis for a specific visit.
+    """
+    visit = Visit.query.get_or_404(visit_id)
+    
+    if not visit.ecg_prediction:
+        return jsonify({"success": False, "error": "No ECG analysis available"})
+    
+    # Class names mapping
+    class_names = {
+        "SNR": "Sinus Rhythm",
+        "AF": "Atrial Fibrillation", 
+        "IAVB": "AV Block",
+        "LBBB": "Left Bundle Branch Block",
+        "RBBB": "Right Bundle Branch Block", 
+        "PAC": "Premature Atrial Contraction",
+        "PVC": "Premature Ventricular Contraction",
+        "STD": "ST Depression",
+        "STE": "ST Elevation"
+    }
+    
+    # Find primary diagnosis
+    max_prob_abbr = max(visit.ecg_prediction, key=visit.ecg_prediction.get)
+    max_prob_value = visit.ecg_prediction[max_prob_abbr]
+    
+    analysis = {
+        "probabilities": visit.ecg_prediction,
+        "class_names": class_names,
+        "primary_diagnosis": {
+            "abbreviation": max_prob_abbr,
+            "name": class_names.get(max_prob_abbr, max_prob_abbr),
+            "probability": max_prob_value
+        },
+        "summary": f"Primary finding: {class_names.get(max_prob_abbr, max_prob_abbr)} ({max_prob_value:.1%} confidence)"
+    }
+    
+    return jsonify({"success": True, "analysis": analysis})
+
+
+@app.route("/analyze_ecg", methods=["POST"])
+def analyze_ecg():
+    """
+    Real-time ECG analysis endpoint.
+    Expects two files: mat_file and hea_file
+    Returns JSON with ECG diagnosis probabilities.
+    """
+    try:
+        if not NET:
+            return jsonify({"error": "ECG model not loaded"}), 500
+        
+        mat_file = request.files.get('mat_file')
+        hea_file = request.files.get('hea_file')
+        
+        if not mat_file or not hea_file:
+            return jsonify({"error": "Both .mat and .hea files are required"}), 400
+        
+        # Save files temporarily
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Save the files
+            mat_filename = secure_filename(mat_file.filename)
+            hea_filename = secure_filename(hea_file.filename)
+            
+            # Check if basenames match
+            mat_base = os.path.splitext(mat_filename)[0]
+            hea_base = os.path.splitext(hea_filename)[0]
+            
+            if mat_base != hea_base:
+                return jsonify({"error": "MAT and HEA files must have the same basename"}), 400
+            
+            mat_path = os.path.join(temp_dir, mat_filename)
+            hea_path = os.path.join(temp_dir, hea_filename)
+            
+            mat_file.save(mat_path)
+            hea_file.save(hea_path)
+            
+            # Read ECG data using wfdb
+            record_path = os.path.join(temp_dir, mat_base)
+            record = wfdb.rdrecord(record_path)
+            sig_all = record.p_signal  # shape [n_samples, n_leads]
+            nsteps, nleads = sig_all.shape
+            
+            # Prepare data for inference (same as in create_visit)
+            if nsteps >= 15000:
+                clipped = sig_all[-15000:, :]
+            else:
+                clipped = sig_all
+            buffered = np.zeros((15000, nleads), dtype=np.float32)
+            buffered[-clipped.shape[0]:, :] = clipped
+            
+            x_np = buffered.T  # shape [12, 15000]
+            x_tensor = torch.from_numpy(x_np).unsqueeze(0).to(DEVICE).float()
+            
+            # Run inference
+            with torch.no_grad():
+                logits = NET(x_tensor)
+                probs = torch.sigmoid(logits)[0].cpu().numpy()
+            
+            # Map probabilities to class names
+            class_abbrs = ["SNR", "AF", "IAVB", "LBBB", "RBBB", "PAC", "PVC", "STD", "STE"]
+            class_names = {
+                "SNR": "Sinus Rhythm",
+                "AF": "Atrial Fibrillation", 
+                "IAVB": "AV Block",
+                "LBBB": "Left Bundle Branch Block",
+                "RBBB": "Right Bundle Branch Block", 
+                "PAC": "Premature Atrial Contraction",
+                "PVC": "Premature Ventricular Contraction",
+                "STD": "ST Depression",
+                "STE": "ST Elevation"
+            }
+            
+            prob_dict = {abbr: float(probs[i]) for i, abbr in enumerate(class_abbrs)}
+            
+            # Find the most likely condition (highest probability)
+            max_prob_abbr = max(prob_dict, key=prob_dict.get)
+            max_prob_value = prob_dict[max_prob_abbr]
+            
+            # Prepare response
+            response = {
+                "success": True,
+                "probabilities": prob_dict,
+                "primary_diagnosis": {
+                    "abbreviation": max_prob_abbr,
+                    "name": class_names.get(max_prob_abbr, max_prob_abbr),
+                    "probability": max_prob_value
+                },
+                "summary": f"Primary finding: {class_names.get(max_prob_abbr, max_prob_abbr)} ({max_prob_value:.1%} confidence)"
+            }
+            
+            return jsonify(response)
+            
+    except Exception as e:
+        return jsonify({"error": f"ECG analysis failed: {str(e)}"}), 500
+
+
+
 
 @app.route("/visit/<int:visit_id>/edit", methods=["GET", "POST"])
 @login_required
@@ -715,17 +998,6 @@ def visits_table():
                          date=date)
 
 
-@app.route("/ecg_history")
-@login_required
-@any_role_required
-def ecg_history():
-    """
-    Display ECG history table.
-    """
-    # Placeholder: Replace with actual data retrieval and template rendering
-    # For now, let's fetch some visits that have ECG data to pass to a template
-    visits_with_ecg = Visit.query.filter(Visit.ecg_mat != None, Visit.ecg_hea != None).order_by(Visit.visit_date.desc()).all()
-    return render_template("tables/ecg_history_table.html", visits=visits_with_ecg)
 
 
 @app.route("/appointments")
