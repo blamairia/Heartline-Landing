@@ -840,21 +840,22 @@
         fetch(`/search_medicaments?q=${encodeURIComponent(query)}`)
           .then(resp => resp.json())
           .then(data => {
+            const meds = data.medicaments || [];
             optionsList.innerHTML = '';
-            if (data.length === 0) {
+            if (meds.length === 0) {
               const li = document.createElement('li');
               li.textContent = 'No matches found';
               li.classList.add('text-muted');
               optionsList.appendChild(li);
             } else {
-              data.forEach(item => {
+              meds.forEach(item => {
                 const li = document.createElement('li');
                 li.classList.add('med-option');
                 li.dataset.value = item.id;
-                li.textContent = item.label;
+                li.textContent = item.text;
                 li.addEventListener('click', () => {
                   // When clicked, set visible input & hidden field
-                  searchBox.value = item.label;
+                  searchBox.value = item.text;
                   hiddenInput.value = item.id;
                   optionsList.style.display = 'none';
                 });

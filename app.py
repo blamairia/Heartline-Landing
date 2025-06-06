@@ -66,8 +66,8 @@ app = Flask(__name__)
 moment = Moment(app) # Add this line to initialize Flask-Moment
 app.config["SECRET_KEY"] = "replace-this-with-a-secure-random-string"
 # Use PostgreSQL database with medicament table
-app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql+psycopg2://postgres.efgqnqwjuoeywepqkwxy:Billel159@aws-0-eu-west-3.pooler.supabase.com:5432/DoctorNv"
-# app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///hearline.db"  # Temporary for testing
+app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:root@localhost:5432/nv"
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # Folders where uploads will be saved
@@ -911,6 +911,29 @@ def edit_visit(visit_id):
 
     # ──────────── 6) Render the form (GET or invalid POST) ────────────
     return render_template("forms/visit_edit_form.html", form=form, visit=visit)
+
+
+@app.route('/search_medicaments')
+def search_medicaments():
+    """AJAX endpoint to search medications for select2 dropdown"""
+    try:
+        q = request.args.get('q', '', type=str).strip()
+        page = request.args.get('page', 1, type=int)
+        per_page = 10
+        query = Medicament.query
+        if q:
+            pattern = f"%{q}%"
+            query = query.filter(Medicament.nom_com.ilike(pattern))
+        paginated = query.order_by(Medicament.nom_com).paginate(page=page, per_page=per_page, error_out=False)
+        meds = paginated.items
+        results = [
+            { 'id': m.num_enr, 'text': f"{m.nom_com} ({m.dosage}{m.unite})" }
+            for m in meds
+        ]
+        more = paginated.pages > page
+        return jsonify({ 'medicaments': results, 'pagination': { 'more': more } })
+    except Exception as e:
+        return jsonify({ 'error': str(e) }), 500
 
 
 # ─── Route to search patients by first or last name ───
@@ -2340,4 +2363,4 @@ if __name__ == "__main__":
         
         load_model()      # instantiate and load state_dict, then .eval()
     
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
+    app.run(debug=True)
