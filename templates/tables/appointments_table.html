@@ -470,16 +470,16 @@ function sortTable() {
 }
 
 function editAppointment(appointmentId) {
-    window.location.href = '/appointments/' + appointmentId + '/edit';
+    window.location.href = '/appointment/' + appointmentId + '/edit';
 }
 
 function completeAppointment(appointmentId) {
     if (confirm('Mark this appointment as completed?')) {
         $.ajax({
-            url: `/api/appointments/${appointmentId}/status`,
-            method: 'PUT',
+            url: `/api/appointments/${appointmentId}/update-status`,
+            method: 'POST',
             contentType: 'application/json',
-            data: JSON.stringify({state: 'completed'}),
+            data: JSON.stringify({status: 'completed'}),
             success: function(response) {
                 if (response.success) {
                     location.reload();
