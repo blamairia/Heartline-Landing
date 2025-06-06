@@ -17,19 +17,17 @@
         </div>
         <div class="card-body">
           <form method="POST">
-            {{ form.hidden_tag() }}
-
-            <div class="form-row">
+            {{ form.hidden_tag() }}            <div class="form-row">
               <div class="form-group col-md-6">
                 {{ form.patient_id.label(class="form-label") }}
-                {{ form.patient_id(class="form-control") }}
+                {{ form.patient_id(class="form-control searchable-select", id="patient_id") }}
                 {% for err in form.patient_id.errors %}
                   <small class="text-danger">{{ err }}</small>
                 {% endfor %}
               </div>
               <div class="form-group col-md-6">
                 {{ form.doctor_id.label(class="form-label") }}
-                {{ form.doctor_id(class="form-control") }}
+                {{ form.doctor_id(class="form-control searchable-select", id="doctor_id") }}
                 {% for err in form.doctor_id.errors %}
                   <small class="text-danger">{{ err }}</small>
                 {% endfor %}
@@ -123,6 +121,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/flatpick.mi,.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/select2.min.css') }}">
 <style>
 .form-label {
   font-weight: 600;
@@ -156,13 +155,72 @@
 
 /* Specific styling for select and textarea elements */
 select.form-control {
-  min-height: 48px;
+  min-height: 54px;
   line-height: 1.5;
+  padding: 0.875rem 1rem;
 }
 
 textarea.form-control {
   min-height: 120px;
   resize: vertical;
+}
+
+/* Select2 styling to match the form design */
+.select2-container--default .select2-selection--single {
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  height: 54px;
+  padding: 0.875rem 1rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+  color: #495057;
+  padding-left: 0;
+  padding-right: 0;
+  height: auto;
+  margin-top: 0;
+  margin-bottom: 0;
+  line-height: 1.5;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+  height: 52px;
+  right: 10px;
+}
+
+.select2-container--default.select2-container--focus .select2-selection--single {
+  border-color: #28a745;
+  box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.select2-container {
+  width: 100% !important;
+}
+
+.select2-dropdown {
+  border: 2px solid #28a745;
+  border-radius: 8px;
+  border-top: none;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.select2-results__option--highlighted[aria-selected] {
+  background-color: #28a745;
+}
+
+.select2-search--dropdown .select2-search__field {
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
+  padding: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.select2-search--dropdown .select2-search__field:focus {
+  border-color: #28a745;
+  outline: none;
 }
 
 .btn {
@@ -191,6 +249,7 @@ textarea.form-control {
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/flatpickr.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/select2.min.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize flatpickr for datetime picker
@@ -214,13 +273,68 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Initialize Select2 for searchable selects
+    $('.searchable-select').select2({
+        placeholder: "Search and select...",
+        allowClear: false,
+        width: '100%',
+        theme: 'default',
+        minimumResultsForSearch: 0, // Always show search box
+        templateResult: function(option) {
+            if (!option.id) {
+                return option.text;
+            }
+            
+            // Custom formatting for patient and doctor options
+            var $option = $(
+                '<div class="select2-result-item">' +
+                    '<div class="select2-result-title">' + option.text + '</div>' +
+                '</div>'
+            );
+            return $option;
+        },
+        templateSelection: function(option) {
+            return option.text;
+        }
+    });
+
+    // Custom search functionality for patient select
+    $('#patient_id').on('select2:open', function() {
+        // Focus on search field when dropdown opens
+        setTimeout(function() {
+            document.querySelector('.select2-search__field').focus();
+        }, 100);
+    });
+
+    // Custom search functionality for doctor select
+    $('#doctor_id').on('select2:open', function() {
+        // Focus on search field when dropdown opens
+        setTimeout(function() {
+            document.querySelector('.select2-search__field').focus();
+        }, 100);
+    });
+
     // Patient selection enhancement
     const patientSelect = document.querySelector('#patient_id');
     if (patientSelect) {
-        patientSelect.addEventListener('change', function() {
-            if (this.value) {
+        $('#patient_id').on('select2:select', function(e) {
+            var selectedPatient = e.params.data;
+            if (selectedPatient.id) {
                 // Optional: Load patient's last appointment details for context
-                console.log('Selected patient ID:', this.value);
+                console.log('Selected patient ID:', selectedPatient.id);
+                // You can add AJAX call here to fetch patient details if needed
+            }
+        });
+    }
+
+    // Doctor selection enhancement
+    const doctorSelect = document.querySelector('#doctor_id');
+    if (doctorSelect) {
+        $('#doctor_id').on('select2:select', function(e) {
+            var selectedDoctor = e.params.data;
+            if (selectedDoctor.id) {
+                console.log('Selected doctor ID:', selectedDoctor.id);
+                // Optional: Load doctor's availability or specialization info
             }
         });
     }
