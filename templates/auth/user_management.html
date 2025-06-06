@@ -521,109 +521,109 @@ $(document).ready(function() {
         });
     });
     
-    function loadUsers() {
+    function loadUsers(page = 1) {
+        currentPage = page;
         const search = $('#userSearch').val();
         const role = $('#roleFilter').val();
         const status = $('#statusFilter').val();
-        
+
         $.ajax({
-            url: '/auth/users',
+            url: `/api/users?page=${page}&search=${search}&role=${role}&status=${status}`, // Changed from /auth/users
             method: 'GET',
-            data: {
-                page: currentPage,
-                search: search,
-                role: role,
-                status: status
-            },
             success: function(response) {
-                displayUsers(response.users);
-                updatePagination(response.pagination);
+                const users = response.users;
+                totalPages = response.pagination ? response.pagination.pages : 1;
+                
+                $('#usersTableBody').empty();
+                if (users && users.length > 0) {
+                    users.forEach(user => {
+                        const userRow = `
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="user-avatar mr-3">${user.first_name.charAt(0)}${user.last_name.charAt(0)}</div>
+                                        <div>
+                                            <strong>${user.first_name} ${user.last_name}</strong>
+                                            <div class="text-muted">${user.username}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge badge-role badge-${user.role}">${user.role.charAt(0).toUpperCase() + user.role.slice(1)}</span>
+                                </td>
+                                <td>${user.email}</td>
+                                <td>${user.last_login ? moment(user.last_login).format('YYYY-MM-DD HH:mm') : 'Never'}</td>
+                                <td>
+                                    <span class="badge badge-${user.is_active ? 'success' : 'secondary'}">
+                                        ${user.is_active ? 'Active' : 'Inactive'}
+                                    </span>
+                                </td>
+                                <td>${moment(user.created_at).format('YYYY-MM-DD')}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-info btn-action edit-user" data-id="${user.id}" title="Edit User">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-warning btn-action toggle-status" data-id="${user.id}" title="${user.is_active ? 'Deactivate' : 'Activate'} User">
+                                        <i class="fas fa-power-off"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger btn-action delete-user" data-id="${user.id}" title="Delete User">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                        $('#usersTableBody').append(userRow);
+                    });
+                } else {
+                    $('#usersTableBody').append('<tr><td colspan="7" class="text-center">No users found.</td></tr>');
+                }
+                updatePagination();
             },
-            error: function() {
-                showAlert('Error loading users', 'error');
+            error: function(xhr) {
+                $('#usersTableBody').empty().append('<tr><td colspan="7" class="text-center">Error loading users.</td></tr>');
+                showAlert('Error loading users: ' + (xhr.responseJSON ? xhr.responseJSON.error : xhr.statusText), 'error');
             }
         });
     }
-    
-    function displayUsers(users) {
-        const tbody = $('#usersTableBody');
-        tbody.empty();
-        
-        users.forEach(function(user) {
-            const row = `
-                <tr>
-                    <td>
-                        <div class="d-flex align-items-center">
-                            <div class="user-avatar mr-3">
-                                ${user.first_name.charAt(0)}${user.last_name.charAt(0)}
-                            </div>
-                            <div>
-                                <div class="font-weight-bold">${user.first_name} ${user.last_name}</div>
-                                <small class="text-muted">@${user.username}</small>
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        <span class="badge badge-role badge-${user.role}">
-                            ${user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                        </span>
-                    </td>
-                    <td>${user.email}</td>
-                    <td>
-                        <small class="text-muted">
-                            ${user.last_login ? formatDate(user.last_login) : 'Never'}
-                        </small>
-                    </td>
-                    <td>
-                        <span class="badge badge-${user.is_active ? 'success' : 'secondary'}">
-                            ${user.is_active ? 'Active' : 'Inactive'}
-                        </span>
-                    </td>
-                    <td>
-                        <small class="text-muted">${formatDate(user.created_at)}</small>
-                    </td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary btn-action" onclick="editUser(${user.id})" title="Edit">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger btn-action" onclick="deleteUser(${user.id})" title="Delete">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-warning btn-action" onclick="resetPassword(${user.id})" title="Reset Password">
-                            <i class="fas fa-key"></i>
-                        </button>
-                    </td>
-                </tr>
-            `;
-            tbody.append(row);
-        });
-    }
-    
+
     function loadStats() {
         $.ajax({
-            url: '/auth/users/stats',
+            url: '/auth/users/stats', // This endpoint might need to be created or updated
             method: 'GET',
-            success: function(stats) {
-                $('#totalUsers').text(stats.total_users);
-                $('#totalDoctors').text(stats.total_doctors);
-                $('#totalAssistants').text(stats.total_assistants);
-                $('#activeUsers').text(stats.active_users);
+            success: function(response) {
+                $('#totalUsers').text(response.total_users || 0);
+                $('#totalDoctors').text(response.total_doctors || 0);
+                $('#totalAssistants').text(response.total_assistants || 0);
+                $('#activeUsers').text(response.active_users || 0);
+            },
+            error: function(xhr) {
+                showAlert('Error loading statistics: ' + (xhr.responseJSON ? xhr.responseJSON.error : xhr.statusText), 'error');
             }
         });
     }
-    
+
     function loadDoctorProfiles() {
         $.ajax({
-            url: '/api/doctors',
+            url: '/api/doctors', // Ensure this endpoint exists and returns doctor profiles
             method: 'GET',
-            success: function(doctors) {
-                const selects = $('#doctor_profile_id, #edit_doctor_profile_id');
-                selects.find('option:not(:first)').remove();
+            success: function(response) {
+                const doctors = response.doctors;
+                const $doctorSelect = $('#doctor_profile_id');
+                const $editDoctorSelect = $('#edit_doctor_profile_id');
                 
-                doctors.forEach(function(doctor) {
-                    const option = `<option value="${doctor.id}">${doctor.first_name} ${doctor.last_name} - ${doctor.specialty}</option>`;
-                    selects.append(option);
-                });
+                $doctorSelect.empty().append('<option value="">Create New Profile</option>'); // Option to create new
+                $editDoctorSelect.empty().append('<option value="">Select Doctor Profile</option>');
+
+                if (doctors && doctors.length > 0) {
+                    doctors.forEach(doctor => {
+                        const option = `<option value="${doctor.id}">${doctor.first_name} ${doctor.last_name} (${doctor.specialty})</option>`;
+                        $doctorSelect.append(option);
+                        $editDoctorSelect.append(option);
+                    });
+                }
+            },
+            error: function(xhr) {
+                showAlert('Error loading doctor profiles: ' + (xhr.responseJSON ? xhr.responseJSON.error : xhr.statusText), 'error');
             }
         });
     }

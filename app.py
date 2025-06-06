@@ -899,6 +899,59 @@ def api_patients():
         return jsonify({'error': str(e)}), 500
 
 
+# --- Doctors ---
+@app.route('/api/doctors')
+@login_required
+@any_role_required
+def api_doctors():
+    """API endpoint to get doctor data"""
+    try:
+        doctors = Doctor.query.order_by(Doctor.last_name, Doctor.first_name).all()
+        doctor_list = [
+            {
+                'id': d.id,
+                'first_name': d.first_name,
+                'last_name': d.last_name,
+                'specialty': d.specialty,
+                'phone': d.phone,
+                'email': d.email,
+                'user_id': d.user.id if d.user else None,
+                'username': d.user.username if d.user else None
+            }
+            for d in doctors
+        ]
+        return jsonify({'doctors': doctor_list})
+    except Exception as e:
+        app.logger.error(f"Error in /api/doctors: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# --- Users ---
+@app.route('/api/users')
+@login_required
+@role_required(['doctor', 'assistant'])
+def api_users():
+    """API endpoint to get user data for user management"""
+    try:
+        users = User.query.order_by(User.created_at.desc()).all()
+        user_list = [
+            {
+                'id': u.id,
+                'username': u.username,
+                'email': u.email,
+                'first_name': u.first_name,
+                'last_name': u.last_name,
+                'role': u.role,
+                'is_active': u.is_active,
+                'last_login': u.last_login.strftime('%Y-%m-%d %H:%M:%S') if u.last_login else None,
+                'created_at': u.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            }
+            for u in users
+        ]
+        return jsonify({'users': user_list})
+    except Exception as e:
+        app.logger.error(f"Error in /api/users: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 # --- Visits ---
 @app.route('/api/visits')
 @login_required
@@ -1303,11 +1356,10 @@ def change_password():
 
 @app.route("/user-management")
 @login_required
-@role_required(['doctor', 'assistant'])  # Both roles can manage users for now
+@role_required(['doctor', 'assistant'])
 def user_management():
-    """User management page"""
-    users = User.query.order_by(User.created_at.desc()).all()
-    return render_template('auth/user_management.html', users=users)
+    """User management page - will fetch data from API"""
+    return render_template('auth/user_management.html')
 
 
 @app.route("/user/<int:user_id>/toggle-status", methods=["POST"])
