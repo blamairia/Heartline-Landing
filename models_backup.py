@@ -23,6 +23,7 @@ class Patient(db.Model):
     updated_at       = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     visits           = db.relationship("Visit", backref="patient", lazy="dynamic")
+    appointments     = db.relationship("Appointment", backref="patient", lazy="dynamic")
     waiting_list     = db.relationship("WaitingListEntry", backref="patient", lazy="dynamic")
 
 
@@ -51,11 +52,11 @@ class Appointment(db.Model):
     reason      = db.Column(db.String(200), nullable=False)
     state       = db.Column(db.String(20), nullable=False, default="scheduled")  # "scheduled"/"completed"/"canceled"
     patient_id  = db.Column(db.Integer, db.ForeignKey("patient.id"), nullable=False)
-    doctor_id   = db.Column(db.Integer, db.ForeignKey("doctor.id"), nullable=True)
+    doctor_id   = db.Column(db.Integer, db.ForeignKey("doctor.id"), nullable=True)    created_at  = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at  = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    created_at  = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at  = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)    # Relationships
-    patient     = db.relationship("Patient", backref="appointments")
+    # Relationships are defined in the parent models via backref
+    # patient.appointments and doctor.appointments are available via backref
     visit       = db.relationship("Visit", backref="appointment", uselist=False)
 
 

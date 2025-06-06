@@ -1,6 +1,10 @@
 # app.py
 
 import os
+import torch
+import torch.nn as nn
+import numpy as np
+import wfdb
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
@@ -176,6 +180,31 @@ class PatientForm(FlaskForm):
     phone           = StringField("Phone", validators=[validators.Optional(), validators.Length(max=20)])
     email           = StringField("Email", validators=[validators.Optional(), validators.Email()])
     medical_history = TextAreaField("Medical History", validators=[validators.Optional()])
+
+
+# --- Form for Appointment creation & editing ---
+def coerce_int_or_none(value):
+    """Coerce to int, but return None for empty strings"""
+    if value == '' or value is None:
+        return None
+    return int(value)
+
+class AppointmentForm(FlaskForm):
+    patient_id = SelectField("Patient", choices=[], coerce=int, validators=[validators.DataRequired()])
+    doctor_id = SelectField("Doctor", choices=[], coerce=coerce_int_or_none, validators=[validators.Optional()])
+    date = DateTimeField(
+        "Appointment Date & Time",
+        default=datetime.utcnow,
+        format="%Y-%m-%d %H:%M",
+        validators=[validators.DataRequired()],
+    )
+    reason = StringField("Reason for Appointment", validators=[validators.DataRequired(), validators.Length(max=200)])
+    state = SelectField(
+        "Status",
+        choices=[("scheduled","Scheduled"), ("completed","Completed"), ("canceled","Canceled")],
+        default="scheduled",
+        validators=[validators.DataRequired()],
+    )
 
 
 # ----------------------------------------
@@ -978,11 +1007,255 @@ def api_ecg_details(visit_id):
             "abbreviation": max_prob_abbr,
             "name": class_names.get(max_prob_abbr, max_prob_abbr),
             "probability": max_prob_value
-        },
-        "summary": f"Primary finding: {class_names.get(max_prob_abbr, max_prob_abbr)} ({max_prob_value:.1%} confidence)"
+        },        "summary": f"Primary finding: {class_names.get(max_prob_abbr, max_prob_abbr)} ({max_prob_value:.1%} confidence)"
     }
     
     return jsonify({"success": True, "analysis": analysis})
+
+
+# ----------------------------------------
+# APPOINTMENT ROUTES
+# ----------------------------------------
+
+@app.route("/appointments")
+def appointments_table():
+    """
+    Display comprehensive appointments table with filtering and sorting capabilities.
+    """
+    from datetime import date, datetime
+    from sqlalchemy import desc, and_
+    
+    # Get all appointments with their related data, ordered by date (newest first)
+    appointments = Appointment.query.order_by(desc(Appointment.date)).all()
+    
+    # Calculate summary statistics
+    total_appointments = len(appointments)
+    scheduled_count = sum(1 for appt in appointments if appt.state == 'scheduled')
+    completed_count = sum(1 for appt in appointments if appt.state == 'completed')
+    canceled_count = sum(1 for appt in appointments if appt.state == 'canceled')
+    
+    # Count today's appointments
+    today = date.today()
+    today_count = sum(1 for appt in appointments 
+                     if appt.date.date() == today)
+    
+    # Create stats dictionary for template
+    stats = {
+        'total': total_appointments,
+        'scheduled': scheduled_count,
+        'completed': completed_count,
+        'canceled': canceled_count,
+        'today': today_count
+    }
+    
+    return render_template("tables/appointments_table.html", 
+                         appointments=appointments,
+                         stats=stats,
+                         Patient=Patient,
+                         Doctor=Doctor,
+                         Appointment=Appointment,
+                         date=date,
+                         datetime=datetime)
+
+
+@app.route("/appointments/export")
+def export_appointments():
+    """
+    Export appointments data to CSV format.
+    """
+    import csv
+    from io import StringIO
+    from flask import make_response
+    from sqlalchemy import desc
+    
+    # Get all appointments data
+    appointments = Appointment.query.order_by(desc(Appointment.date)).all()
+    
+    # Create CSV content
+    output = StringIO()
+    writer = csv.writer(output)
+    
+    # Write header
+    writer.writerow([
+        'Appointment ID', 'Patient Name', 'Doctor Name', 'Date', 'Time',
+        'Reason', 'State', 'Created At', 'Updated At'
+    ])
+    
+    # Write data rows
+    for appointment in appointments:
+        patient_name = f"{appointment.patient.first_name} {appointment.patient.last_name}" if appointment.patient else "N/A"
+        doctor_name = f"Dr. {appointment.doctor.first_name} {appointment.doctor.last_name}" if appointment.doctor else "N/A"
+        appointment_date = appointment.date.strftime('%Y-%m-%d') if appointment.date else "N/A"
+        appointment_time = appointment.date.strftime('%H:%M') if appointment.date else "N/A"
+        
+        writer.writerow([
+            appointment.id,
+            patient_name,
+            doctor_name,
+            appointment_date,
+            appointment_time,
+            appointment.reason,
+            appointment.state,
+            appointment.created_at.strftime('%Y-%m-%d %H:%M:%S') if appointment.created_at else "N/A",
+            appointment.updated_at.strftime('%Y-%m-%d %H:%M:%S') if appointment.updated_at else "N/A"
+        ])
+    
+    # Create response
+    response = make_response(output.getvalue())
+    response.headers['Content-Type'] = 'text/csv'
+    response.headers['Content-Disposition'] = 'attachment; filename=appointments.csv'
+    
+    return response
+
+
+@app.route("/appointment/new", methods=["GET", "POST"])
+def create_appointment():
+    """
+    Create a new appointment.
+    """
+    form = AppointmentForm()
+    
+    # Populate patient dropdown
+    form.patient_id.choices = [
+        (p.id, f"{p.first_name} {p.last_name}") 
+        for p in Patient.query.order_by(Patient.first_name, Patient.last_name).all()
+    ]
+    
+    # Populate doctor dropdown
+    form.doctor_id.choices = [('', 'Select Doctor (Optional)')] + [
+        (d.id, f"Dr. {d.first_name} {d.last_name}") 
+        for d in Doctor.query.order_by(Doctor.first_name, Doctor.last_name).all()
+    ]
+    
+    if form.validate_on_submit():
+        appointment = Appointment(
+            patient_id=form.patient_id.data,
+            doctor_id=form.doctor_id.data if form.doctor_id.data else None,
+            date=form.date.data,
+            reason=form.reason.data,
+            state=form.state.data
+        )
+        
+        db.session.add(appointment)
+        db.session.commit()
+        
+        flash("Appointment scheduled successfully!", "success")
+        return redirect(url_for("appointments_table"))
+    
+    return render_template("forms/appointment_form.html", form=form)
+
+
+@app.route("/appointment/<int:appointment_id>/edit", methods=["GET", "POST"])
+def edit_appointment(appointment_id):
+    """
+    Edit an existing appointment.
+    """
+    appointment = Appointment.query.get_or_404(appointment_id)
+    form = AppointmentForm(obj=appointment)
+    
+    # Populate patient dropdown
+    form.patient_id.choices = [
+        (p.id, f"{p.first_name} {p.last_name}") 
+        for p in Patient.query.order_by(Patient.first_name, Patient.last_name).all()
+    ]
+    
+    # Populate doctor dropdown
+    form.doctor_id.choices = [('', 'Select Doctor (Optional)')] + [
+        (d.id, f"Dr. {d.first_name} {d.last_name}") 
+        for d in Doctor.query.order_by(Doctor.first_name, Doctor.last_name).all()
+    ]
+    
+    if form.validate_on_submit():
+        form.populate_obj(appointment)
+        db.session.commit()
+        
+        flash("Appointment updated successfully!", "success")
+        return redirect(url_for("appointments_table"))
+    
+    return render_template("forms/appointment_form.html", form=form, appointment=appointment)
+
+
+@app.route("/appointment/<int:appointment_id>")
+def appointment_details(appointment_id):
+    """
+    Display appointment details.
+    """
+    appointment = Appointment.query.get_or_404(appointment_id)
+    return render_template("appointment_details.html", appointment=appointment)
+
+
+# API Routes for Appointments
+@app.route("/api/appointments/<int:appointment_id>/update-status", methods=["POST"])
+def update_appointment_status(appointment_id):
+    """
+    Update appointment status via API.
+    """
+    appointment = Appointment.query.get_or_404(appointment_id)
+    data = request.get_json()
+    
+    if 'status' not in data:
+        return jsonify({"success": False, "message": "Status is required"}), 400
+    
+    if data['status'] not in ['scheduled', 'completed', 'canceled']:
+        return jsonify({"success": False, "message": "Invalid status"}), 400
+    
+    appointment.state = data['status']
+    db.session.commit()
+    
+    return jsonify({"success": True, "message": "Status updated successfully"})
+
+
+@app.route("/api/appointments/<int:appointment_id>/create-visit", methods=["POST"])
+def create_visit_from_appointment(appointment_id):
+    """
+    Create a visit record from an appointment.
+    """
+    appointment = Appointment.query.get_or_404(appointment_id)
+    
+    if appointment.state != 'scheduled':
+        return jsonify({"success": False, "message": "Can only create visits from scheduled appointments"}), 400
+    
+    # Create new visit
+    visit = Visit(
+        patient_id=appointment.patient_id,
+        visit_date=appointment.date,
+        diagnosis=f"Follow-up for: {appointment.reason}",
+        payment_status="unpaid"
+    )
+    
+    db.session.add(visit)
+    
+    # Update appointment status
+    appointment.state = 'completed'
+    
+    db.session.commit()
+    
+    return jsonify({
+        "success": True, 
+        "message": "Visit created successfully",
+        "visit_id": visit.id
+    })
+
+
+@app.route("/api/appointments/<int:appointment_id>", methods=["DELETE"])
+def delete_appointment(appointment_id):
+    """
+    Delete an appointment via API.
+    """
+    appointment = Appointment.query.get_or_404(appointment_id)
+    
+    # Check if appointment has associated visit
+    if appointment.visit:
+        return jsonify({
+            "success": False, 
+            "message": "Cannot delete appointment with associated visit"
+        }), 400
+    
+    db.session.delete(appointment)
+    db.session.commit()
+    
+    return jsonify({"success": True, "message": "Appointment deleted successfully"})
+
 
 # ----------------------------------------
 # 5) INITIALIZE DATABASE & RUN

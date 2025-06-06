@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}
+  {% if appointment %}Edit Appointment{% else %}Schedule New Appointment{% endif %} | Hearline Medical Clinic
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-lg-8 col-md-10 mx-auto">
+      <div class="card shadow">
+        <div class="card-header bg-success text-white">
+          <h3 class="mb-0">
+            <i class="fas fa-calendar-plus"></i> 
+            {% if appointment %}Edit Appointment{% else %}Schedule New Appointment{% endif %}
+          </h3>
+        </div>
+        <div class="card-body">
+          <form method="POST">
+            {{ form.hidden_tag() }}
+
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                {{ form.patient_id.label(class="form-label") }}
+                {{ form.patient_id(class="form-control") }}
+                {% for err in form.patient_id.errors %}
+                  <small class="text-danger">{{ err }}</small>
+                {% endfor %}
+              </div>
+              <div class="form-group col-md-6">
+                {{ form.doctor_id.label(class="form-label") }}
+                {{ form.doctor_id(class="form-control") }}
+                {% for err in form.doctor_id.errors %}
+                  <small class="text-danger">{{ err }}</small>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                {{ form.date.label(class="form-label") }}
+                {{ form.date(class="form-control flatpickr-datetime") }}
+                {% for err in form.date.errors %}
+                  <small class="text-danger">{{ err }}</small>
+                {% endfor %}
+              </div>
+              <div class="form-group col-md-6">
+                {{ form.state.label(class="form-label") }}
+                {{ form.state(class="form-control") }}
+                {% for err in form.state.errors %}
+                  <small class="text-danger">{{ err }}</small>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="form-group">
+              {{ form.reason.label(class="form-label") }}
+              {{ form.reason(class="form-control", placeholder="Describe the reason for this appointment...") }}
+              {% for err in form.reason.errors %}
+                <small class="text-danger">{{ err }}</small>
+              {% endfor %}
+            </div>
+
+            <div class="form-group mt-4">
+              <div class="row">
+                <div class="col-md-6">
+                  <button type="submit" class="btn btn-success btn-lg btn-block">
+                    <i class="fas fa-save"></i> 
+                    {% if appointment %}Update Appointment{% else %}Schedule Appointment{% endif %}
+                  </button>
+                </div>
+                <div class="col-md-6">
+                  <a href="{{ url_for('appointments_table') }}" class="btn btn-secondary btn-lg btn-block">
+                    <i class="fas fa-times"></i> Cancel
+                  </a>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Additional appointment scheduling info -->
+{% if not appointment %}
+<div class="container-fluid mt-4">
+  <div class="row">
+    <div class="col-lg-8 col-md-10 mx-auto">
+      <div class="card border-info">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0"><i class="fas fa-info-circle"></i> Appointment Guidelines</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <h6><i class="fas fa-clock text-primary"></i> Scheduling Notes:</h6>
+              <ul class="small">
+                <li>Regular appointments: 30 minutes</li>
+                <li>Follow-up appointments: 15 minutes</li>
+                <li>Initial consultations: 45 minutes</li>
+                <li>Emergency appointments: Contact directly</li>
+              </ul>
+            </div>
+            <div class="col-md-6">
+              <h6><i class="fas fa-calendar-check text-success"></i> Available Times:</h6>
+              <ul class="small">
+                <li>Monday - Friday: 8:00 AM - 6:00 PM</li>
+                <li>Saturday: 9:00 AM - 2:00 PM</li>
+                <li>Sunday: Emergency only</li>
+                <li>Lunch break: 12:00 PM - 1:00 PM</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/flatpick.mi,.css') }}">
+<style>
+.form-label {
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 0.5rem;
+}
+
+.card {
+  border: none;
+  border-radius: 15px;
+}
+
+.card-header {
+  border-radius: 15px 15px 0 0 !important;
+  padding: 1.5rem;
+}
+
+.form-control {
+  border-radius: 8px;
+  border: 2px solid #e9ecef;
+  padding: 0.875rem 1rem;
+  min-height: 48px;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+}
+
+.form-control:focus {
+  border-color: #28a745;
+  box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+/* Specific styling for select and textarea elements */
+select.form-control {
+  min-height: 48px;
+  line-height: 1.5;
+}
+
+textarea.form-control {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.btn {
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  min-height: 48px;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.text-danger {
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.border-info .card-header {
+  background: linear-gradient(135deg, #17a2b8, #20c997) !important;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/flatpickr.min.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize flatpickr for datetime picker
+    flatpickr('.flatpickr-datetime', {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i",
+        time_24hr: true,
+        minuteIncrement: 15,
+        minDate: "today",
+        defaultHour: 9,
+        defaultMinute: 0,
+        disable: [
+            // Disable Sundays (0 = Sunday)
+            function(date) {
+                return date.getDay() === 0;
+            }
+        ],
+        onReady: function(selectedDates, dateStr, instance) {
+            // Add custom styling
+            instance.calendarContainer.classList.add('appointment-calendar');
+        }
+    });
+
+    // Patient selection enhancement
+    const patientSelect = document.querySelector('#patient_id');
+    if (patientSelect) {
+        patientSelect.addEventListener('change', function() {
+            if (this.value) {
+                // Optional: Load patient's last appointment details for context
+                console.log('Selected patient ID:', this.value);
+            }
+        });
+    }
+
+    // Form validation
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        const date = document.querySelector('#date').value;
+        const patient = document.querySelector('#patient_id').value;
+        const reason = document.querySelector('#reason').value;
+
+        if (!date || !patient || !reason.trim()) {
+            e.preventDefault();
+            alert('Please fill in all required fields.');
+            return false;
+        }
+
+        // Check if appointment is in the past
+        const appointmentDate = new Date(date);
+        const now = new Date();
+        
+        if (appointmentDate < now) {
+            e.preventDefault();
+            alert('Appointment date cannot be in the past.');
+            return false;
+        }
+
+        return true;
+    });
+});
+</script>
+{% endblock %}
