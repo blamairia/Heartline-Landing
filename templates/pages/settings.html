@@ -18,18 +18,17 @@
       <div class="card">
         <div class="card-header">
           <h5><i class="fas fa-list"></i> Settings Categories</h5>
-        </div>
-        <div class="list-group list-group-flush">
-          <a href="#clinic-info" class="list-group-item list-group-item-action active" data-bs-toggle="pill">
+        </div>        <div class="list-group list-group-flush">
+          <a href="#clinic-info" class="list-group-item list-group-item-action active" data-toggle="pill">
             <i class="fas fa-hospital"></i> Clinic Information
           </a>
-          <a href="#doctors" class="list-group-item list-group-item-action" data-bs-toggle="pill">
+          <a href="#doctors" class="list-group-item list-group-item-action" data-toggle="pill">
             <i class="fas fa-user-md"></i> Doctors Management
           </a>
-          <a href="#general" class="list-group-item list-group-item-action" data-bs-toggle="pill">
+          <a href="#general" class="list-group-item list-group-item-action" data-toggle="pill">
             <i class="fas fa-cogs"></i> General Settings
           </a>
-          <a href="#backup" class="list-group-item list-group-item-action" data-bs-toggle="pill">
+          <a href="#backup" class="list-group-item list-group-item-action" data-toggle="pill">
             <i class="fas fa-database"></i> Data & Backup
           </a>
         </div>
@@ -114,8 +113,7 @@
         <div class="tab-pane fade" id="doctors">
           <div class="card">
             <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-              <h5 class="mb-0"><i class="fas fa-user-md"></i> Doctors Management</h5>
-              <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#addDoctorModal">
+              <h5 class="mb-0"><i class="fas fa-user-md"></i> Doctors Management</h5>              <button class="btn btn-light btn-sm" data-toggle="modal" data-target="#addDoctorModal">
                 <i class="fas fa-plus"></i> Add Doctor
               </button>
             </div>
@@ -291,10 +289,11 @@
 <!-- Add Doctor Modal -->
 <div class="modal fade" id="addDoctorModal" tabindex="-1">
   <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header bg-success text-white">
+    <div class="modal-content">      <div class="modal-header bg-success text-white">
         <h5 class="modal-title"><i class="fas fa-user-plus"></i> Add New Doctor</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
       </div>
       <div class="modal-body">
         <form id="add-doctor-form">
@@ -347,9 +346,8 @@
             <textarea class="form-control" id="doctor-bio" rows="3"></textarea>
           </div>
         </form>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      </div>      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
         <button type="button" class="btn btn-success" onclick="saveDoctorForm()">
           <i class="fas fa-save"></i> Save Doctor
         </button>
@@ -361,10 +359,11 @@
 <!-- Edit Doctor Modal -->
 <div class="modal fade" id="editDoctorModal" tabindex="-1">
   <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header bg-primary text-white">
+    <div class="modal-content">      <div class="modal-header bg-primary text-white">
         <h5 class="modal-title"><i class="fas fa-user-edit"></i> Edit Doctor</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
       </div>
       <div class="modal-body">
         <form id="edit-doctor-form">
@@ -418,9 +417,8 @@
             <textarea class="form-control" id="edit-doctor-bio" rows="3"></textarea>
           </div>
         </form>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      </div>      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
         <button type="button" class="btn btn-primary" onclick="updateDoctorForm()">
           <i class="fas fa-save"></i> Update Doctor
         </button>
@@ -512,13 +510,11 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize Bootstrap tabs
-    var triggerTabList = [].slice.call(document.querySelectorAll('[data-bs-toggle="pill"]'));
+    var triggerTabList = [].slice.call(document.querySelectorAll('[data-toggle="pill"]'));
     triggerTabList.forEach(function (triggerEl) {
-        var tabTrigger = new bootstrap.Tab(triggerEl);
-        
         triggerEl.addEventListener('click', function (event) {
             event.preventDefault();
-            tabTrigger.show();
+            $(triggerEl).tab('show');
         });
     });
 
@@ -623,11 +619,9 @@ function saveDoctorForm() {
         body: JSON.stringify(formData)
     })
     .then(response => response.json())
-    .then(data => {
-        if (data.success) {
+    .then(data => {        if (data.success) {
             showAlert('Doctor added successfully!', 'success');
-            var modal = bootstrap.Modal.getInstance(document.getElementById('addDoctorModal'));
-            modal.hide();
+            $('#addDoctorModal').modal('hide');
             location.reload();
         } else {
             showAlert('Error adding doctor: ' + data.message, 'error');
@@ -649,12 +643,10 @@ function editDoctor(doctorId) {
             document.getElementById('edit-doctor-first-name').value = doctor.first_name;
             document.getElementById('edit-doctor-last-name').value = doctor.last_name;
             document.getElementById('edit-doctor-specialty').value = doctor.specialty;
-            document.getElementById('edit-doctor-phone').value = doctor.phone || '';
-            document.getElementById('edit-doctor-email').value = doctor.email || '';
+            document.getElementById('edit-doctor-phone').value = doctor.phone || '';            document.getElementById('edit-doctor-email').value = doctor.email || '';
             document.getElementById('edit-doctor-bio').value = doctor.bio || '';
 
-            var modal = new bootstrap.Modal(document.getElementById('editDoctorModal'));
-            modal.show();
+            $('#editDoctorModal').modal('show');
         } else {
             showAlert('Error loading doctor information', 'error');
         }
@@ -689,11 +681,9 @@ function updateDoctorForm() {
         body: JSON.stringify(formData)
     })
     .then(response => response.json())
-    .then(data => {
-        if (data.success) {
+    .then(data => {        if (data.success) {
             showAlert('Doctor updated successfully!', 'success');
-            var modal = bootstrap.Modal.getInstance(document.getElementById('editDoctorModal'));
-            modal.hide();
+            $('#editDoctorModal').modal('hide');
             location.reload();
         } else {
             showAlert('Error updating doctor: ' + data.message, 'error');
