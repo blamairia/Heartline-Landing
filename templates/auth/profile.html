@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block title %}User Profile | Hearline Medical Clinic{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-lg-8 col-md-10 mx-auto">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-user"></i> User Profile</h1>
+        <div>
+          <a href="{{ url_for('edit_profile') }}" class="btn btn-primary">
+            <i class="fas fa-edit"></i> Edit Profile
+          </a>
+          <a href="{{ url_for('change_password') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-key"></i> Change Password
+          </a>
+        </div>
+      </div>
+
+      <!-- Profile Information Card -->
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="fas fa-user-circle"></i> Profile Information</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3 text-center">
+              <div class="profile-avatar mb-3">
+                <div class="avatar-lg bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mx-auto">
+                  <i class="fas fa-user fa-2x"></i>
+                </div>
+              </div>
+              <h5>{{ user.get_full_name() }}</h5>
+              <span class="badge {% if user.role == 'doctor' %}badge-success{% else %}badge-info{% endif %} mb-2">
+                {{ user.role.title() }}
+              </span>
+              <br>
+              <span class="badge {% if user.is_active %}badge-success{% else %}badge-danger{% endif %}">
+                {% if user.is_active %}Active{% else %}Inactive{% endif %}
+              </span>
+            </div>
+            <div class="col-md-9">
+              <div class="row">
+                <div class="col-md-6">
+                  <h6>Account Details</h6>
+                  <table class="table table-borderless">
+                    <tr>
+                      <td><strong>Username:</strong></td>
+                      <td>{{ user.username }}</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Email:</strong></td>
+                      <td>{{ user.email }}</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Phone:</strong></td>
+                      <td>{{ user.phone or 'Not provided' }}</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Role:</strong></td>
+                      <td>
+                        <span class="badge {% if user.role == 'doctor' %}badge-success{% else %}badge-info{% endif %}">
+                          {{ user.role.title() }}
+                        </span>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+                <div class="col-md-6">
+                  <h6>Activity Information</h6>
+                  <table class="table table-borderless">
+                    <tr>
+                      <td><strong>Member Since:</strong></td>
+                      <td>{{ user.created_at.strftime('%B %d, %Y') }}</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Last Login:</strong></td>
+                      <td>
+                        {% if user.last_login %}
+                          {{ user.last_login.strftime('%B %d, %Y at %I:%M %p') }}
+                        {% else %}
+                          Never
+                        {% endif %}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><strong>Profile Updated:</strong></td>
+                      <td>
+                        {% if user.updated_at %}
+                          {{ user.updated_at.strftime('%B %d, %Y') }}
+                        {% else %}
+                          Never
+                        {% endif %}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><strong>Status:</strong></td>
+                      <td>
+                        <span class="badge {% if user.is_active %}badge-success{% else %}badge-danger{% endif %}">
+                          {% if user.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Doctor Profile Information (if applicable) -->
+      {% if user.is_doctor() and user.doctor %}
+      <div class="card mt-4">
+        <div class="card-header bg-success text-white">
+          <h5 class="mb-0"><i class="fas fa-user-md"></i> Doctor Profile</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <table class="table table-borderless">
+                <tr>
+                  <td><strong>Specialty:</strong></td>
+                  <td>{{ user.doctor.specialty }}</td>
+                </tr>
+                <tr>
+                  <td><strong>Doctor Phone:</strong></td>
+                  <td>{{ user.doctor.phone or 'Not provided' }}</td>
+                </tr>
+                <tr>
+                  <td><strong>Doctor Email:</strong></td>
+                  <td>{{ user.doctor.email or 'Not provided' }}</td>
+                </tr>
+              </table>
+            </div>
+            <div class="col-md-6">
+              {% if user.doctor.bio %}
+              <h6>Bio</h6>
+              <p class="text-muted">{{ user.doctor.bio }}</p>
+              {% endif %}
+            </div>
+          </div>
+          <div class="text-center mt-3">
+            <a href="{{ url_for('settings') }}" class="btn btn-outline-primary">
+              <i class="fas fa-cog"></i> Update Doctor Profile in Settings
+            </a>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Quick Actions -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="fas fa-bolt"></i> Quick Actions</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-4">
+              <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary btn-block">
+                <i class="fas fa-tachometer-alt"></i> Go to Dashboard
+              </a>
+            </div>
+            <div class="col-md-4">
+              <a href="{{ url_for('settings') }}" class="btn btn-outline-secondary btn-block">
+                <i class="fas fa-cog"></i> Settings
+              </a>
+            </div>
+            <div class="col-md-4">
+              <a href="{{ url_for('user_management') }}" class="btn btn-outline-info btn-block">
+                <i class="fas fa-users"></i> User Management
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.avatar-lg {
+  width: 100px;
+  height: 100px;
+  font-size: 3rem;
+}
+
+.table-borderless td {
+  border: none;
+  padding: 0.5rem 0;
+}
+
+.profile-avatar {
+  margin-bottom: 1rem;
+}
+
+.card {
+  border: none;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  border-radius: 10px;
+}
+
+.card-header {
+  border-radius: 10px 10px 0 0 !important;
+}
+</style>
+{% endblock %}

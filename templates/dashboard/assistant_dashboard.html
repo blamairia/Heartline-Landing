@@ -1,0 +1,852 @@
+{% extends "base.html" %}
+
+{% block title %}Assistant Dashboard - Hearline Medical{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-header {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        padding: 2rem 0;
+        margin-bottom: 2rem;
+        border-radius: 0.5rem;
+    }
+    
+    .welcome-card {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        backdrop-filter: blur(10px);
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        transition: transform 0.2s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-2px);
+    }
+    
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    }
+    
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-change {
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    .stat-change.positive {
+        color: #28a745;
+    }
+    
+    .stat-change.negative {
+        color: #dc3545;
+    }
+    
+    .stat-icon {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        font-size: 2rem;
+        opacity: 0.2;
+    }
+    
+    .quick-actions {
+        background: white;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+    
+    .action-button {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        border: 2px solid #e9ecef;
+        border-radius: 0.5rem;
+        text-decoration: none;
+        color: #495057;
+        transition: all 0.2s ease;
+        margin-bottom: 1rem;
+    }
+    
+    .action-button:hover {
+        border-color: #28a745;
+        color: #28a745;
+        text-decoration: none;
+        transform: translateX(5px);
+    }
+    
+    .action-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        margin-right: 1rem;
+    }
+    
+    .task-list {
+        background: white;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .task-item {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        border: 1px solid #e9ecef;
+        border-radius: 0.5rem;
+        transition: all 0.2s ease;
+    }
+    
+    .task-item:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .task-priority {
+        width: 4px;
+        height: 40px;
+        border-radius: 2px;
+        margin-right: 1rem;
+    }
+    
+    .priority-high {
+        background-color: #dc3545;
+    }
+    
+    .priority-medium {
+        background-color: #ffc107;
+    }
+    
+    .priority-low {
+        background-color: #28a745;
+    }
+    
+    .task-content {
+        flex: 1;
+    }
+    
+    .task-title {
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+    
+    .task-meta {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    
+    .task-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .patient-queue {
+        background: white;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .queue-item {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        border-left: 4px solid #28a745;
+        background: #f8f9fa;
+        border-radius: 0 0.25rem 0.25rem 0;
+    }
+    
+    .queue-number {
+        min-width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        margin-right: 1rem;
+    }
+    
+    .queue-patient {
+        flex: 1;
+    }
+    
+    .patient-name {
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+    
+    .patient-info {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    
+    .queue-status {
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    
+    .status-waiting {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+    
+    .status-in-progress {
+        background-color: #d1ecf1;
+        color: #0c5460;
+    }
+    
+    .status-ready {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    
+    .productivity-chart {
+        background: white;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        height: 300px;
+    }
+    
+    .notification-panel {
+        background: white;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+    
+    .notification-item {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        border-radius: 0.25rem;
+        background-color: #f8f9fa;
+    }
+    
+    .notification-icon {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        margin-right: 1rem;
+    }
+    
+    .notification-content {
+        flex: 1;
+    }
+    
+    .notification-title {
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+    
+    .notification-time {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="welcome-card">
+                        <h1 class="mb-2">
+                            <i class="fas fa-user-nurse mr-3"></i>Welcome back, {{ current_user.first_name }}
+                        </h1>
+                        <p class="mb-0 opacity-75">
+                            Medical Assistant • Today is {{ moment().format('dddd, MMMM Do YYYY') }}
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-4 text-right">
+                    <div class="text-white">
+                        <div class="h5 mb-1">{{ moment().format('HH:mm') }}</div>
+                        <div class="opacity-75">Current Time</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-8">
+            <!-- Statistics -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-number" id="patientsRegistered">0</div>
+                    <div class="stat-label">Patients Registered Today</div>
+                    <div class="stat-change positive" id="registrationChange">
+                        <i class="fas fa-arrow-up"></i> +0% from yesterday
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-clipboard-check"></i>
+                    </div>
+                    <div class="stat-number" id="visitsProcessed">0</div>
+                    <div class="stat-label">Visits Processed</div>
+                    <div class="stat-change positive" id="visitsChange">
+                        <i class="fas fa-arrow-up"></i> +0% from yesterday
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-phone"></i>
+                    </div>
+                    <div class="stat-number" id="callsHandled">0</div>
+                    <div class="stat-label">Calls Handled</div>
+                    <div class="stat-change positive" id="callsChange">
+                        <i class="fas fa-arrow-up"></i> +0% from yesterday
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-number" id="avgProcessingTime">0</div>
+                    <div class="stat-label">Avg Processing Time (min)</div>
+                    <div class="stat-change" id="timeChange">
+                        <i class="fas fa-minus"></i> No change
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <h4 class="mb-3">
+                    <i class="fas fa-bolt mr-2"></i>Quick Actions
+                </h4>
+                <div class="row">
+                    <div class="col-md-6">
+                        <a href="/patient/new" class="action-button">
+                            <div class="action-icon">
+                                <i class="fas fa-user-plus"></i>
+                            </div>
+                            <div>
+                                <div class="font-weight-bold">Register New Patient</div>
+                                <small class="text-muted">Add a new patient to the system</small>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="/patients" class="action-button">
+                            <div class="action-icon">
+                                <i class="fas fa-search"></i>
+                            </div>
+                            <div>
+                                <div class="font-weight-bold">Search Patients</div>
+                                <small class="text-muted">Find and view patient records</small>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="/visits" class="action-button">
+                            <div class="action-icon">
+                                <i class="fas fa-calendar"></i>
+                            </div>
+                            <div>
+                                <div class="font-weight-bold">Manage Appointments</div>
+                                <small class="text-muted">View and manage patient appointments</small>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="/settings" class="action-button">
+                            <div class="action-icon">
+                                <i class="fas fa-cog"></i>
+                            </div>
+                            <div>
+                                <div class="font-weight-bold">Settings</div>
+                                <small class="text-muted">Configure clinic settings</small>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Task List -->
+            <div class="task-list">
+                <h4 class="mb-3">
+                    <i class="fas fa-tasks mr-2"></i>Today's Tasks
+                </h4>
+                <div id="tasksList">
+                    <!-- Tasks will be loaded here -->
+                </div>
+                <div class="text-center mt-3">
+                    <button class="btn btn-outline-success btn-sm" onclick="addNewTask()">
+                        <i class="fas fa-plus mr-1"></i>Add New Task
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Patient Queue -->
+            <div class="patient-queue mb-4">
+                <h5 class="mb-3">
+                    <i class="fas fa-users mr-2"></i>Patient Queue
+                </h5>
+                <div id="patientQueue">
+                    <!-- Queue items will be loaded here -->
+                </div>
+                <div class="text-center mt-3">
+                    <a href="/visits" class="btn btn-outline-success btn-sm">
+                        <i class="fas fa-list mr-1"></i>View All Visits
+                    </a>
+                </div>
+            </div>
+
+            <!-- Notifications -->
+            <div class="notification-panel mb-4">
+                <h5 class="mb-3">
+                    <i class="fas fa-bell mr-2"></i>Notifications
+                </h5>
+                <div id="notificationsList">
+                    <!-- Notifications will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Productivity Chart -->
+            <div class="productivity-chart">
+                <h5 class="mb-3">
+                    <i class="fas fa-chart-bar mr-2"></i>Daily Productivity
+                </h5>
+                <canvas id="productivityChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Task Modal -->
+<div class="modal fade" id="addTaskModal" tabindex="-1" role="dialog" aria-labelledby="addTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addTaskModalLabel">
+                    <i class="fas fa-plus mr-2"></i>Add New Task
+                </h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="addTaskForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="taskTitle">Task Title *</label>
+                        <input type="text" class="form-control" id="taskTitle" name="title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="taskDescription">Description</label>
+                        <textarea class="form-control" id="taskDescription" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="taskPriority">Priority</label>
+                        <select class="form-control" id="taskPriority" name="priority">
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="taskDueDate">Due Date</label>
+                        <input type="date" class="form-control" id="taskDueDate" name="due_date">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save mr-2"></i>Add Task
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+<script>
+$(document).ready(function() {
+    // Load dashboard data
+    loadDashboardStats();
+    loadTasks();
+    loadPatientQueue();
+    loadNotifications();
+    loadProductivityChart();
+    
+    // Refresh data every 2 minutes
+    setInterval(function() {
+        loadDashboardStats();
+        loadTasks();
+        loadPatientQueue();
+        loadNotifications();
+    }, 120000);
+    
+    // Add task form submission
+    $('#addTaskForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        
+        $.ajax({
+            url: '/api/tasks',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                $('#addTaskModal').modal('hide');
+                $('#addTaskForm')[0].reset();
+                loadTasks();
+                showAlert('Task added successfully!', 'success');
+            },
+            error: function(xhr) {
+                const response = JSON.parse(xhr.responseText);
+                showAlert(response.error || 'Error adding task', 'error');
+            }
+        });
+    });
+    
+    function loadDashboardStats() {
+        $.ajax({
+            url: '/api/dashboard/assistant/stats',
+            method: 'GET',
+            success: function(stats) {
+                // Update main statistics
+                $('#patientsRegistered').text(stats.patients_registered || 0);
+                $('#visitsProcessed').text(stats.visits_processed || 0);
+                $('#callsHandled').text(stats.calls_handled || 0);
+                $('#avgProcessingTime').text(stats.avg_processing_time || 0);
+                
+                // Update changes
+                updateStatChange('#registrationChange', stats.registration_change);
+                updateStatChange('#visitsChange', stats.visits_change);
+                updateStatChange('#callsChange', stats.calls_change);
+                updateStatChange('#timeChange', stats.time_change);
+            },
+            error: function() {
+                console.log('Error loading dashboard statistics');
+            }
+        });
+    }
+    
+    function updateStatChange(selector, change) {
+        const element = $(selector);
+        if (change > 0) {
+            element.removeClass('negative').addClass('positive');
+            element.html(`<i class="fas fa-arrow-up"></i> +${change}%`);
+        } else if (change < 0) {
+            element.removeClass('positive').addClass('negative');
+            element.html(`<i class="fas fa-arrow-down"></i> ${change}%`);
+        } else {
+            element.removeClass('positive negative');
+            element.html(`<i class="fas fa-minus"></i> No change`);
+        }
+    }
+    
+    function loadTasks() {
+        $.ajax({
+            url: '/api/tasks/today',
+            method: 'GET',
+            success: function(tasks) {
+                const container = $('#tasksList');
+                container.empty();
+                
+                if (tasks.length === 0) {
+                    container.html('<p class="text-muted text-center">No tasks for today</p>');
+                    return;
+                }
+                
+                tasks.forEach(function(task) {
+                    const item = `
+                        <div class="task-item">
+                            <div class="task-priority priority-${task.priority}"></div>
+                            <div class="task-content">
+                                <div class="task-title">${task.title}</div>
+                                <div class="task-meta">
+                                    ${task.description ? task.description + ' • ' : ''}
+                                    ${task.due_date ? 'Due: ' + moment(task.due_date).format('MMM DD') : ''}
+                                </div>
+                            </div>
+                            <div class="task-actions">
+                                <button class="btn btn-sm btn-outline-success" onclick="completeTask(${task.id})" title="Complete">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteTask(${task.id})" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    container.append(item);
+                });
+            },
+            error: function() {
+                $('#tasksList').html('<p class="text-muted text-center">Error loading tasks</p>');
+            }
+        });
+    }
+    
+    function loadPatientQueue() {
+        $.ajax({
+            url: '/api/dashboard/patient-queue',
+            method: 'GET',
+            success: function(queue) {
+                const container = $('#patientQueue');
+                container.empty();
+                
+                if (queue.length === 0) {
+                    container.html('<p class="text-muted text-center">No patients in queue</p>');
+                    return;
+                }
+                
+                queue.forEach(function(patient, index) {
+                    const item = `
+                        <div class="queue-item">
+                            <div class="queue-number">${index + 1}</div>
+                            <div class="queue-patient">
+                                <div class="patient-name">${patient.name}</div>
+                                <div class="patient-info">
+                                    ${patient.visit_type || 'General Visit'} • 
+                                    ${moment(patient.scheduled_time).format('HH:mm')}
+                                </div>
+                            </div>
+                            <div class="queue-status status-${patient.status}">
+                                ${getStatusLabel(patient.status)}
+                            </div>
+                        </div>
+                    `;
+                    container.append(item);
+                });
+            },
+            error: function() {
+                $('#patientQueue').html('<p class="text-muted text-center">Error loading queue</p>');
+            }
+        });
+    }
+    
+    function loadNotifications() {
+        $.ajax({
+            url: '/api/dashboard/notifications',
+            method: 'GET',
+            success: function(notifications) {
+                const container = $('#notificationsList');
+                container.empty();
+                
+                if (notifications.length === 0) {
+                    container.html('<p class="text-muted text-center">No new notifications</p>');
+                    return;
+                }
+                
+                notifications.slice(0, 5).forEach(function(notification) {
+                    const item = `
+                        <div class="notification-item">
+                            <div class="notification-icon">
+                                <i class="${getNotificationIcon(notification.type)}"></i>
+                            </div>
+                            <div class="notification-content">
+                                <div class="notification-title">${notification.title}</div>
+                                <div class="notification-time">${moment(notification.timestamp).fromNow()}</div>
+                            </div>
+                        </div>
+                    `;
+                    container.append(item);
+                });
+            },
+            error: function() {
+                $('#notificationsList').html('<p class="text-muted text-center">Error loading notifications</p>');
+            }
+        });
+    }
+    
+    function loadProductivityChart() {
+        $.ajax({
+            url: '/api/dashboard/productivity-chart',
+            method: 'GET',
+            success: function(data) {
+                const ctx = document.getElementById('productivityChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            data: data.values,
+                            backgroundColor: [
+                                '#28a745',
+                                '#20c997',
+                                '#17a2b8',
+                                '#ffc107'
+                            ],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    usePointStyle: true
+                                }
+                            }
+                        }
+                    }
+                });
+            },
+            error: function() {
+                $('#productivityChart').parent().html('<p class="text-muted text-center">Error loading chart</p>');
+            }
+        });
+    }
+    
+    function getStatusLabel(status) {
+        switch(status) {
+            case 'waiting': return 'Waiting';
+            case 'in-progress': return 'In Progress';
+            case 'ready': return 'Ready';
+            default: return 'Unknown';
+        }
+    }
+    
+    function getNotificationIcon(type) {
+        switch(type) {
+            case 'appointment': return 'fas fa-calendar';
+            case 'patient': return 'fas fa-user';
+            case 'system': return 'fas fa-cog';
+            case 'urgent': return 'fas fa-exclamation-triangle';
+            default: return 'fas fa-info-circle';
+        }
+    }
+    
+    window.addNewTask = function() {
+        $('#addTaskModal').modal('show');
+    };
+    
+    window.completeTask = function(taskId) {
+        $.ajax({
+            url: `/api/tasks/${taskId}/complete`,
+            method: 'PUT',
+            success: function() {
+                loadTasks();
+                showAlert('Task completed!', 'success');
+            },
+            error: function() {
+                showAlert('Error completing task', 'error');
+            }
+        });
+    };
+    
+    window.deleteTask = function(taskId) {
+        if (confirm('Are you sure you want to delete this task?')) {
+            $.ajax({
+                url: `/api/tasks/${taskId}`,
+                method: 'DELETE',
+                success: function() {
+                    loadTasks();
+                    showAlert('Task deleted!', 'success');
+                },
+                error: function() {
+                    showAlert('Error deleting task', 'error');
+                }
+            });
+        }
+    };
+    
+    function showAlert(message, type) {
+        const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+        const alertHtml = `
+            <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                ${message}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        `;
+        
+        // Remove existing alerts
+        $('.alert').remove();
+        
+        // Add new alert at the top of the page
+        $('body').prepend(alertHtml);
+        
+        // Auto-dismiss after 3 seconds
+        setTimeout(function() {
+            $('.alert').fadeOut();
+        }, 3000);
+    }
+});
+</script>
+{% endblock %}

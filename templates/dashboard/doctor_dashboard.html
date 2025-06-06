@@ -1,0 +1,604 @@
+{% extends "base.html" %}
+
+{% block title %}Doctor Dashboard - Hearline Medical{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem 0;
+        margin-bottom: 2rem;
+        border-radius: 0.5rem;
+    }
+    
+    .welcome-card {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        backdrop-filter: blur(10px);
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        transition: transform 0.2s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-2px);
+    }
+    
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-change {
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    .stat-change.positive {
+        color: #28a745;
+    }
+    
+    .stat-change.negative {
+        color: #dc3545;
+    }
+    
+    .stat-icon {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        font-size: 2rem;
+        opacity: 0.2;
+    }
+    
+    .quick-actions {
+        background: white;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+    
+    .action-button {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        border: 2px solid #e9ecef;
+        border-radius: 0.5rem;
+        text-decoration: none;
+        color: #495057;
+        transition: all 0.2s ease;
+        margin-bottom: 1rem;
+    }
+    
+    .action-button:hover {
+        border-color: #667eea;
+        color: #667eea;
+        text-decoration: none;
+        transform: translateX(5px);
+    }
+    
+    .action-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        margin-right: 1rem;
+    }
+    
+    .recent-activity {
+        background: white;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .activity-item {
+        display: flex;
+        align-items: center;
+        padding: 1rem 0;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .activity-item:last-child {
+        border-bottom: none;
+    }
+    
+    .activity-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        margin-right: 1rem;
+        font-weight: bold;
+    }
+    
+    .activity-content {
+        flex: 1;
+    }
+    
+    .activity-title {
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+    
+    .activity-time {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    
+    .schedule-card {
+        background: white;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .appointment-item {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        border-left: 4px solid #667eea;
+        background: #f8f9fa;
+        border-radius: 0 0.25rem 0.25rem 0;
+    }
+    
+    .appointment-time {
+        min-width: 80px;
+        font-weight: bold;
+        color: #667eea;
+    }
+    
+    .appointment-patient {
+        flex: 1;
+        margin-left: 1rem;
+    }
+    
+    .patient-name {
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+    
+    .patient-type {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    
+    .chart-container {
+        background: white;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        height: 300px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="welcome-card">
+                        <h1 class="mb-2">
+                            <i class="fas fa-stethoscope mr-3"></i>Welcome back, Dr. {{ current_user.first_name }}
+                        </h1>
+                        <p class="mb-0 opacity-75">
+                            {% if current_user.doctor_profile %}
+                                {{ current_user.doctor_profile.specialty }} • Today is {{ moment().format('dddd, MMMM Do YYYY') }}
+                            {% else %}
+                                Today is {{ moment().format('dddd, MMMM Do YYYY') }}
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-4 text-right">
+                    <div class="text-white">
+                        <div class="h5 mb-1">{{ moment().format('HH:mm') }}</div>
+                        <div class="opacity-75">Current Time</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-8">
+            <!-- Statistics -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-number" id="totalPatients">0</div>
+                    <div class="stat-label">Total Patients</div>
+                    <div class="stat-change positive" id="patientsChange">
+                        <i class="fas fa-arrow-up"></i> +0% from last month
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="stat-number" id="todayVisits">0</div>
+                    <div class="stat-label">Today's Visits</div>
+                    <div class="stat-change positive" id="visitsChange">
+                        <i class="fas fa-arrow-up"></i> +0% from yesterday
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-heartbeat"></i>
+                    </div>
+                    <div class="stat-number" id="ecgTests">0</div>
+                    <div class="stat-label">ECG Tests This Week</div>
+                    <div class="stat-change positive" id="ecgChange">
+                        <i class="fas fa-arrow-up"></i> +0% from last week
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-number" id="avgVisitTime">0</div>
+                    <div class="stat-label">Avg Visit Time (min)</div>
+                    <div class="stat-change" id="timeChange">
+                        <i class="fas fa-minus"></i> No change
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <h4 class="mb-3">
+                    <i class="fas fa-bolt mr-2"></i>Quick Actions
+                </h4>
+                <div class="row">
+                    <div class="col-md-6">
+                        <a href="/patient/new" class="action-button">
+                            <div class="action-icon">
+                                <i class="fas fa-user-plus"></i>
+                            </div>
+                            <div>
+                                <div class="font-weight-bold">Add New Patient</div>
+                                <small class="text-muted">Register a new patient in the system</small>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="/visit/new" class="action-button">
+                            <div class="action-icon">
+                                <i class="fas fa-plus-square"></i>
+                            </div>
+                            <div>
+                                <div class="font-weight-bold">New Visit</div>
+                                <small class="text-muted">Start a new patient visit</small>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="/analyze_ecg" class="action-button">
+                            <div class="action-icon">
+                                <i class="fas fa-heartbeat"></i>
+                            </div>
+                            <div>
+                                <div class="font-weight-bold">ECG Analysis</div>
+                                <small class="text-muted">Analyze ECG patterns and results</small>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="/patients" class="action-button">
+                            <div class="action-icon">
+                                <i class="fas fa-search"></i>
+                            </div>
+                            <div>
+                                <div class="font-weight-bold">Search Patients</div>
+                                <small class="text-muted">Find and view patient records</small>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="recent-activity">
+                <h4 class="mb-3">
+                    <i class="fas fa-clock mr-2"></i>Recent Activity
+                </h4>
+                <div id="recentActivityList">
+                    <!-- Activity items will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Today's Schedule -->
+            <div class="schedule-card mb-4">
+                <h5 class="mb-3">
+                    <i class="fas fa-calendar-day mr-2"></i>Today's Schedule
+                </h5>
+                <div id="todaySchedule">
+                    <!-- Schedule items will be loaded here -->
+                </div>
+                <div class="text-center mt-3">
+                    <a href="/visits" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-calendar mr-1"></i>View All Appointments
+                    </a>
+                </div>
+            </div>
+
+            <!-- Patient Statistics Chart -->
+            <div class="chart-container mb-4">
+                <h5 class="mb-3">
+                    <i class="fas fa-chart-line mr-2"></i>Patient Visits (Last 7 Days)
+                </h5>
+                <canvas id="visitsChart"></canvas>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="schedule-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-info-circle mr-2"></i>Quick Stats
+                </h5>
+                <div class="row text-center">
+                    <div class="col-6 mb-3">
+                        <div class="h3 text-primary" id="pendingReports">0</div>
+                        <small class="text-muted">Pending Reports</small>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <div class="h3 text-success" id="completedToday">0</div>
+                        <small class="text-muted">Completed Today</small>
+                    </div>
+                    <div class="col-6">
+                        <div class="h3 text-warning" id="followUps">0</div>
+                        <small class="text-muted">Follow-ups Due</small>
+                    </div>
+                    <div class="col-6">
+                        <div class="h3 text-info" id="newPatients">0</div>
+                        <small class="text-muted">New This Week</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+<script>
+$(document).ready(function() {
+    // Load dashboard data
+    loadDashboardStats();
+    loadRecentActivity();
+    loadTodaySchedule();
+    loadVisitsChart();
+    
+    // Refresh data every 5 minutes
+    setInterval(function() {
+        loadDashboardStats();
+        loadRecentActivity();
+        loadTodaySchedule();
+    }, 300000);
+    
+    function loadDashboardStats() {
+        $.ajax({
+            url: '/api/dashboard/doctor/stats',
+            method: 'GET',
+            success: function(stats) {
+                // Update main statistics
+                $('#totalPatients').text(stats.total_patients || 0);
+                $('#todayVisits').text(stats.today_visits || 0);
+                $('#ecgTests').text(stats.ecg_tests_week || 0);
+                $('#avgVisitTime').text(stats.avg_visit_time || 0);
+                
+                // Update changes
+                updateStatChange('#patientsChange', stats.patients_change);
+                updateStatChange('#visitsChange', stats.visits_change);
+                updateStatChange('#ecgChange', stats.ecg_change);
+                updateStatChange('#timeChange', stats.time_change);
+                
+                // Update quick stats
+                $('#pendingReports').text(stats.pending_reports || 0);
+                $('#completedToday').text(stats.completed_today || 0);
+                $('#followUps').text(stats.follow_ups || 0);
+                $('#newPatients').text(stats.new_patients_week || 0);
+            },
+            error: function() {
+                console.log('Error loading dashboard statistics');
+            }
+        });
+    }
+    
+    function updateStatChange(selector, change) {
+        const element = $(selector);
+        if (change > 0) {
+            element.removeClass('negative').addClass('positive');
+            element.html(`<i class="fas fa-arrow-up"></i> +${change}%`);
+        } else if (change < 0) {
+            element.removeClass('positive').addClass('negative');
+            element.html(`<i class="fas fa-arrow-down"></i> ${change}%`);
+        } else {
+            element.removeClass('positive negative');
+            element.html(`<i class="fas fa-minus"></i> No change`);
+        }
+    }
+    
+    function loadRecentActivity() {
+        $.ajax({
+            url: '/api/dashboard/recent-activity',
+            method: 'GET',
+            success: function(activities) {
+                const container = $('#recentActivityList');
+                container.empty();
+                
+                if (activities.length === 0) {
+                    container.html('<p class="text-muted text-center">No recent activity</p>');
+                    return;
+                }
+                
+                activities.forEach(function(activity) {
+                    const item = `
+                        <div class="activity-item">
+                            <div class="activity-avatar">
+                                <i class="${getActivityIcon(activity.type)}"></i>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-title">${activity.title}</div>
+                                <div class="activity-time">${moment(activity.timestamp).fromNow()}</div>
+                            </div>
+                        </div>
+                    `;
+                    container.append(item);
+                });
+            },
+            error: function() {
+                $('#recentActivityList').html('<p class="text-muted text-center">Error loading activity</p>');
+            }
+        });
+    }
+    
+    function loadTodaySchedule() {
+        $.ajax({
+            url: '/api/dashboard/today-schedule',
+            method: 'GET',
+            success: function(appointments) {
+                const container = $('#todaySchedule');
+                container.empty();
+                
+                if (appointments.length === 0) {
+                    container.html('<p class="text-muted text-center">No appointments scheduled for today</p>');
+                    return;
+                }
+                
+                appointments.forEach(function(appointment) {
+                    const item = `
+                        <div class="appointment-item">
+                            <div class="appointment-time">
+                                ${moment(appointment.time).format('HH:mm')}
+                            </div>
+                            <div class="appointment-patient">
+                                <div class="patient-name">${appointment.patient_name}</div>
+                                <div class="patient-type">${appointment.visit_type || 'General Visit'}</div>
+                            </div>
+                        </div>
+                    `;
+                    container.append(item);
+                });
+            },
+            error: function() {
+                $('#todaySchedule').html('<p class="text-muted text-center">Error loading schedule</p>');
+            }
+        });
+    }
+    
+    function loadVisitsChart() {
+        $.ajax({
+            url: '/api/dashboard/visits-chart',
+            method: 'GET',
+            success: function(data) {
+                const ctx = document.getElementById('visitsChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            label: 'Patient Visits',
+                            data: data.visits,
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+            },
+            error: function() {
+                $('#visitsChart').parent().html('<p class="text-muted text-center">Error loading chart</p>');
+            }
+        });
+    }
+    
+    function getActivityIcon(type) {
+        switch(type) {
+            case 'patient_added': return 'fas fa-user-plus';
+            case 'visit_completed': return 'fas fa-check-circle';
+            case 'ecg_analyzed': return 'fas fa-heartbeat';
+            case 'report_generated': return 'fas fa-file-medical';
+            default: return 'fas fa-info-circle';
+        }
+    }
+});
+</script>
+{% endblock %}
