@@ -1,0 +1,230 @@
+# Environment Variables
+.env
+.env.local
+.env.production
+.env.staging
+.env.development
+*.env
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+instance/
+*.db-journal
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff (if you ever add Django)
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff
+instance/
+.webassets-cache
+
+# Scrapy stuff
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# PEP 582
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# Medical/Healthcare specific
+# Patient data files (if any)
+patient_data/
+medical_records/
+hipaa_data/
+
+# Uploaded files
+uploads/
+upload/
+temp_uploads/
+visit_docs/
+ecg_files/
+
+# Backup files
+*_backup.*
+*.bak
+*.backup
+*_old.*
+
+# Model files (if they're large or sensitive)
+*.pth
+*.pkl
+*.joblib
+*.h5
+*.hdf5
+
+# Temporary files
+*.tmp
+*.temp
+*~
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Config files with sensitive data
+config.py
+config_local.py
+local_config.py
+secrets.py
+
+# SSL certificates
+*.pem
+*.key
+*.crt
+*.cert
+
+# ZIP files and archives
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Node modules (if you add any JavaScript)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Medical data compliance
+# HIPAA protected files
+*.hipaa
+protected_data/
+phi_data/
+
+# Documentation that might contain sensitive info
+deployment_notes.txt
+server_config.txt
+database_schema_with_data.sql

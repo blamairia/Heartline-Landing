@@ -1,6 +1,11 @@
 # app.py
 
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
 import torch
 import torch.nn as nn
 import numpy as np
@@ -64,9 +69,19 @@ from models import (
 # ----------------------------------------
 app = Flask(__name__)
 moment = Moment(app) # Add this line to initialize Flask-Moment
-app.config["SECRET_KEY"] = "replace-this-with-a-secure-random-string"
-# Use PostgreSQL database with medicament table
-app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres.efgqnqwjuoeywepqkwxy:Billel159@aws-0-eu-west-3.pooler.supabase.com:5432/DoctorNv"
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "replace-this-with-a-secure-random-string")
+
+# Use environment variables for database connection
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = os.getenv("DB_PORT") 
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_NAME = os.getenv("DB_NAME")
+
+if not all([DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME]):
+    raise ValueError("Missing required database environment variables. Please check your .env file.")
+
+app.config["SQLALCHEMY_DATABASE_URI"] = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?sslmode=require"
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
