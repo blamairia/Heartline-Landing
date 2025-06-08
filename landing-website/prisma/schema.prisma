@@ -1,0 +1,287 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// NextAuth.js required models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Core User Management
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?   // For email/password auth
+  role          Role      @default(USER)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Profile information
+  firstName     String?
+  lastName      String?
+  phone         String?
+  organization  String?
+  position      String?
+  
+  // Location (for Algerian market)
+  city          String?
+  wilaya        String?
+  address       String?
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  subscriptions Subscription[]
+  usageRecords  UsageRecord[]
+  contactSubmissions ContactSubmission[]
+  
+  @@map("users")
+}
+
+// Subscription Plans
+model SubscriptionPlan {
+  id            String   @id @default(cuid())
+  name          String   @unique
+  displayName   String
+  description   String?
+  price         Decimal  @db.Money
+  currency      String   @default("DZD")
+  billingCycle  BillingCycle
+  isActive      Boolean  @default(true)
+  isPopular     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Feature limits (JSON for flexibility)
+  features      Json     // { maxPatients: 100, maxECGAnalyses: 50, features: [...] }
+  
+  // Plan hierarchy (for upgrades/downgrades)
+  sortOrder     Int      @default(0)
+
+  // Relations
+  subscriptions Subscription[]
+  
+  @@map("subscription_plans")
+}
+
+// User Subscriptions
+model Subscription {
+  id            String             @id @default(cuid())
+  userId        String
+  planId        String
+  status        SubscriptionStatus @default(TRIAL)
+  startDate     DateTime
+  endDate       DateTime?
+  billingCycle  BillingCycle
+  autoRenew     Boolean            @default(true)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  // Trial information
+  trialStartDate DateTime?
+  trialEndDate   DateTime?
+  isTrialUsed    Boolean          @default(false)
+
+  // Payment information (for future integration)
+  lastPaymentDate DateTime?
+  nextPaymentDate DateTime?
+  paymentMethod   String?
+
+  // Relations
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan          SubscriptionPlan   @relation(fields: [planId], references: [id])
+  addons        SubscriptionAddon[]
+  usageRecords  UsageRecord[]
+  
+  @@map("subscriptions")
+}
+
+// Add-on System (for future extensibility)
+model Addon {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  displayName String
+  description String?
+  price       Decimal  @db.Money
+  currency    String   @default("DZD")
+  type        AddonType
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Add-on configuration
+  config      Json?    // Flexible configuration for different addon types
+
+  // Relations
+  subscriptionAddons SubscriptionAddon[]
+  
+  @@map("addons")
+}
+
+model SubscriptionAddon {
+  id             String   @id @default(cuid())
+  subscriptionId String
+  addonId        String
+  quantity       Int      @default(1)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  addon          Addon        @relation(fields: [addonId], references: [id])
+  
+  @@unique([subscriptionId, addonId])
+  @@map("subscription_addons")
+}
+
+// Usage Tracking (for limits and analytics)
+model UsageRecord {
+  id             String     @id @default(cuid())
+  userId         String
+  subscriptionId String
+  featureType    FeatureType
+  usage          Int        @default(1)
+  metadata       Json?      // Additional usage context
+  recordDate     DateTime   @default(now())
+  createdAt      DateTime   @default(now())
+
+  // Relations
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, featureType, recordDate])
+  @@index([subscriptionId, featureType, recordDate])
+  @@map("usage_records")
+}
+
+// Contact Form Submissions
+model ContactSubmission {
+  id          String   @id @default(cuid())
+  name        String
+  email       String
+  phone       String?
+  organization String?
+  subject     String
+  message     String   @db.Text
+  type        ContactType @default(GENERAL)
+  status      SubmissionStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Optional: Link to user if authenticated
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  
+  @@map("contact_submissions")
+}
+
+// Newsletter Subscriptions
+model NewsletterSubscription {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  isActive    Boolean  @default(true)
+  subscribedAt DateTime @default(now())
+  unsubscribedAt DateTime?
+  
+  // Subscription preferences
+  preferences Json?    // { productUpdates: true, marketing: false, etc. }
+  
+  @@map("newsletter_subscriptions")
+}
+
+// Enums
+enum Role {
+  USER
+  ADMIN
+  SUPPORT
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  INACTIVE
+  CANCELLED
+  EXPIRED
+  PAST_DUE
+}
+
+enum BillingCycle {
+  MONTHLY
+  ANNUAL
+}
+
+enum AddonType {
+  FEATURE
+  USAGE
+  INTEGRATION
+  SUPPORT
+}
+
+enum FeatureType {
+  PATIENT_CREATION
+  ECG_ANALYSIS
+  PRESCRIPTION_CREATION
+  VISIT_CREATION
+  API_CALL
+  REPORT_GENERATION
+  DATA_EXPORT
+}
+
+enum ContactType {
+  GENERAL
+  DEMO_REQUEST
+  SALES
+  SUPPORT
+  PARTNERSHIP
+  PRESS
+}
+
+enum SubmissionStatus {
+  PENDING
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
