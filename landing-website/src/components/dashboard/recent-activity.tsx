@@ -1,54 +1,54 @@
 'use client'
 
-import { Activity, FileText, Users, AlertTriangle } from 'lucide-react'
+import { Users, CreditCard, Package, Settings, UserPlus, ExternalLink, Activity } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 const activities = [
   {
     id: 1,
-    type: 'ecg_analysis',
-    title: 'ECG Analysis Completed',
-    description: 'Normal sinus rhythm detected for Patient #1234',
-    time: '2 minutes ago',
-    icon: Activity,
-    color: 'text-green-500',
-    bgColor: 'bg-green-50'
-  },
-  {
-    id: 2,
-    type: 'alert',
-    title: 'Critical Alert',
-    description: 'Atrial fibrillation detected in Patient #5678',
+    type: 'user_access',
+    title: 'Hearline App Accessed',
+    description: 'Dr. Smith analyzed 3 ECGs in the main platform',
     time: '15 minutes ago',
-    icon: AlertTriangle,
-    color: 'text-red-500',
-    bgColor: 'bg-red-50'
-  },
-  {
-    id: 3,
-    type: 'report',
-    title: 'Report Generated',
-    description: 'Weekly cardiac summary for Dr. Johnson',
-    time: '1 hour ago',
-    icon: FileText,
+    icon: ExternalLink,
     color: 'text-blue-500',
     bgColor: 'bg-blue-50'
   },
   {
-    id: 4,
-    type: 'patient',
-    title: 'New Patient Registered',
-    description: 'John Doe added to monitoring system',
+    id: 2,
+    type: 'user_added',
+    title: 'New User Invited',
+    description: 'Dr. Johnson was added to your Professional plan',
     time: '2 hours ago',
-    icon: Users,
-    color: 'text-purple-500',
-    bgColor: 'bg-purple-50'
+    icon: UserPlus,
+    color: 'text-green-500',
+    bgColor: 'bg-green-50'
+  },
+  {
+    id: 3,
+    type: 'billing',
+    title: 'Invoice Generated',
+    description: 'Monthly invoice for $299 is now available',
+    time: '1 day ago',
+    icon: CreditCard,
+    color: 'text-orange-500',
+    bgColor: 'bg-orange-50'
+  },
+  {
+    id: 4,
+    type: 'quota_warning',
+    title: 'Quota Alert',
+    description: 'You have used 80% of your monthly ECG analysis quota',
+    time: '2 days ago',
+    icon: Package,
+    color: 'text-yellow-500',
+    bgColor: 'bg-yellow-50'
   },
   {
     id: 5,
-    type: 'ecg_analysis',
-    title: 'ECG Analysis Completed',
-    description: 'ST elevation detected - immediate attention required',
+    type: 'settings_update',
+    title: 'Settings Updated',
+    description: 'Auto-renewal has been enabled for your subscription',
     time: '3 hours ago',
     icon: Activity,
     color: 'text-orange-500',

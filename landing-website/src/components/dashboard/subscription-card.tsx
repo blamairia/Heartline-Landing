@@ -17,10 +17,9 @@ export function SubscriptionCard() {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          <div>
+        <div className="space-y-4">          <div>
             <div className="text-2xl font-bold text-gray-900 mb-1">
-              $599<span className="text-sm font-normal text-gray-600">/month</span>
+              $299<span className="text-sm font-normal text-gray-600">/month</span>
             </div>
             <p className="text-sm text-gray-600">
               Current billing cycle
@@ -30,17 +29,17 @@ export function SubscriptionCard() {
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm">
               <CheckCircle className="w-4 h-4 text-green-500" />
-              <span className="text-gray-700">500 ECG analyses remaining</span>
+              <span className="text-gray-700">24/50 licensed users</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <CheckCircle className="w-4 h-4 text-green-500" />
-              <span className="text-gray-700">25 patients monitored</span>
+              <span className="text-gray-700">3,153/5,000 ECG quota remaining</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <CheckCircle className="w-4 h-4 text-green-500" />
-              <span className="text-gray-700">Predictive analytics enabled</span>
+              <span className="text-gray-700">Premium support included</span>
             </div>
-          </div>          <div className="pt-4 space-y-2">
+          </div><div className="pt-4 space-y-2">
             <Button className="w-full" size="sm" asChild>
               <Link href="/dashboard/subscription/upgrade">
                 Upgrade Plan

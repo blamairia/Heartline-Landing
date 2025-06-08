@@ -21,23 +21,24 @@ export function DashboardHeader() {
               <Heart className="w-5 h-5 text-white" />
             </div>
             <span className="text-xl font-bold text-gray-900">Hearline</span>
-          </Link>
-
-          {/* Navigation */}
+          </Link>          {/* Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
             <Link href="/dashboard" className="text-gray-900 font-medium">
               Dashboard
             </Link>
-            <Link href="/dashboard/patients" className="text-gray-600 hover:text-gray-900">
-              Patients
+            <Link href="/dashboard/subscription" className="text-gray-600 hover:text-gray-900">
+              Subscription
             </Link>
-            <Link href="/dashboard/analytics" className="text-gray-600 hover:text-gray-900">
-              Analytics
+            <Link href="/dashboard/users" className="text-gray-600 hover:text-gray-900">
+              Users
             </Link>
-            <Link href="/dashboard/reports" className="text-gray-600 hover:text-gray-900">
-              Reports
+            <Link href="/dashboard/addons" className="text-gray-600 hover:text-gray-900">
+              Add-ons
             </Link>
-          </nav>          {/* Actions */}
+            <Link href="/dashboard/billing" className="text-gray-600 hover:text-gray-900">
+              Billing
+            </Link>
+          </nav>{/* Actions */}
           <div className="flex items-center space-x-4">
             <Button variant="ghost" size="sm" title="Notifications">
               <Bell className="w-4 h-4" />

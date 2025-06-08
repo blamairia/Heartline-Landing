@@ -9,8 +9,8 @@ import { QuickActions } from '@/components/dashboard/quick-actions'
 import { SubscriptionCard } from '@/components/dashboard/subscription-card'
 
 export const metadata: Metadata = {
-  title: 'Dashboard | Hearline',
-  description: 'Your Hearline dashboard - manage patients, view analytics, and access AI-powered cardiac tools.',
+  title: 'Dashboard | Hearline AI',
+  description: 'Your Hearline AI subscription dashboard - manage your plan, users, and access powerful cardiac analysis tools.',
 }
 
 export default async function DashboardPage() {
@@ -24,14 +24,13 @@ export default async function DashboardPage() {
     <div className="min-h-screen bg-gray-50">
       <DashboardHeader />
       
-      <main className="container mx-auto px-4 py-8">
-        {/* Welcome Section */}
+      <main className="container mx-auto px-4 py-8">        {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome back, {session.user?.name || 'Doctor'}
+            Welcome back, {session.user?.name || 'User'}
           </h1>
           <p className="text-gray-600">
-            Here's what's happening with your patients today.
+            Manage your Hearline AI subscription and access powerful cardiac analysis tools.
           </p>
         </div>
 

@@ -49,9 +49,8 @@ export default async function SubscriptionPage() {
                   <div>
                     <h3 className="text-2xl font-bold text-gray-900">Professional Plan</h3>
                     <p className="text-gray-600">Advanced features for growing practices</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-3xl font-bold text-gray-900">$599</div>
+                  </div>                  <div className="text-right">
+                    <div className="text-3xl font-bold text-gray-900">$299</div>
                     <div className="text-sm text-gray-600">per month</div>
                   </div>
                 </div>

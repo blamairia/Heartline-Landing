@@ -1,41 +1,42 @@
 'use client'
 
-import { Plus, FileText, Users, Activity, Zap } from 'lucide-react'
+import { Plus, CreditCard, Users, Package, Settings, ExternalLink } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
 const actions = [
   {
-    title: 'Analyze ECG',
-    description: 'Upload and analyze a new ECG',
-    icon: Activity,
-    color: 'text-red-500',
-    bgColor: 'bg-red-50',
-    href: '/dashboard/analyze'
-  },
-  {
-    title: 'Add Patient',
-    description: 'Register a new patient',
-    icon: Users,
+    title: 'Access Hearline App',
+    description: 'Open the cardiac analysis platform',
+    icon: ExternalLink,
     color: 'text-blue-500',
     bgColor: 'bg-blue-50',
-    href: '/dashboard/patients/new'
+    href: 'https://app.hearline.ai',
+    external: true
   },
   {
-    title: 'Generate Report',
-    description: 'Create clinical report',
-    icon: FileText,
+    title: 'Invite Users',
+    description: 'Add team members to your plan',
+    icon: Users,
     color: 'text-green-500',
     bgColor: 'bg-green-50',
-    href: '/dashboard/reports/new'
+    href: '/dashboard/users/invite'
   },
   {
-    title: 'AI Consultation',
-    description: 'Get AI-powered insights',
-    icon: Zap,
+    title: 'Upgrade Plan',
+    description: 'Get more features and capacity',
+    icon: Package,
     color: 'text-purple-500',
     bgColor: 'bg-purple-50',
-    href: '/dashboard/ai-consultation'
+    href: '/dashboard/subscription/upgrade'
+  },
+  {
+    title: 'Billing Settings',
+    description: 'Manage payment and invoices',
+    icon: CreditCard,
+    color: 'text-orange-500',
+    bgColor: 'bg-orange-50',
+    href: '/dashboard/billing'
   }
 ]
 

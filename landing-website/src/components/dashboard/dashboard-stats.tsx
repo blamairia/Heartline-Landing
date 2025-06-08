@@ -1,44 +1,47 @@
 'use client'
 
-import { Activity, Users, AlertTriangle, TrendingUp } from 'lucide-react'
+import { Users, CreditCard, Package, Calendar } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 const stats = [
   {
-    title: 'Active Patients',
-    value: '1,234',
-    change: '+12%',
+    title: 'Active Users',
+    value: '24',
+    subtitle: 'of 50 licensed',
+    change: '+3 this month',
     changeType: 'increase' as const,
     icon: Users,
     color: 'text-blue-500',
     bgColor: 'bg-blue-50'
-  },
-  {
-    title: 'ECGs Analyzed',
-    value: '2,847',
-    change: '+8%',
+  },  {
+    title: 'ECG Analysis Quota',
+    value: '1,847',
+    subtitle: 'of 5,000 monthly',
+    change: '37% used',
     changeType: 'increase' as const,
-    icon: Activity,
+    icon: Package,
     color: 'text-green-500',
     bgColor: 'bg-green-50'
   },
   {
-    title: 'Critical Alerts',
-    value: '12',
-    change: '-3%',
-    changeType: 'decrease' as const,
-    icon: AlertTriangle,
-    color: 'text-red-500',
-    bgColor: 'bg-red-50'
-  },
-  {
-    title: 'Accuracy Rate',
-    value: '98.5%',
-    change: '+0.2%',
+    title: 'Subscription Status',
+    value: 'Active',
+    subtitle: 'Professional Plan',
+    change: 'Renews Dec 15',
     changeType: 'increase' as const,
-    icon: TrendingUp,
+    icon: CreditCard,
     color: 'text-primary',
     bgColor: 'bg-primary/10'
+  },
+  {
+    title: 'Days Remaining',
+    value: '23',
+    subtitle: 'until renewal',
+    change: 'Auto-renewal ON',
+    changeType: 'increase' as const,
+    icon: Calendar,
+    color: 'text-orange-500',
+    bgColor: 'bg-orange-50'
   }
 ]
 
@@ -54,18 +57,22 @@ export function DashboardStats() {
             <div className={`p-2 rounded-lg ${stat.bgColor}`}>
               <stat.icon className={`w-4 h-4 ${stat.color}`} />
             </div>
-          </CardHeader>
-          <CardContent>
+          </CardHeader>          <CardContent>
             <div className="text-2xl font-bold text-gray-900 mb-1">
               {stat.value}
             </div>
+            {stat.subtitle && (
+              <p className="text-sm text-gray-500 mb-1">
+                {stat.subtitle}
+              </p>
+            )}
             <p className="text-xs text-gray-600">
               <span className={`font-medium ${
-                stat.changeType === 'increase' ? 'text-green-600' : 'text-red-600'
+                stat.changeType === 'increase' ? 'text-green-600' : 
+                stat.changeType === 'decrease' ? 'text-red-600' : 'text-gray-600'
               }`}>
                 {stat.change}
-              </span>{' '}
-              from last month
+              </span>
             </p>
           </CardContent>
         </Card>
