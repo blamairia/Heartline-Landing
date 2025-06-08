@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import Link from 'next/link'
 import { Brain, Heart, BarChart3, Shield, Zap, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -123,9 +124,7 @@ export function AIInnovationSection() {
               </Card>
             </motion.div>
           ))}
-        </div>
-
-        {/* CTA */}
+        </div>        {/* CTA */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -133,9 +132,11 @@ export function AIInnovationSection() {
           transition={{ duration: 0.6, delay: 0.4 }}
           className="text-center mt-16"
         >
-          <Button size="lg" className="bg-primary hover:bg-primary/90">
-            See AI in Action
-          </Button>
+          <Link href="/demo">
+            <Button size="lg" className="bg-primary hover:bg-primary/90">
+              See AI in Action
+            </Button>
+          </Link>
         </motion.div>
       </div>
     </section>

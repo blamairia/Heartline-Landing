@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import Link from 'next/link'
 import { ArrowRight, Heart, Shield, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -79,9 +80,7 @@ export function CTASection() {  return (
               </p>
             </div>
           ))}
-        </motion.div>
-
-        {/* Main CTA */}
+        </motion.div>        {/* Main CTA */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -90,17 +89,21 @@ export function CTASection() {  return (
           className="text-center mb-12"
         >
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Button size="lg" className="bg-white text-primary hover:bg-gray-100 text-lg px-8 py-4 h-auto group">
-              Start Your Free Trial
-              <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-            </Button>
-            <Button 
-              size="lg" 
-              variant="outline" 
-              className="border-white/30 text-white hover:bg-white/10 text-lg px-8 py-4 h-auto backdrop-blur-sm"
-            >
-              Schedule a Demo
-            </Button>
+            <Link href="/auth/register">
+              <Button size="lg" className="bg-white text-primary hover:bg-gray-100 text-lg px-8 py-4 h-auto group">
+                Start Your Free Trial
+                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
+            <Link href="/demo">
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="border-white/30 text-white hover:bg-white/10 text-lg px-8 py-4 h-auto backdrop-blur-sm"
+              >
+                Schedule a Demo
+              </Button>
+            </Link>
           </div>
           <p className="text-blue-100 mt-4 text-sm">
             No credit card required • 30-day free trial • Setup in 5 minutes

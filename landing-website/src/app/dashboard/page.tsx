@@ -1,4 +1,7 @@
 import { Metadata } from 'next'
+import { getServerSession } from 'next-auth/next'
+import { redirect } from 'next/navigation'
+import { authOptions } from '@/lib/auth'
 import { DashboardHeader } from '@/components/dashboard/dashboard-header'
 import { DashboardStats } from '@/components/dashboard/dashboard-stats'
 import { RecentActivity } from '@/components/dashboard/recent-activity'
@@ -10,7 +13,13 @@ export const metadata: Metadata = {
   description: 'Your Hearline dashboard - manage patients, view analytics, and access AI-powered cardiac tools.',
 }
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const session = await getServerSession(authOptions)
+  
+  if (!session) {
+    redirect('/auth/login')
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <DashboardHeader />
@@ -19,7 +28,7 @@ export default function DashboardPage() {
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome back, Dr. Smith
+            Welcome back, {session.user?.name || 'Doctor'}
           </h1>
           <p className="text-gray-600">
             Here's what's happening with your patients today.

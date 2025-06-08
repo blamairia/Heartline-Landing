@@ -1,8 +1,10 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import Link from 'next/link'
 import { Star, Quote } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 
 const testimonials = [
   {
@@ -188,14 +190,17 @@ export function TestimonialsSection() {
           <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
             See why leading cardiologists trust Hearline to deliver exceptional patient outcomes. 
             Start your free trial today and experience the difference.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="px-8 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium">
-              Start Free Trial
-            </button>
-            <button className="px-8 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
-              Schedule Demo
-            </button>
+          </p>          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/auth/register">
+              <Button className="px-8 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium">
+                Start Free Trial
+              </Button>
+            </Link>
+            <Link href="/demo">
+              <Button variant="outline" className="px-8 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                Schedule Demo
+              </Button>
+            </Link>
           </div>
         </motion.div>
       </div>

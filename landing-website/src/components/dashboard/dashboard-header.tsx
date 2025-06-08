@@ -1,10 +1,16 @@
 'use client'
 
 import Link from 'next/link'
+import { useSession, signOut } from 'next-auth/react'
 import { Bell, Settings, User, LogOut, Heart } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 export function DashboardHeader() {
+  const { data: session } = useSession()
+
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: '/' })
+  }
   return (
     <header className="bg-white border-b border-gray-200">
       <div className="container mx-auto px-4">
@@ -31,20 +37,22 @@ export function DashboardHeader() {
             <Link href="/dashboard/reports" className="text-gray-600 hover:text-gray-900">
               Reports
             </Link>
-          </nav>
-
-          {/* Actions */}
+          </nav>          {/* Actions */}
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" title="Notifications">
               <Bell className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="sm">
-              <Settings className="w-4 h-4" />
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/dashboard/settings" title="Settings">
+                <Settings className="w-4 h-4" />
+              </Link>
             </Button>
-            <Button variant="ghost" size="sm">
-              <User className="w-4 h-4" />
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/dashboard/profile" title="Profile">
+                <User className="w-4 h-4" />
+              </Link>
             </Button>
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" onClick={handleLogout} title="Logout">
               <LogOut className="w-4 h-4" />
             </Button>
           </div>

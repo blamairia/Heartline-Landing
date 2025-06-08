@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { Crown, ArrowRight, CheckCircle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -39,15 +40,17 @@ export function SubscriptionCard() {
               <CheckCircle className="w-4 h-4 text-green-500" />
               <span className="text-gray-700">Predictive analytics enabled</span>
             </div>
-          </div>
-
-          <div className="pt-4 space-y-2">
-            <Button className="w-full" size="sm">
-              Upgrade Plan
-              <ArrowRight className="w-4 h-4 ml-2" />
+          </div>          <div className="pt-4 space-y-2">
+            <Button className="w-full" size="sm" asChild>
+              <Link href="/dashboard/subscription/upgrade">
+                Upgrade Plan
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Link>
             </Button>
-            <Button variant="outline" className="w-full" size="sm">
-              Manage Subscription
+            <Button variant="outline" className="w-full" size="sm" asChild>
+              <Link href="/dashboard/subscription">
+                Manage Subscription
+              </Link>
             </Button>
           </div>
 

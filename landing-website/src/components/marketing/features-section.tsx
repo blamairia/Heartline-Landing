@@ -1,8 +1,10 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import Link from 'next/link'
 import { Activity, Stethoscope, Clock, AlertTriangle, TrendingUp, FileText } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 
 const features = [
   {
@@ -128,14 +130,17 @@ export function FeaturesSection() {
           <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
             Join leading healthcare institutions that have already improved patient outcomes 
             with Hearline's AI-powered cardiac management system.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="px-8 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium">
-              Request Demo
-            </button>
-            <button className="px-8 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
-              View Pricing
-            </button>
+          </p>          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/demo">
+              <Button className="px-8 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium">
+                Request Demo
+              </Button>
+            </Link>
+            <Link href="#pricing">
+              <Button variant="outline" className="px-8 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                View Pricing
+              </Button>
+            </Link>
           </div>
         </motion.div>
       </div>

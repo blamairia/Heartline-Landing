@@ -1,4 +1,6 @@
 import { Metadata } from 'next'
+import { Header } from '@/components/layout/header'
+import { Footer } from '@/components/layout/footer'
 
 export const metadata: Metadata = {
   title: 'Privacy Policy | Hearline',
@@ -7,17 +9,19 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-white py-12">
-      <div className="container mx-auto px-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="mb-12">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">Privacy Policy</h1>
-            <p className="text-xl text-gray-600">
-              Last updated: June 8, 2025
-            </p>
-          </div>
+    <div className="min-h-screen bg-white">
+      <Header />
+        <main className="py-12">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="mb-12">
+              <h1 className="text-4xl font-bold text-gray-900 mb-4">Privacy Policy</h1>
+              <p className="text-xl text-gray-600">
+                Last updated: June 8, 2025
+              </p>
+            </div>
 
-          <div className="prose prose-lg max-w-none">
+            <div className="prose prose-lg max-w-none">
             <section className="mb-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">1. Introduction</h2>
               <p className="text-gray-600 mb-4">
@@ -232,14 +236,15 @@ export default function PrivacyPage() {
                 </p>
                 <p className="text-gray-700">
                   <strong>Email:</strong> privacy@hearline.ai<br />
-                  <strong>Phone:</strong> +1 (555) HEARLINE<br />
-                  <strong>Privacy Portal:</strong> privacy.hearline.ai
-                </p>
-              </div>
+                  <strong>Phone:</strong> +1 (555) HEARLINE<br />                  <strong>Privacy Portal:</strong> privacy.hearline.ai
+                </p>              </div>
             </section>
           </div>
         </div>
-      </div>
+        </div>
+      </main>
+      
+      <Footer />
     </div>
   )
 }

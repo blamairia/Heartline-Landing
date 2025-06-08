@@ -1,4 +1,6 @@
 import { Metadata } from 'next'
+import { Header } from '@/components/layout/header'
+import { Footer } from '@/components/layout/footer'
 
 export const metadata: Metadata = {
   title: 'Terms of Service | Hearline',
@@ -7,17 +9,19 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-white py-12">
-      <div className="container mx-auto px-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="mb-12">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">Terms of Service</h1>
-            <p className="text-xl text-gray-600">
-              Last updated: June 8, 2025
-            </p>
-          </div>
+    <div className="min-h-screen bg-white">
+      <Header />
+        <main className="py-12">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="mb-12">
+              <h1 className="text-4xl font-bold text-gray-900 mb-4">Terms of Service</h1>
+              <p className="text-xl text-gray-600">
+                Last updated: June 8, 2025
+              </p>
+            </div>
 
-          <div className="prose prose-lg max-w-none">
+            <div className="prose prose-lg max-w-none">
             <section className="mb-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">1. Acceptance of Terms</h2>
               <p className="text-gray-600 mb-4">
@@ -190,15 +194,16 @@ export default function TermsPage() {
                 <p className="text-gray-700">
                   <strong>Hearline, Inc.</strong><br />
                   123 Innovation Drive<br />
-                  San Francisco, CA 94107<br />
-                  Email: legal@hearline.ai<br />
+                  San Francisco, CA 94107<br />                  Email: legal@hearline.ai<br />
                   Phone: +1 (555) HEARLINE
-                </p>
-              </div>
+                </p>              </div>
             </section>
           </div>
         </div>
-      </div>
+        </div>
+      </main>
+      
+      <Footer />
     </div>
   )
 }

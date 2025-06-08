@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import Link from 'next/link'
 import { Check, Star, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -175,19 +176,28 @@ export function PricingSection() {
                         <span className="text-gray-500">{limitation}</span>
                       </li>
                     ))}
-                  </ul>
-
-                  <Button 
-                    className={`w-full ${
-                      plan.popular 
-                        ? 'bg-primary hover:bg-primary/90' 
-                        : 'bg-gray-900 hover:bg-gray-800'
-                    }`}
-                    size="lg"
+                  </ul>                  <Link 
+                    href={
+                      plan.cta === 'Start Free Trial' 
+                        ? '/auth/register' 
+                        : plan.cta === 'Contact Sales' 
+                        ? '/contact' 
+                        : '/auth/register'
+                    }
+                    className="block w-full"
                   >
-                    {plan.cta}
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
+                    <Button 
+                      className={`w-full ${
+                        plan.popular 
+                          ? 'bg-primary hover:bg-primary/90' 
+                          : 'bg-gray-900 hover:bg-gray-800'
+                      }`}
+                      size="lg"
+                    >
+                      {plan.cta}
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  </Link>
                 </CardContent>
               </Card>
             </motion.div>
