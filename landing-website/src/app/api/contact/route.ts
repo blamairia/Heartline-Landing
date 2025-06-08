@@ -16,23 +16,35 @@ const contactSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('Contact API called')
+    console.log('Prisma client type:', typeof prisma)
+    console.log('Prisma contactInquiry:', typeof prisma?.contactInquiry)
+    
     const body = await request.json()
+    console.log('Request body:', body)
+    
     const validatedData = contactSchema.parse(body)
-
-    // Save contact inquiry to database
-    const contact = await prisma.contactInquiry.create({
+    console.log('Validated data:', validatedData)    // Test if contactSubmission exists
+    if (!prisma.contactSubmission) {
+      throw new Error('ContactSubmission model not found on prisma client')
+    }    // Save contact inquiry to database
+    console.log('Creating contact submission...')
+    const contact = await prisma.contactSubmission.create({
       data: {
-        firstName: validatedData.firstName,
-        lastName: validatedData.lastName,
+        name: `${validatedData.firstName} ${validatedData.lastName}`,
         email: validatedData.email,
         phone: validatedData.phone,
-        company: validatedData.company,
-        inquiryType: validatedData.inquiryType,
+        organization: validatedData.company,
         subject: validatedData.subject,
         message: validatedData.message,
-        status: 'NEW',
+        type: 'GENERAL',
+        status: 'PENDING',
       },
-    })    // Send emails
+    })
+    
+    console.log('Contact created:', contact.id)
+    
+    // Send emails
     try {
       // Send confirmation email to customer
       await sendContactInquiryConfirmation({
@@ -55,6 +67,8 @@ export async function POST(request: NextRequest) {
         subject: validatedData.subject,
         message: validatedData.message,
       })
+      
+      console.log('Emails sent successfully')
     } catch (emailError) {
       console.error('Email sending error:', emailError)
       // Don't fail the request if email sending fails

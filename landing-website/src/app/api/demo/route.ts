@@ -24,27 +24,28 @@ const demoSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const validatedData = demoSchema.parse(body)
-
-    // Save demo request to database
-    const demoRequest = await prisma.demoRequest.create({
+    const validatedData = demoSchema.parse(body)    // Save demo request to database
+    const demoRequest = await prisma.contactSubmission.create({
       data: {
-        firstName: validatedData.firstName,
-        lastName: validatedData.lastName,
+        name: `${validatedData.firstName} ${validatedData.lastName}`,
         email: validatedData.email,
         phone: validatedData.phone,
-        jobTitle: validatedData.jobTitle,
-        organizationName: validatedData.organizationName,
-        organizationType: validatedData.organizationType,
-        organizationSize: validatedData.organizationSize,
-        currentECGSystem: validatedData.currentECGSystem,
-        primaryUseCase: validatedData.primaryUseCase,
-        interestedFeatures: validatedData.interestedFeatures,
-        timeframe: validatedData.timeframe,
-        preferredDemoType: validatedData.preferredDemoType,
-        additionalRequirements: validatedData.additionalRequirements,
-        country: validatedData.country,
-        status: 'NEW',
+        organization: validatedData.organizationName,
+        type: 'DEMO_REQUEST', // Using enum value
+        subject: `Demo Request from ${validatedData.organizationName}`,
+        message: `Demo request details:
+Job Title: ${validatedData.jobTitle}
+Organization: ${validatedData.organizationName}
+Organization Type: ${validatedData.organizationType}
+Organization Size: ${validatedData.organizationSize}
+${validatedData.currentECGSystem ? `Current ECG System: ${validatedData.currentECGSystem}` : ''}
+Primary Use Case: ${validatedData.primaryUseCase}
+Interested Features: ${validatedData.interestedFeatures.join(', ')}
+Timeframe: ${validatedData.timeframe}
+Preferred Demo Type: ${validatedData.preferredDemoType}
+Country: ${validatedData.country}
+${validatedData.additionalRequirements ? `Additional Requirements: ${validatedData.additionalRequirements}` : ''}`,
+        status: 'PENDING',
       },
     })    // Send emails
     try {
