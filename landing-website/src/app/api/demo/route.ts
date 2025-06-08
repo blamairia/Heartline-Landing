@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { sendDemoRequestConfirmation, sendDemoRequestNotification } from '@/lib/email'
+import { sendDemoRequestConfirmation, sendDemoRequestNotification } from '@/lib/smtp-email'
 
 const demoSchema = z.object({
   firstName: z.string().min(1),

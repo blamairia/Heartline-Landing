@@ -22,16 +22,57 @@ export function RegisterForm() {
     organizationType: '',
     agreeToTerms: false
   })
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    try {
+      // Validate passwords match
+      if (formData.password !== formData.confirmPassword) {
+        alert('Passwords do not match')
+        setIsLoading(false)
+        return
+      }
 
-    setIsSuccess(true)
-    setIsLoading(false)
+      // Validate terms agreement
+      if (!formData.agreeToTerms) {
+        alert('Please agree to the terms and conditions')
+        setIsLoading(false)
+        return
+      }
+
+      // Call registration API
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          organizationName: formData.organization,
+          role: formData.role,
+          organizationType: formData.organizationType,
+          organizationSize: '1-10', // Default value, you might want to add this field to the form
+          country: 'Algeria', // Default value, you might want to add this field to the form
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setIsSuccess(true)
+      } else {
+        alert(data.message || 'Registration failed')
+      }
+    } catch (error) {
+      console.error('Registration error:', error)
+      alert('An error occurred during registration')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleInputChange = (field: string, value: string | boolean) => {
@@ -43,24 +84,21 @@ export function RegisterForm() {
       <div className="text-center">
         <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
           <CheckCircle className="w-8 h-8 text-green-600" />
-        </div>
-        <h3 className="text-2xl font-semibold text-gray-900 mb-4">Account Created!</h3>
+        </div>        <h3 className="text-2xl font-semibold text-gray-900 mb-4">Account Created!</h3>
         <p className="text-gray-600 mb-6">
-          We've sent a verification email to {formData.email}. Please check your inbox and click 
-          the verification link to activate your account.
+          Your account has been created successfully. You can now sign in and start using Hearline.
         </p>
         <div className="bg-blue-50 p-4 rounded-lg mb-6">
           <h4 className="font-medium text-blue-900 mb-2">Next steps:</h4>
           <ul className="text-sm text-blue-800 space-y-1">
-            <li>• Check your email for verification link</li>
+            <li>• Sign in to your account</li>
             <li>• Complete your profile setup</li>
             <li>• Schedule a product demo</li>
             <li>• Start your 30-day free trial</li>
           </ul>
-        </div>
-        <Button asChild className="w-full">
+        </div>        <Button asChild className="w-full">
           <Link href="/auth/login">
-            Continue to Login
+            Sign In to Your Account
           </Link>
         </Button>
       </div>

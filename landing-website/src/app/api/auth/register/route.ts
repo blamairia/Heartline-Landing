@@ -32,48 +32,34 @@ export async function POST(request: NextRequest) {
         { message: 'User already exists with this email' },
         { status: 400 }
       )
-    }
-
-    // Hash password
+    }    // Hash password
     const hashedPassword = await hash(validatedData.password, 12)
 
-    // Create user and organization
-    const user = await prisma.$transaction(async (tx) => {
-      // Create organization first
-      const organization = await tx.organization.create({
-        data: {
-          name: validatedData.organizationName,
-          type: validatedData.organizationType,
-          size: validatedData.organizationSize,
-          specialties: validatedData.specialties || [],
-          country: validatedData.country,
-        },
-      })
+    // Map role to Prisma Role enum - all user registrations get USER role
+    const userRole = 'USER' // All new registrations are regular users
 
-      // Create user
-      const newUser = await tx.user.create({
-        data: {
-          email: validatedData.email,
-          password: hashedPassword,
-          firstName: validatedData.firstName,
-          lastName: validatedData.lastName,
-          role: validatedData.role,
-          phone: validatedData.phone,
-          organizationId: organization.id,
-          emailVerified: null, // Will be set when email is verified
-        },
-      })
-
-      return { user: newUser, organization }
+    // Create user
+    const user = await prisma.user.create({
+      data: {
+        email: validatedData.email,
+        password: hashedPassword,
+        firstName: validatedData.firstName,
+        lastName: validatedData.lastName,
+        role: userRole,
+        phone: validatedData.phone,
+        organization: validatedData.organizationName,
+        position: validatedData.role, // Store the actual role/position as string
+        emailVerified: new Date(), // Skip email verification for development
+      },
     })
 
-    // TODO: Send verification email
-    // await sendVerificationEmail(user.user.email, user.user.id)
+    // TODO: Send verification email in production
+    // await sendVerificationEmail(user.email, user.id)
 
     return NextResponse.json(
       {
-        message: 'Account created successfully. Please check your email to verify your account.',
-        userId: user.user.id,
+        message: 'Account created successfully. You can now sign in to your account.',
+        userId: user.id,
       },
       { status: 201 }
     )
