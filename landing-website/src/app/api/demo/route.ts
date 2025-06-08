@@ -23,8 +23,21 @@ const demoSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('=== DEMO API START ===')
     const body = await request.json()
-    const validatedData = demoSchema.parse(body)    // Save demo request to database
+    console.log('Request body received:', JSON.stringify(body, null, 2))
+    
+    const validatedData = demoSchema.parse(body)
+    console.log('Data validation successful')
+
+    // Log which email functions we're about to use
+    console.log('Email functions available:', {
+      confirmationFunction: typeof sendDemoRequestConfirmation,
+      notificationFunction: typeof sendDemoRequestNotification
+    })
+    
+    // Save demo request to database
+    console.log('Creating database record...')
     const demoRequest = await prisma.contactSubmission.create({
       data: {
         name: `${validatedData.firstName} ${validatedData.lastName}`,
@@ -44,13 +57,16 @@ Interested Features: ${validatedData.interestedFeatures.join(', ')}
 Timeframe: ${validatedData.timeframe}
 Preferred Demo Type: ${validatedData.preferredDemoType}
 Country: ${validatedData.country}
-${validatedData.additionalRequirements ? `Additional Requirements: ${validatedData.additionalRequirements}` : ''}`,
-        status: 'PENDING',
+${validatedData.additionalRequirements ? `Additional Requirements: ${validatedData.additionalRequirements}` : ''}`,        status: 'PENDING',
       },
-    })    // Send emails
+    })
+    console.log('Database record created successfully:', demoRequest.id)
+
+    // Send emails
+    console.log('=== EMAIL SENDING START ===')
     try {
-      // Send confirmation email to customer
-      await sendDemoRequestConfirmation({
+      console.log('Sending confirmation email to:', validatedData.email)      // Send confirmation email to customer
+      const confirmationResult = await sendDemoRequestConfirmation({
         firstName: validatedData.firstName,
         lastName: validatedData.lastName,
         email: validatedData.email,
@@ -59,9 +75,11 @@ ${validatedData.additionalRequirements ? `Additional Requirements: ${validatedDa
         timeframe: validatedData.timeframe,
         interestedFeatures: validatedData.interestedFeatures,
       })
+      console.log('Confirmation email sent successfully:', confirmationResult.messageId)
 
+      console.log('Sending notification email to admin:', process.env.SMTP_USER)
       // Send notification email to admin/sales team
-      await sendDemoRequestNotification({
+      const notificationResult = await sendDemoRequestNotification({
         firstName: validatedData.firstName,
         lastName: validatedData.lastName,
         email: validatedData.email,
@@ -78,8 +96,14 @@ ${validatedData.additionalRequirements ? `Additional Requirements: ${validatedDa
         additionalRequirements: validatedData.additionalRequirements,
         country: validatedData.country,
       })
-    } catch (emailError) {
+      console.log('Notification email sent successfully:', notificationResult.messageId)    } catch (emailError: any) {
       console.error('Email sending error:', emailError)
+      console.error('Email error details:', {
+        message: emailError?.message || 'Unknown error',
+        stack: emailError?.stack || 'No stack trace',
+        code: emailError?.code || 'No error code',
+        command: emailError?.command || 'No command'
+      })
       // Don't fail the request if email sending fails
     }
 
