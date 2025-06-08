@@ -1,95 +1,145 @@
 'use client'
 
-import { Users, CreditCard, Package, Settings, UserPlus, ExternalLink, Activity } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Clock, User, Activity, FileText, CreditCard, AlertCircle, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ActivityItem, RecentActivityResponse } from '@/types/api'
 
-const activities = [
-  {
-    id: 1,
-    type: 'user_access',
-    title: 'Hearline App Accessed',
-    description: 'Dr. Smith analyzed 3 ECGs in the main platform',
-    time: '15 minutes ago',
-    icon: ExternalLink,
-    color: 'text-blue-500',
-    bgColor: 'bg-blue-50'
-  },
-  {
-    id: 2,
-    type: 'user_added',
-    title: 'New User Invited',
-    description: 'Dr. Johnson was added to your Professional plan',
-    time: '2 hours ago',
-    icon: UserPlus,
-    color: 'text-green-500',
-    bgColor: 'bg-green-50'
-  },
-  {
-    id: 3,
-    type: 'billing',
-    title: 'Invoice Generated',
-    description: 'Monthly invoice for $299 is now available',
-    time: '1 day ago',
-    icon: CreditCard,
-    color: 'text-orange-500',
-    bgColor: 'bg-orange-50'
-  },
-  {
-    id: 4,
-    type: 'quota_warning',
-    title: 'Quota Alert',
-    description: 'You have used 80% of your monthly ECG analysis quota',
-    time: '2 days ago',
-    icon: Package,
-    color: 'text-yellow-500',
-    bgColor: 'bg-yellow-50'
-  },
-  {
-    id: 5,
-    type: 'settings_update',
-    title: 'Settings Updated',
-    description: 'Auto-renewal has been enabled for your subscription',
-    time: '3 hours ago',
-    icon: Activity,
-    color: 'text-orange-500',
-    bgColor: 'bg-orange-50'
-  }
-]
+const activityIcons = {
+  subscription: User,
+  billing: CreditCard,
+  user: User,
+  system: Activity,
+}
+
+const activityColors = {
+  subscription: 'text-blue-500',
+  billing: 'text-green-500',
+  user: 'text-purple-500',
+  system: 'text-yellow-500',
+}
 
 export function RecentActivity() {
+  const [activities, setActivities] = useState<ActivityItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchActivity = async () => {
+      try {
+        const response = await fetch('/api/dashboard/activity')
+        if (!response.ok) {
+          throw new Error('Failed to fetch activity data')
+        }
+        const data: RecentActivityResponse = await response.json()
+        setActivities(data.activities)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load activity')
+        console.error('Error fetching activity:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchActivity()
+  }, [])
+  const formatDate = (date: string | Date) => {
+    const activityDate = new Date(date)
+    const now = new Date()
+    const diffInHours = Math.floor((now.getTime() - activityDate.getTime()) / (1000 * 60 * 60))
+    
+    if (diffInHours < 1) {
+      const diffInMinutes = Math.floor((now.getTime() - activityDate.getTime()) / (1000 * 60))
+      return `${diffInMinutes}m ago`
+    } else if (diffInHours < 24) {
+      return `${diffInHours}h ago`
+    } else {
+      const diffInDays = Math.floor(diffInHours / 24)
+      return `${diffInDays}d ago`
+    }
+  }
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center h-32">
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center h-32 text-red-600">
+            <AlertCircle className="w-6 h-6 mr-2" />
+            <span>{error}</span>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (activities.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-gray-500">
+            <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
+            <p>No recent activity</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-xl font-semibold text-gray-900">
-          Recent Activity
-        </CardTitle>
+        <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {activities.map((activity) => (
-            <div key={activity.id} className="flex items-start space-x-4">
-              <div className={`p-2 rounded-lg ${activity.bgColor} flex-shrink-0`}>
-                <activity.icon className={`w-4 h-4 ${activity.color}`} />
+      <CardContent>        <div className="space-y-4">
+          {activities.map((activity) => {
+            const IconComponent = activityIcons[activity.type] || Activity
+            const iconColor = activityColors[activity.type] || 'text-gray-500'
+            
+            return (
+              <div key={activity.id} className="flex items-start gap-3">
+                <div className={`flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center ${iconColor}`}>
+                  <IconComponent className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {activity.action}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        by {activity.user}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-gray-500 flex-shrink-0">
+                      <Clock className="w-3 h-3" />
+                      {formatDate(activity.time)}
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900">
-                  {activity.title}
-                </p>
-                <p className="text-sm text-gray-600 mt-1">
-                  {activity.description}
-                </p>
-                <p className="text-xs text-gray-500 mt-2">
-                  {activity.time}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-        
-        <div className="mt-6 pt-4 border-t border-gray-200">
-          <button className="text-sm text-primary hover:text-primary/80 font-medium">
-            View all activity →
-          </button>
+            )
+          })}
         </div>
       </CardContent>
     </Card>

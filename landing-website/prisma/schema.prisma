@@ -56,6 +56,7 @@ model User {
   lastName           String?
   phone              String?
   organization       String?
+  organizationId     String?
   position           String?
   city               String?
   wilaya             String?
@@ -65,6 +66,11 @@ model User {
   contactSubmissions ContactSubmission[]
   subscriptions      Subscription[]
   usageRecords       UsageRecord[]
+  paymentMethods     PaymentMethod[]
+  activityLogs       ActivityLog[]
+  invoices           Invoice[]
+  notifications      SystemNotification[]
+  organizationRel    Organization?       @relation(fields: [organizationId], references: [id])
 
   @@map("users")
 }
@@ -109,6 +115,7 @@ model Subscription {
   plan            SubscriptionPlan    @relation(fields: [planId], references: [id])
   user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   usageRecords    UsageRecord[]
+  invoices        Invoice[]
 
   @@map("subscriptions")
 }
@@ -191,6 +198,139 @@ model NewsletterSubscription {
   @@map("newsletter_subscriptions")
 }
 
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  website     String?
+  phone       String?
+  email       String?
+  address     String?
+  city        String?
+  wilaya      String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  users       User[]
+
+  @@map("organizations")
+}
+
+model PaymentMethod {
+  id             String              @id @default(cuid())
+  userId         String
+  type           PaymentMethodType
+  provider       String              // "stripe", "ccp", "bank_transfer"
+  providerCardId String?             // External payment provider's card/method ID
+  last4          String?             // Last 4 digits for cards
+  brand          String?             // "visa", "mastercard", etc.
+  expiryMonth    Int?
+  expiryYear     Int?
+  holderName     String?
+  bankName       String?             // For bank transfers
+  accountNumber  String?             // For CCP or bank accounts
+  isDefault      Boolean             @default(false)
+  isActive       Boolean             @default(true)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoices       Invoice[]
+
+  @@map("payment_methods")
+}
+
+model ActivityLog {
+  id          String       @id @default(cuid())
+  userId      String
+  entityType  String       // "subscription", "addon", "payment", "user"
+  entityId    String?      // ID of the related entity
+  action      ActivityType
+  description String
+  metadata    Json?        // Additional context data
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime     @default(now())
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([entityType, entityId])
+  @@index([action, createdAt])
+  @@map("activity_logs")
+}
+
+model Invoice {
+  id              String        @id @default(cuid())
+  userId          String
+  subscriptionId  String?
+  paymentMethodId String?
+  invoiceNumber   String        @unique
+  amount          Decimal       @db.Money
+  currency        String        @default("DZD")
+  status          InvoiceStatus @default(PENDING)
+  dueDate         DateTime
+  paidAt          DateTime?
+  description     String?
+  metadata        Json?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription    Subscription? @relation(fields: [subscriptionId], references: [id])
+  paymentMethod   PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+
+  @@map("invoices")
+}
+
+model SystemNotification {
+  id          String             @id @default(cuid())
+  userId      String?            // null for system-wide notifications
+  type        NotificationType
+  title       String
+  message     String
+  isRead      Boolean            @default(false)
+  priority    NotificationPriority @default(NORMAL)
+  expiresAt   DateTime?
+  metadata    Json?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  user        User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead, createdAt])
+  @@index([type, createdAt])
+  @@map("system_notifications")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expires   DateTime
+  createdAt DateTime @default(now())
+  
+  @@index([email])
+}
+
+model ContactInquiry {
+  id                String            @id @default(cuid())
+  firstName         String
+  lastName          String
+  email             String
+  phone             String?
+  organizationName  String?
+  organizationType  OrganizationType?
+  subject           String
+  message           String
+  status            ContactStatus     @default(PENDING)
+  priority          ContactPriority   @default(NORMAL)
+  assignedTo        String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+}
+
 enum Role {
   USER
   ADMIN
@@ -242,4 +382,85 @@ enum SubmissionStatus {
   IN_PROGRESS
   RESOLVED
   CLOSED
+}
+
+enum PaymentMethodType {
+  CREDIT_CARD
+  DEBIT_CARD
+  BANK_TRANSFER
+  CCP_ACCOUNT
+  PAYPAL
+}
+
+enum ActivityType {
+  USER_LOGIN
+  USER_LOGOUT
+  USER_CREATED
+  USER_UPDATED
+  USER_DELETED
+  SUBSCRIPTION_CREATED
+  SUBSCRIPTION_UPDATED
+  SUBSCRIPTION_CANCELLED
+  SUBSCRIPTION_RENEWED
+  ADDON_ADDED
+  ADDON_REMOVED
+  ADDON_UPDATED
+  PAYMENT_SUCCESSFUL
+  PAYMENT_FAILED
+  INVOICE_CREATED
+  INVOICE_PAID
+  PROFILE_UPDATED
+  PASSWORD_CHANGED
+  ORGANIZATION_CREATED
+  ORGANIZATION_UPDATED
+  PAYMENT_METHOD_ADDED
+  PAYMENT_METHOD_REMOVED
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+  REFUNDED
+}
+
+enum NotificationType {
+  SYSTEM
+  BILLING
+  SUBSCRIPTION
+  FEATURE
+  SECURITY
+  ANNOUNCEMENT
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum ContactStatus {
+  PENDING
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum ContactPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum OrganizationType {
+  HOSPITAL
+  CLINIC
+  MEDICAL_CENTER
+  RESEARCH_INSTITUTION
+  PRIVATE_PRACTICE
+  GOVERNMENT_HEALTH
+  OTHER
 }

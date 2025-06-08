@@ -84,7 +84,7 @@ const timelineEvents = [
   }
 ]
 
-const typeColors = {
+const typeColors: Record<string, string> = {
   founding: 'bg-purple-100 text-purple-600 border-purple-200',
   technology: 'bg-blue-100 text-blue-600 border-blue-200',
   milestone: 'bg-green-100 text-green-600 border-green-200',
