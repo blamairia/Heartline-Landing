@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
-import { Crown, CheckCircle, AlertTriangle, Plus, Clock, Loader2 } from 'lucide-react'
+import { Crown, CheckCircle, AlertTriangle, Plus, Clock, Loader2, FileText, Download, Printer } from 'lucide-react'
 
 interface SubscriptionData {
   subscriptions: Array<{
@@ -214,7 +214,6 @@ export function SubscriptionContent() {
       day: 'numeric'
     })
   }
-
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       ACTIVE: { variant: 'default' as const, text: 'Active' },
@@ -227,6 +226,270 @@ export function SubscriptionContent() {
     
     const config = statusConfig[status as keyof typeof statusConfig] || { variant: 'secondary' as const, text: status }
     return <Badge variant={config.variant}>{config.text}</Badge>
+  }
+
+  // Invoice printing functions
+  const fetchInvoiceForSubscription = async (subscriptionId: string) => {
+    try {
+      const response = await fetch(`/api/subscription/${subscriptionId}/invoice`)
+      if (response.ok) {
+        const data = await response.json()
+        return data.invoice
+      } else {
+        throw new Error('Invoice not found')
+      }
+    } catch (error) {
+      console.error('Error fetching invoice:', error)
+      return null
+    }
+  }
+
+  const handlePrintInvoice = async (subscriptionId: string, subscriptionName: string) => {
+    setActionLoading(`print_invoice_${subscriptionId}`)
+    try {
+      const invoice = await fetchInvoiceForSubscription(subscriptionId)
+      
+      if (!invoice) {
+        toast({
+          title: "Error",
+          description: "No invoice found for this subscription",
+          variant: "destructive"
+        })
+        return
+      }
+
+      // Open invoice in new window for printing
+      const invoiceWindow = window.open('', '_blank', 'width=800,height=600')
+      if (invoiceWindow) {
+        invoiceWindow.document.write(generateInvoiceHTML(invoice, subscriptionName))
+        invoiceWindow.document.close()
+        invoiceWindow.focus()
+        invoiceWindow.print()
+      }
+      
+      toast({
+        title: "Success",
+        description: "Invoice opened for printing"
+      })
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to print invoice",
+        variant: "destructive"
+      })
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const generateInvoiceHTML = (invoice: any, subscriptionName: string) => {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Invoice ${invoice.invoiceNumber}</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+          }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #3b82f6;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+          }
+          .company-info h1 {
+            color: #3b82f6;
+            margin: 0;
+            font-size: 28px;
+          }
+          .invoice-info {
+            text-align: right;
+          }
+          .invoice-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1f2937;
+          }
+          .details-section {
+            margin: 30px 0;
+          }
+          .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+          }
+          .info-box {
+            border: 1px solid #e5e7eb;
+            padding: 20px;
+            border-radius: 8px;
+          }
+          .info-box h3 {
+            margin-top: 0;
+            color: #374151;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 10px;
+          }
+          .invoice-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+          }
+          .invoice-table th,
+          .invoice-table td {
+            border: 1px solid #e5e7eb;
+            padding: 12px;
+            text-align: left;
+          }
+          .invoice-table th {
+            background-color: #f9fafb;
+            font-weight: bold;
+          }
+          .total-section {
+            margin-top: 30px;
+            text-align: right;
+          }
+          .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e5e7eb;
+          }
+          .total-final {
+            font-size: 18px;
+            font-weight: bold;
+            background-color: #3b82f6;
+            color: white;
+            padding: 15px;
+            margin-top: 10px;
+          }
+          .payment-instructions {
+            background-color: #eff6ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 30px;
+          }
+          .payment-instructions h3 {
+            color: #1d4ed8;
+            margin-top: 0;
+          }
+          .bank-details {
+            background-color: white;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+          }
+          @media print {
+            body { margin: 0; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-info">
+            <h1>Hearline</h1>
+            <p>Advanced Healthcare Solutions<br>
+            Algiers, Algeria<br>
+            contact@hearline.com</p>
+          </div>
+          <div class="invoice-info">
+            <div class="invoice-number">INVOICE</div>
+            <div>${invoice.invoiceNumber}</div>
+            <div style="margin-top: 10px;">
+              <strong>Date:</strong> ${new Date(invoice.issueDate).toLocaleDateString()}<br>
+              <strong>Due:</strong> ${new Date(invoice.dueDate).toLocaleDateString()}
+            </div>
+          </div>
+        </div>
+
+        <div class="details-grid">
+          <div class="info-box">
+            <h3>Invoice To:</h3>
+            <p><strong>User ID:</strong> ${invoice.userId}<br>
+            <strong>Subscription:</strong> ${subscriptionName}</p>
+          </div>
+          
+          <div class="info-box">
+            <h3>Payment Details:</h3>
+            <p><strong>Status:</strong> ${invoice.status}<br>
+            <strong>Method:</strong> ${invoice.paymentProvider || 'Bank Transfer'}</p>
+          </div>
+        </div>
+
+        <table class="invoice-table">
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th>Quantity</th>
+              <th>Unit Price</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${invoice.invoiceItems?.map((item: any) => `
+              <tr>
+                <td>${item.description}</td>
+                <td>${item.quantity}</td>
+                <td>${formatCurrency(item.unitPrice, invoice.currency)}</td>
+                <td>${formatCurrency(item.amount, invoice.currency)}</td>
+              </tr>
+            `).join('') || `
+              <tr>
+                <td>${invoice.description}</td>
+                <td>1</td>
+                <td>${formatCurrency(invoice.amount, invoice.currency)}</td>
+                <td>${formatCurrency(invoice.amount, invoice.currency)}</td>
+              </tr>
+            `}
+          </tbody>
+        </table>
+
+        <div class="total-section">
+          <div class="total-row">
+            <span>Subtotal:</span>
+            <span>${formatCurrency(invoice.amount, invoice.currency)}</span>
+          </div>
+          <div class="total-row">
+            <span>Tax:</span>
+            <span>${formatCurrency(0, invoice.currency)}</span>
+          </div>
+          <div class="total-final">
+            <div class="total-row" style="border: none; color: white;">
+              <span>Total Amount:</span>
+              <span>${formatCurrency(invoice.amount, invoice.currency)}</span>
+            </div>
+          </div>
+        </div>
+
+        ${invoice.status !== 'PAID' ? `
+        <div class="payment-instructions">
+          <h3>Payment Instructions</h3>
+          <p>Please transfer the amount to the following bank account:</p>
+          <div class="bank-details">
+            <strong>Bank:</strong> CCP Algeria<br>
+            <strong>Account Number:</strong> 1234567890123456<br>
+            <strong>Reference:</strong> ${invoice.invoiceNumber}<br>
+            <strong>Amount:</strong> ${formatCurrency(invoice.amount, invoice.currency)}
+          </div>
+          <p><strong>Important:</strong> Please include the invoice number (${invoice.invoiceNumber}) as the payment reference.</p>
+        </div>
+        ` : ''}
+
+        <div style="margin-top: 40px; text-align: center; color: #6b7280; font-size: 12px;">
+          <p>Thank you for your business!<br>
+          This invoice was generated on ${new Date().toLocaleDateString()}</p>
+        </div>
+      </body>
+      </html>
+    `
   }
 
   if (loading) {
@@ -482,8 +745,38 @@ export function SubscriptionContent() {
                           </div>
                         )}
                       </div>
-                      
-                      <div className="flex flex-col gap-2 ml-4">
+                        <div className="flex flex-col gap-2 ml-4">
+                        {/* Invoice Actions */}
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handlePrintInvoice(subscription.id, subscription.planDisplayName)}
+                            disabled={actionLoading === `print_invoice_${subscription.id}`}
+                            className="flex-1"
+                          >
+                            {actionLoading === `print_invoice_${subscription.id}` ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Printer className="w-3 h-3" />
+                            )}
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handlePrintInvoice(subscription.id, subscription.planDisplayName)}
+                            disabled={actionLoading === `print_invoice_${subscription.id}`}
+                            className="flex-1"
+                          >
+                            {actionLoading === `print_invoice_${subscription.id}` ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <FileText className="w-3 h-3" />
+                            )}
+                          </Button>
+                        </div>
+
+                        {/* Subscription Actions */}
                         {subscription.status === 'ACTIVE' && (
                           <>
                             <Button size="sm" variant="outline" onClick={() => {
