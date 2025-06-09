@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma as db } from '@/lib/prisma';
+import { users, subscriptions, subscriptionPlans, subscriptionAddons, subscriptionAddonInstances, activityLogs } from '../../../../../db/schema';
+import { eq, and, desc, sql, inArray, sum } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,110 +13,101 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      include: {
-        subscriptions: {
-          include: {
-            plan: true,
-            addons: {
-              include: {
-                addon: true
-              }
-            }
-          },
-          orderBy: { createdAt: 'desc' }
-        }
-      }
-    });
+    const [user] = await db.select().from(users).where(eq(users.email, session.user.email));
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }    // Get current active subscription
-    const activeSubscription = user.subscriptions.find(
-      (sub: any) => sub.status === 'ACTIVE' || sub.status === 'TRIAL'
+    }
+
+    // Get user's subscriptions with plans
+    const userSubscriptions = await db
+      .select({
+        id: subscriptions.id,
+        status: subscriptions.status,
+        startDate: subscriptions.startDate,
+        endDate: subscriptions.endDate,        trialStart: subscriptions.trialStartDate,
+        trialEnd: subscriptions.trialEndDate,
+        autoRenew: subscriptions.autoRenew,
+        createdAt: subscriptions.createdAt,
+        planId: subscriptionPlans.id,
+        planName: subscriptionPlans.displayName,
+        planPrice: subscriptionPlans.price,
+        planCurrency: subscriptionPlans.currency,
+        planBillingCycle: subscriptionPlans.billingCycle,
+        planFeatures: subscriptionPlans.features
+      })
+      .from(subscriptions)
+      .innerJoin(subscriptionPlans, eq(subscriptions.planId, subscriptionPlans.id))
+      .where(eq(subscriptions.userId, user.id))
+      .orderBy(desc(subscriptions.createdAt));
+
+    // Get current active subscription
+    const activeSubscription = userSubscriptions.find(
+      (sub: any) => sub.status === 'ACTIVE' || sub.status === 'TRIALING'
     );
 
     if (!activeSubscription) {
       return NextResponse.json({
+        message: 'No active subscription found',
         subscription: null,
-        hasActiveSubscription: false
+        allSubscriptions: userSubscriptions,
+        addons: [],
+        usage: []
       });
     }
 
-    // Calculate total monthly cost
-    const baseCost = Number(activeSubscription.plan.price);
-    const addonsCost = activeSubscription.addons
-      .filter((sa: any) => sa.isActive)
-      .reduce((sum: number, sa: any) => sum + (Number(sa.addon.price) * sa.quantity), 0);
-    
-    const totalMonthlyCost = baseCost + addonsCost;
-
-    // Get usage statistics for current month
-    const currentMonth = new Date();
-    currentMonth.setDate(1);
-    
-    const usageStats = await prisma.usageRecord.groupBy({
-      by: ['featureType'],
-      where: {
-        userId: user.id,
-        subscriptionId: activeSubscription.id,
-        recordDate: { gte: currentMonth }
-      },
-      _sum: { usage: true }
-    });    const formattedUsage = usageStats.map((stat: any) => ({
-      feature: stat.featureType,
-      usage: stat._sum.usage || 0
-    }));
-
-    // Format subscription data
-    const subscriptionData = {
-      id: activeSubscription.id,
-      status: activeSubscription.status,
-      plan: {
-        id: activeSubscription.plan.id,
-        name: activeSubscription.plan.displayName,
-        price: Number(activeSubscription.plan.price),
-        currency: activeSubscription.plan.currency,
-        billingCycle: activeSubscription.billingCycle,
-        features: activeSubscription.plan.features
-      },      addons: activeSubscription.addons
-        .filter((sa: any) => sa.isActive)
-        .map((sa: any) => ({
-          id: sa.addon.id,
-          name: sa.addon.displayName,
-          price: Number(sa.addon.price),
-          quantity: sa.quantity,
-          type: sa.addon.type
-        })),
-      billing: {
-        startDate: activeSubscription.startDate,
-        endDate: activeSubscription.endDate,
-        nextPaymentDate: activeSubscription.nextPaymentDate,
-        lastPaymentDate: activeSubscription.lastPaymentDate,
-        totalMonthlyCost,
-        currency: activeSubscription.plan.currency,
-        autoRenew: activeSubscription.autoRenew
-      },
-      trial: {
-        isTrialUsed: activeSubscription.isTrialUsed,
-        trialStartDate: activeSubscription.trialStartDate,
-        trialEndDate: activeSubscription.trialEndDate
-      },
-      usage: formattedUsage
-    };
+    // Get subscription addon instances
+    const subAddons = await db
+      .select({
+        id: subscriptionAddonInstances.id,
+        quantity: subscriptionAddonInstances.quantity,
+        priceAtPurchase: subscriptionAddonInstances.priceAtPurchase,
+        status: subscriptionAddonInstances.status,
+        startDate: subscriptionAddonInstances.startDate,
+        endDate: subscriptionAddonInstances.endDate,
+        addonName: subscriptionAddons.displayName,
+        addonDescription: subscriptionAddons.description
+      })
+      .from(subscriptionAddonInstances)
+      .innerJoin(subscriptionAddons, eq(subscriptionAddonInstances.addonId, subscriptionAddons.id))
+      .where(
+        and(
+          eq(subscriptionAddonInstances.subscriptionId, activeSubscription.id),
+          eq(subscriptionAddonInstances.status, 'ACTIVE')
+        )
+      );
 
     return NextResponse.json({
-      subscription: subscriptionData,
-      hasActiveSubscription: true
+      subscription: {
+        id: activeSubscription.id,
+        status: activeSubscription.status,
+        plan: {
+          id: activeSubscription.planId,
+          name: activeSubscription.planName,
+          price: activeSubscription.planPrice,
+          currency: activeSubscription.planCurrency,
+          billingCycle: activeSubscription.planBillingCycle,
+          features: activeSubscription.planFeatures
+        },
+        currentPeriodStart: activeSubscription.startDate,
+        currentPeriodEnd: activeSubscription.endDate,        trialStart: activeSubscription.trialStart,
+        trialEnd: activeSubscription.trialEnd,
+        autoRenew: activeSubscription.autoRenew,
+        createdAt: activeSubscription.createdAt
+      },
+      allSubscriptions: userSubscriptions.map((sub: any) => ({
+        id: sub.id,
+        status: sub.status,
+        planName: sub.planName,
+        createdAt: sub.createdAt
+      })),
+      addons: subAddons,
+      usage: [] // Usage tracking can be implemented later
     });
 
   } catch (error) {
-    console.error('Subscription API error:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch subscription details' }, 
-      { status: 500 }
-    );
+    console.error('Subscription API Error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -126,180 +119,189 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    });
+    const body = await request.json();
+    const { action, subscriptionId, planId } = body;
+
+    const [user] = await db.select().from(users).where(eq(users.email, session.user.email));
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const body = await request.json();
-    const { action, ...data } = body;
-
     switch (action) {
-      case 'cancel_subscription':
+      case 'cancel':
         return await cancelSubscription(user.id);
       case 'toggle_auto_renew':
-        return await toggleAutoRenew(user.id, data.subscriptionId);
+        return await toggleAutoRenew(user.id, subscriptionId);
       case 'change_plan':
-        return await changePlan(user.id, data.newPlanId);
+        return await changePlan(user.id, planId);
       default:
-        return NextResponse.json({ 
-          error: 'Invalid action' 
-        }, { status: 400 });
+        return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
 
   } catch (error) {
-    console.error('Subscription POST error:', error);
-    return NextResponse.json(
-      { error: 'Failed to process subscription request' }, 
-      { status: 500 }
-    );
+    console.error('Subscription Action Error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
 async function cancelSubscription(userId: string) {
-  const activeSubscription = await prisma.subscription.findFirst({
-    where: {
-      userId,
-      status: { in: ['ACTIVE', 'TRIAL'] }
-    }
-  });
+  try {
+    const activeSubscriptions = await db
+      .select()
+      .from(subscriptions)
+      .where(
+        and(
+          eq(subscriptions.userId, userId),
+          inArray(subscriptions.status, ['ACTIVE', 'TRIALING'])
+        )
+      );
 
-  if (!activeSubscription) {
+    if (activeSubscriptions.length === 0) {
+      return NextResponse.json({ error: 'No active subscription found' }, { status: 404 });
+    }
+
+    const subscription = activeSubscriptions[0];
+
+    await db
+      .update(subscriptions)
+      .set({
+        status: 'CANCELLED',
+        autoRenew: false,
+        updatedAt: new Date()
+      })
+      .where(eq(subscriptions.id, subscription.id));
+
+    // Log the activity
+    await db.insert(activityLogs).values({
+      userId,
+      action: 'subscription_cancelled',
+      description: 'User cancelled their subscription',
+      metadata: { subscriptionId: subscription.id },
+      createdAt: new Date()
+    });
+
     return NextResponse.json({ 
-      error: 'No active subscription found' 
-    }, { status: 404 });
+      message: 'Subscription cancelled successfully',
+      subscription: { ...subscription, status: 'CANCELLED', autoRenew: false }
+    });
+
+  } catch (error) {
+    console.error('Cancel subscription error:', error);
+    return NextResponse.json({ error: 'Failed to cancel subscription' }, { status: 500 });
   }
-
-  // Update subscription status
-  const updatedSubscription = await prisma.subscription.update({
-    where: { id: activeSubscription.id },
-    data: {
-      status: 'CANCELLED',
-      autoRenew: false,
-      updatedAt: new Date()
-    }
-  });
-
-  // Log activity
-  await prisma.activityLog.create({
-    data: {
-      userId,
-      entityType: 'subscription',
-      entityId: activeSubscription.id,
-      action: 'SUBSCRIPTION_CANCELLED',
-      description: 'Subscription cancelled by user'
-    }
-  });
-
-  return NextResponse.json({
-    message: 'Subscription cancelled successfully',
-    subscription: {
-      id: updatedSubscription.id,
-      status: updatedSubscription.status
-    }
-  });
 }
 
 async function toggleAutoRenew(userId: string, subscriptionId: string) {
-  const subscription = await prisma.subscription.findFirst({
-    where: {
-      id: subscriptionId,
-      userId,
-      status: { in: ['ACTIVE', 'TRIAL'] }
-    }
-  });
+  try {
+    const activeSubscriptions = await db
+      .select()
+      .from(subscriptions)
+      .where(
+        and(
+          eq(subscriptions.userId, userId),
+          eq(subscriptions.id, subscriptionId),
+          inArray(subscriptions.status, ['ACTIVE', 'TRIALING'])
+        )
+      );
 
-  if (!subscription) {
+    if (activeSubscriptions.length === 0) {
+      return NextResponse.json({ error: 'Subscription not found' }, { status: 404 });
+    }
+
+    const subscription = activeSubscriptions[0];
+    const newAutoRenew = !subscription.autoRenew;
+
+    await db
+      .update(subscriptions)
+      .set({
+        autoRenew: newAutoRenew,
+        updatedAt: new Date()
+      })
+      .where(eq(subscriptions.id, subscriptionId));
+
+    // Log the activity
+    await db.insert(activityLogs).values({
+      userId,
+      action: newAutoRenew ? 'auto_renew_enabled' : 'auto_renew_disabled',
+      description: `User ${newAutoRenew ? 'enabled' : 'disabled'} auto-renewal`,
+      metadata: { subscriptionId },
+      createdAt: new Date()
+    });
+
     return NextResponse.json({ 
-      error: 'Subscription not found' 
-    }, { status: 404 });
+      message: `Auto-renewal ${newAutoRenew ? 'enabled' : 'disabled'}`,
+      autoRenew: newAutoRenew 
+    });
+
+  } catch (error) {
+    console.error('Toggle auto-renew error:', error);
+    return NextResponse.json({ error: 'Failed to toggle auto-renewal' }, { status: 500 });
   }
-
-  const updatedSubscription = await prisma.subscription.update({
-    where: { id: subscriptionId },
-    data: {
-      autoRenew: !subscription.autoRenew,
-      updatedAt: new Date()
-    }
-  });
-
-  // Log activity
-  await prisma.activityLog.create({
-    data: {
-      userId,
-      entityType: 'subscription',
-      entityId: subscriptionId,
-      action: 'SUBSCRIPTION_UPDATED',
-      description: `Auto-renew ${updatedSubscription.autoRenew ? 'enabled' : 'disabled'}`
-    }
-  });
-
-  return NextResponse.json({
-    message: `Auto-renew ${updatedSubscription.autoRenew ? 'enabled' : 'disabled'}`,
-    autoRenew: updatedSubscription.autoRenew
-  });
 }
 
 async function changePlan(userId: string, newPlanId: string) {
-  // Verify the new plan exists
-  const newPlan = await prisma.subscriptionPlan.findUnique({
-    where: { id: newPlanId, isActive: true }
-  });
+  try {
+    // Get user's active subscription
+    const activeSubscriptions = await db
+      .select()
+      .from(subscriptions)
+      .where(
+        and(
+          eq(subscriptions.userId, userId),
+          inArray(subscriptions.status, ['ACTIVE', 'TRIALING'])
+        )
+      );
 
-  if (!newPlan) {
-    return NextResponse.json({ 
-      error: 'Plan not found' 
-    }, { status: 404 });
-  }
+    if (activeSubscriptions.length === 0) {
+      return NextResponse.json({ error: 'No active subscription found' }, { status: 404 });
+    }
 
-  // Find active subscription
-  const activeSubscription = await prisma.subscription.findFirst({
-    where: {
+    const currentSubscription = activeSubscriptions[0];
+
+    // Get the new plan details
+    const [newPlan] = await db
+      .select()
+      .from(subscriptionPlans)
+      .where(eq(subscriptionPlans.id, newPlanId));
+
+    if (!newPlan) {
+      return NextResponse.json({ error: 'Plan not found' }, { status: 404 });
+    }
+
+    // Update the subscription
+    await db
+      .update(subscriptions)
+      .set({
+        planId: newPlanId,
+        updatedAt: new Date()
+      })
+      .where(eq(subscriptions.id, currentSubscription.id));
+
+    // Log the activity
+    await db.insert(activityLogs).values({
       userId,
-      status: { in: ['ACTIVE', 'TRIAL'] }
-    }
-  });
+      action: 'plan_changed',
+      description: `User changed to ${newPlan.displayName}`,
+      metadata: { 
+        subscriptionId: currentSubscription.id,
+        oldPlanId: currentSubscription.planId,
+        newPlanId: newPlanId
+      },
+      createdAt: new Date()
+    });
 
-  if (!activeSubscription) {
     return NextResponse.json({ 
-      error: 'No active subscription found' 
-    }, { status: 404 });
-  }
-
-  // Update subscription plan
-  const updatedSubscription = await prisma.subscription.update({
-    where: { id: activeSubscription.id },
-    data: {
-      planId: newPlanId,
-      updatedAt: new Date()
-    },
-    include: {
-      plan: true
-    }
-  });
-
-  // Log activity
-  await prisma.activityLog.create({
-    data: {
-      userId,
-      entityType: 'subscription',
-      entityId: activeSubscription.id,
-      action: 'SUBSCRIPTION_UPDATED',
-      description: `Changed plan to: ${newPlan.displayName}`
-    }
-  });
-
-  return NextResponse.json({
-    message: 'Subscription plan updated successfully',
-    subscription: {
-      id: updatedSubscription.id,
-      plan: {
-        name: updatedSubscription.plan.displayName,
-        price: Number(updatedSubscription.plan.price)
+      message: 'Plan changed successfully',
+      subscription: { 
+        ...currentSubscription, 
+        planId: newPlanId,
+        plan: newPlan
       }
-    }
-  });
+    });
+
+  } catch (error) {
+    console.error('Change plan error:', error);
+    return NextResponse.json({ error: 'Failed to change plan' }, { status: 500 });
+  }
 }

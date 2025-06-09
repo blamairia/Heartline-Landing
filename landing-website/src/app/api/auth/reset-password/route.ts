@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { hash } from 'bcryptjs'
-import { prisma } from '@/lib/prisma'
+import { prisma as db } from '@/lib/prisma'
+import { users, passwordResetTokens } from '../../../../../db/schema'
+import { eq } from 'drizzle-orm'
 
 const resetPasswordSchema = z.object({
   token: z.string(),
@@ -14,11 +16,9 @@ export async function POST(request: NextRequest) {
     const { token, password } = resetPasswordSchema.parse(body)
 
     // Find valid reset token
-    const resetToken = await prisma.passwordResetToken.findUnique({
-      where: { token },
-    })
+    const resetToken = await db.select().from(passwordResetTokens).where(eq(passwordResetTokens.token, token)).limit(1)
 
-    if (!resetToken || resetToken.expires < new Date()) {
+    if (resetToken.length === 0 || resetToken[0].expires < new Date()) {
       return NextResponse.json(
         { message: 'Invalid or expired reset token' },
         { status: 400 }
@@ -26,11 +26,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Find user by email
-    const user = await prisma.user.findUnique({
-      where: { email: resetToken.email },
-    })
+    const user = await db.select().from(users).where(eq(users.email, resetToken[0].email)).limit(1)
 
-    if (!user) {
+    if (user.length === 0) {
       return NextResponse.json(
         { message: 'User not found' },
         { status: 404 }
@@ -38,18 +36,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Hash new password
-    const hashedPassword = await hash(password, 12)
-
-    // Update password and delete reset token
-    await prisma.$transaction([
-      prisma.user.update({
-        where: { id: user.id },
-        data: { password: hashedPassword },
-      }),
-      prisma.passwordResetToken.delete({
-        where: { token },
-      }),
-    ])
+    const hashedPassword = await hash(password, 12)    // Update password and delete reset token
+    await db.transaction(async (tx) => {
+      await tx.update(users)
+        .set({ password: hashedPassword })
+        .where(eq(users.id, user[0].id))
+      
+      await tx.delete(passwordResetTokens)
+        .where(eq(passwordResetTokens.token, token))
+    })
 
     return NextResponse.json(
       { message: 'Password updated successfully' },

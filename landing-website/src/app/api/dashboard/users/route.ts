@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma as db } from '@/lib/prisma';
+import { users, subscriptions, subscriptionPlans, organizations, activityLogs } from '../../../../../db/schema';
+import { eq, and, or, like, ilike, count, desc, inArray } from 'drizzle-orm';
 import { hash } from 'bcryptjs';
 
 export async function GET(request: NextRequest) {
@@ -12,9 +14,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    });
+    const [user] = await db.select().from(users).where(eq(users.email, session.user.email));
 
     if (!user || user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
@@ -23,42 +23,55 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
-    const search = searchParams.get('search') || '';    const where = search ? {
-      OR: [
-        { name: { contains: search, mode: 'insensitive' as const } },
-        { email: { contains: search, mode: 'insensitive' as const } },
-        { firstName: { contains: search, mode: 'insensitive' as const } },
-        { lastName: { contains: search, mode: 'insensitive' as const } }
-      ]
-    } : {};
+    const search = searchParams.get('search') || '';
 
-    const [users, total] = await Promise.all([
-      prisma.user.findMany({
-        where,
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          subscriptions: {
-            include: {
-              plan: true
-            },
-            where: {
-              status: { in: ['ACTIVE', 'TRIAL'] }
-            }
-          },
-          organizationRel: true
-        }
-      }),
-      prisma.user.count({ where })
-    ]);    const formattedUsers = users.map((user: any) => ({
+    // Build search conditions if search query is provided
+    const searchConditions = search 
+      ? or(
+          ilike(users.name, `%${search}%`),
+          ilike(users.email, `%${search}%`)
+        )
+      : undefined;
+
+    // Get users with their subscriptions and organizations
+    const allUsers = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        role: users.role,
+        organizationId: users.organizationId,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+        planName: subscriptionPlans.displayName,
+        orgName: organizations.name
+      })
+      .from(users)
+      .leftJoin(subscriptions, and(
+        eq(subscriptions.userId, users.id),
+        inArray(subscriptions.status, ['ACTIVE', 'TRIALING'])
+      ))
+      .leftJoin(subscriptionPlans, eq(subscriptionPlans.id, subscriptions.planId))
+      .leftJoin(organizations, eq(organizations.id, users.organizationId))
+      .where(searchConditions)
+      .orderBy(desc(users.createdAt))
+      .limit(limit)
+      .offset((page - 1) * limit);
+
+    // Get total count
+    const [{ totalCount }] = await db
+      .select({ totalCount: count() })
+      .from(users)
+      .where(searchConditions);
+
+    const formattedUsers = allUsers.map((user: any) => ({
       id: user.id,
-      name: user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown',
+      name: user.name || 'Unknown User',
       email: user.email,
       role: user.role,
-      status: user.isActive ? 'Active' : 'Inactive',
-      subscription: user.subscriptions[0]?.plan.displayName || 'No Subscription',
-      organization: user.organizationRel?.name || user.organization || 'Individual',
+      status: 'Active', // Since we don't have isActive field, assume all users are active
+      subscription: user.planName || 'No Subscription',
+      organization: user.orgName || 'Individual',
       joinDate: user.createdAt,
       lastActive: user.updatedAt
     }));
@@ -68,8 +81,8 @@ export async function GET(request: NextRequest) {
       pagination: {
         page,
         limit,
-        total,
-        pages: Math.ceil(total / limit)
+        total: totalCount,
+        pages: Math.ceil(totalCount / limit)
       }
     });
 
@@ -90,9 +103,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const adminUser = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    });
+    const [adminUser] = await db.select().from(users).where(eq(users.email, session.user.email));
 
     if (!adminUser || adminUser.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
@@ -101,27 +112,20 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { 
       email, 
-      password, 
-      firstName, 
-      lastName, 
+      name,
       role = 'USER',
-      organization,
-      phone,
-      city,
-      wilaya
+      organizationId
     } = body;
 
     // Validate required fields
-    if (!email || !password) {
+    if (!email || !name) {
       return NextResponse.json({ 
-        error: 'Email and password are required' 
+        error: 'Email and name are required' 
       }, { status: 400 });
     }
 
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
-    });
+    const [existingUser] = await db.select().from(users).where(eq(users.email, email));
 
     if (existingUser) {
       return NextResponse.json({ 
@@ -129,35 +133,21 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Hash password
-    const hashedPassword = await hash(password, 12);
-
     // Create user
-    const newUser = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        firstName,
-        lastName,
-        name: `${firstName || ''} ${lastName || ''}`.trim() || null,
-        role,
-        organization,
-        phone,
-        city,
-        wilaya,
-        isActive: true
-      }
-    });
+    const [newUser] = await db.insert(users).values({
+      email,
+      name,
+      role,
+      organizationId
+    }).returning();
 
     // Log activity
-    await prisma.activityLog.create({
-      data: {
-        userId: adminUser.id,
-        entityType: 'user',
-        entityId: newUser.id,
-        action: 'USER_CREATED',
-        description: `Created new user: ${newUser.email}`
-      }
+    await db.insert(activityLogs).values({
+      userId: adminUser.id,
+      entityType: 'user',
+      entityId: newUser.id,
+      action: 'USER_CREATED',
+      description: `Created new user: ${newUser.email}`
     });
 
     return NextResponse.json({

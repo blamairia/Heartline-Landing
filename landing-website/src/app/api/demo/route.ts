@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { prisma } from '@/lib/prisma'
+import { db } from '@/lib/prisma'
+import { contactSubmissions } from '../../../../db/schema'
 import { sendDemoRequestConfirmation, sendDemoRequestNotification } from '@/lib/smtp-email'
 
 const demoSchema = z.object({
@@ -35,18 +36,16 @@ export async function POST(request: NextRequest) {
       confirmationFunction: typeof sendDemoRequestConfirmation,
       notificationFunction: typeof sendDemoRequestNotification
     })
-    
-    // Save demo request to database
+      // Save demo request to database
     console.log('Creating database record...')
-    const demoRequest = await prisma.contactSubmission.create({
-      data: {
-        name: `${validatedData.firstName} ${validatedData.lastName}`,
-        email: validatedData.email,
-        phone: validatedData.phone,
-        organization: validatedData.organizationName,
-        type: 'DEMO_REQUEST', // Using enum value
-        subject: `Demo Request from ${validatedData.organizationName}`,
-        message: `Demo request details:
+    const [demoRequest] = await db.insert(contactSubmissions).values({
+      name: `${validatedData.firstName} ${validatedData.lastName}`,
+      email: validatedData.email,
+      phone: validatedData.phone,
+      organization: validatedData.organizationName,
+      type: 'DEMO_REQUEST', // Using enum value
+      subject: `Demo Request from ${validatedData.organizationName}`,
+      message: `Demo request details:
 Job Title: ${validatedData.jobTitle}
 Organization: ${validatedData.organizationName}
 Organization Type: ${validatedData.organizationType}
@@ -58,8 +57,7 @@ Timeframe: ${validatedData.timeframe}
 Preferred Demo Type: ${validatedData.preferredDemoType}
 Country: ${validatedData.country}
 ${validatedData.additionalRequirements ? `Additional Requirements: ${validatedData.additionalRequirements}` : ''}`,        status: 'PENDING',
-      },
-    })
+    }).returning()
     console.log('Database record created successfully:', demoRequest.id)
 
     // Send emails

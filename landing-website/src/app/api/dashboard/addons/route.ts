@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma as db } from '@/lib/prisma';
+import { 
+  users, 
+  subscriptions, 
+  subscriptionAddons,
+  subscriptionAddonInstances,
+  activityLogs
+} from '../../../../../db/schema';
+import { eq, and, desc, sql, inArray } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,64 +19,85 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      include: {
-        subscriptions: {
-          include: {
-            addons: {
-              include: {
-                addon: true
-              }
-            }
-          },
-          where: {
-            status: { in: ['ACTIVE', 'TRIAL'] }
-          }
-        }
-      }
-    });
+    // Get user with active subscriptions and addons
+    const userResult = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, session.user.email))
+      .limit(1);
 
+    const user = userResult[0];
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // Get user's active subscriptions
+    const activeSubscriptions = await db
+      .select()
+      .from(subscriptions)
+      .where(and(
+        eq(subscriptions.userId, user.id),
+        inArray(subscriptions.status, ['ACTIVE', 'TRIALING'])
+      ));
+
+    const activeSubscription = activeSubscriptions[0];
+
+    // Get user's subscription addon instances if they have an active subscription
+    let userSubscriptionAddonInstances: any[] = [];
+    if (activeSubscription) {
+      userSubscriptionAddonInstances = await db
+        .select({
+          addonId: subscriptionAddonInstances.addonId,
+          quantity: subscriptionAddonInstances.quantity,
+          status: subscriptionAddonInstances.status,
+          createdAt: subscriptionAddonInstances.createdAt,
+          addon: {
+            id: subscriptionAddons.id,
+            name: subscriptionAddons.name,
+            displayName: subscriptionAddons.displayName,
+            description: subscriptionAddons.description,
+            price: subscriptionAddons.price,
+            currency: subscriptionAddons.currency,
+            type: subscriptionAddons.type,
+            features: subscriptionAddons.features
+          }
+        })
+        .from(subscriptionAddonInstances)
+        .leftJoin(subscriptionAddons, eq(subscriptionAddonInstances.addonId, subscriptionAddons.id))
+        .where(eq(subscriptionAddonInstances.subscriptionId, activeSubscription.id));
+    }
+
     // Get all available addons
-    const availableAddons = await prisma.addon.findMany({
-      where: { isActive: true },
-      orderBy: { name: 'asc' }
-    });    // Get user's active subscription
-    const activeSubscription = user.subscriptions[0];
-    const userAddonIds = activeSubscription?.addons.map((sa: any) => sa.addonId) || [];
+    const availableAddons = await db
+      .select()
+      .from(subscriptionAddons)
+      .where(eq(subscriptionAddons.isActive, true))
+      .orderBy(subscriptionAddons.name);
 
-    // Format addons data
-    const activeAddons = availableAddons
-      .filter((addon: any) => userAddonIds.includes(addon.id))
-      .map((addon: any) => {
-        const subscriptionAddon = activeSubscription?.addons.find((sa: any) => sa.addonId === addon.id);
-        return {
-          id: addon.id,
-          name: addon.displayName,
-          description: addon.description,
-          price: Number(addon.price),
-          currency: addon.currency,
-          type: addon.type,
-          quantity: subscriptionAddon?.quantity || 1,
-          isActive: subscriptionAddon?.isActive || false,
-          addedDate: subscriptionAddon?.createdAt
-        };
-      });
+    const userAddonIds = userSubscriptionAddonInstances.map(sa => sa.addonId);
 
+    // Format active addons data
+    const activeAddons = userSubscriptionAddonInstances.map(sa => ({
+      id: sa.addon.id,
+      name: sa.addon.displayName,
+      description: sa.addon.description,
+      price: Number(sa.addon.price),
+      currency: sa.addon.currency,
+      type: sa.addon.type,
+      quantity: sa.quantity,
+      isActive: sa.status === 'ACTIVE',
+      addedDate: sa.createdAt
+    }));    // Format available addons (excluding user's active ones)
     const availableAddonsFormatted = availableAddons
-      .filter((addon: any) => !userAddonIds.includes(addon.id))
-      .map((addon: any) => ({
+      .filter((addon: typeof subscriptionAddons.$inferSelect) => !userAddonIds.includes(addon.id))
+      .map((addon: typeof subscriptionAddons.$inferSelect) => ({
         id: addon.id,
         name: addon.displayName,
         description: addon.description,
         price: Number(addon.price),
         currency: addon.currency,
         type: addon.type,
-        features: addon.config ? Object.keys(addon.config as object) : [],
+        features: addon.features ? Object.keys(addon.features as object) : [],
         popular: false // Could be calculated based on usage statistics
       }));
 
@@ -95,22 +124,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      include: {
-        subscriptions: {
-          where: {
-            status: { in: ['ACTIVE', 'TRIAL'] }
-          }
-        }
-      }
-    });
+    const userResult = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, session.user.email))
+      .limit(1);
 
+    const user = userResult[0];
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const activeSubscription = user.subscriptions[0];
+    const activeSubscriptionsResult = await db
+      .select()
+      .from(subscriptions)
+      .where(and(
+        eq(subscriptions.userId, user.id),
+        inArray(subscriptions.status, ['ACTIVE', 'TRIALING'])
+      ));
+
+    const activeSubscription = activeSubscriptionsResult[0];
     if (!activeSubscription) {
       return NextResponse.json({ 
         error: 'Active subscription required to add addons' 
@@ -127,61 +160,70 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify addon exists and is active
-    const addon = await prisma.addon.findFirst({
-      where: { id: addonId, isActive: true }
-    });
+    const addonResult = await db
+      .select()
+      .from(subscriptionAddons)
+      .where(and(
+        eq(subscriptionAddons.id, addonId),
+        eq(subscriptionAddons.isActive, true)
+      ))
+      .limit(1);
 
+    const addon = addonResult[0];
     if (!addon) {
       return NextResponse.json({ 
         error: 'Addon not found or inactive' 
       }, { status: 404 });
     }
 
-    // Check if addon is already added
-    const existingAddon = await prisma.subscriptionAddon.findUnique({
-      where: {
-        subscriptionId_addonId: {
-          subscriptionId: activeSubscription.id,
-          addonId: addonId
-        }
-      }
-    });
+    // Check if addon instance already exists
+    const existingAddonResult = await db
+      .select()
+      .from(subscriptionAddonInstances)
+      .where(and(
+        eq(subscriptionAddonInstances.subscriptionId, activeSubscription.id),
+        eq(subscriptionAddonInstances.addonId, addonId)
+      ))
+      .limit(1);
 
-    if (existingAddon) {
+    if (existingAddonResult.length > 0) {
       return NextResponse.json({ 
         error: 'Addon already added to subscription' 
       }, { status: 400 });
     }
 
-    // Add addon to subscription
-    const subscriptionAddon = await prisma.subscriptionAddon.create({
-      data: {
+    // Add addon instance to subscription
+    const subscriptionAddonResult = await db
+      .insert(subscriptionAddonInstances)
+      .values({
         subscriptionId: activeSubscription.id,
         addonId: addonId,
         quantity: quantity,
-        isActive: true
-      },
-      include: {
-        addon: true
-      }
-    });
+        priceAtPurchase: addon.price,
+        currencyAtPurchase: addon.currency,
+        startDate: new Date(),
+        status: 'ACTIVE'
+      })
+      .returning();
+
+    const subscriptionAddon = subscriptionAddonResult[0];
 
     // Log activity
-    await prisma.activityLog.create({
-      data: {
+    await db
+      .insert(activityLogs)
+      .values({
         userId: user.id,
         entityType: 'addon',
         entityId: addonId,
         action: 'ADDON_ADDED',
         description: `Added addon: ${addon.displayName}`
-      }
-    });
+      });
 
     return NextResponse.json({
       message: 'Addon added successfully',
       addon: {
-        id: subscriptionAddon.addon.id,
-        name: subscriptionAddon.addon.displayName,
+        id: addon.id,
+        name: addon.displayName,
         quantity: subscriptionAddon.quantity
       }
     });

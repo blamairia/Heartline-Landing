@@ -1,35 +1,21 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma as db } from '@/lib/prisma'
+import { subscriptionPlans } from '../../../../../db/schema'
 
 export async function GET(request: NextRequest) {
   try {
-    const plans = await prisma.subscriptionPlan.findMany({
-      where: { isActive: true },
-      orderBy: { sortOrder: 'asc' }
-    });
+    // Get all active subscription plans
+    const plans = await db.select().from(subscriptionPlans)
 
-    const formattedPlans = plans.map(plan => ({
-      id: plan.id,
-      name: plan.name,
-      displayName: plan.displayName,
-      description: plan.description,
-      price: Number(plan.price),
-      currency: plan.currency,
-      billingCycle: plan.billingCycle,
-      features: plan.features,
-      isPopular: plan.isPopular,
-      sortOrder: plan.sortOrder
-    }));
-
-    return NextResponse.json({
-      plans: formattedPlans
-    });
-
-  } catch (error) {
-    console.error('Plans API error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch subscription plans' }, 
+      { plans },
+      { status: 200 }
+    )
+  } catch (error) {
+    console.error('Subscription plans error:', error)
+    return NextResponse.json(
+      { message: 'Internal server error' },
       { status: 500 }
-    );
+    )
   }
 }

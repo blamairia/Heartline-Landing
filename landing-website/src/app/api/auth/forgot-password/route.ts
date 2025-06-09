@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { prisma } from '@/lib/prisma'
+import { prisma as db } from '@/lib/prisma'
+import { users, passwordResetTokens } from '../../../../../db/schema'
+import { eq } from 'drizzle-orm'
 import { randomBytes } from 'crypto'
 
 const forgotPasswordSchema = z.object({
@@ -13,12 +15,10 @@ export async function POST(request: NextRequest) {
     const { email } = forgotPasswordSchema.parse(body)
 
     // Check if user exists
-    const user = await prisma.user.findUnique({
-      where: { email },
-    })
+    const user = await db.select().from(users).where(eq(users.email, email)).limit(1)
 
     // Always return success to prevent email enumeration
-    if (!user) {
+    if (user.length === 0) {
       return NextResponse.json(
         { message: 'If an account with that email exists, we have sent a password reset link.' },
         { status: 200 }
@@ -30,12 +30,10 @@ export async function POST(request: NextRequest) {
     const resetTokenExpiry = new Date(Date.now() + 3600000) // 1 hour from now
 
     // Save reset token to database
-    await prisma.passwordResetToken.create({
-      data: {
-        email,
-        token: resetToken,
-        expires: resetTokenExpiry,
-      },
+    await db.insert(passwordResetTokens).values({
+      email,
+      token: resetToken,
+      expires: resetTokenExpiry,
     })
 
     // TODO: Send password reset email

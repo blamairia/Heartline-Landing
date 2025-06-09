@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { hash } from 'bcryptjs'
 import { z } from 'zod'
-import { prisma } from '@/lib/prisma'
+import { prisma as db } from '@/lib/prisma'
+import { users } from '../../../../../db/schema'
+import { eq } from 'drizzle-orm'
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -20,12 +22,8 @@ const registerSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const validatedData = registerSchema.parse(body)
-
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email: validatedData.email },
-    })
+    const validatedData = registerSchema.parse(body)    // Check if user already exists
+    const [existingUser] = await db.select().from(users).where(eq(users.email, validatedData.email))
 
     if (existingUser) {
       return NextResponse.json(
@@ -35,23 +33,21 @@ export async function POST(request: NextRequest) {
     }    // Hash password
     const hashedPassword = await hash(validatedData.password, 12)
 
-    // Map role to Prisma Role enum - all user registrations get USER role
+    // Map role to USER role - all user registrations get USER role
     const userRole = 'USER' // All new registrations are regular users
 
     // Create user
-    const user = await prisma.user.create({
-      data: {
-        email: validatedData.email,
-        password: hashedPassword,
-        firstName: validatedData.firstName,
-        lastName: validatedData.lastName,
-        role: userRole,
-        phone: validatedData.phone,
-        organization: validatedData.organizationName,
-        position: validatedData.role, // Store the actual role/position as string
-        emailVerified: new Date(), // Skip email verification for development
-      },
-    })
+    const [user] = await db.insert(users).values({
+      email: validatedData.email,
+      password: hashedPassword,
+      firstName: validatedData.firstName,
+      lastName: validatedData.lastName,
+      role: userRole,
+      phone: validatedData.phone,
+      organization: validatedData.organizationName,
+      position: validatedData.role, // Store the actual role/position as string
+      emailVerified: new Date(), // Skip email verification for development
+    }).returning()
 
     // TODO: Send verification email in production
     // await sendVerificationEmail(user.email, user.id)

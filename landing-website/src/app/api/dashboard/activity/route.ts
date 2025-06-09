@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma as db } from '@/lib/prisma';
+import { users, activityLogs } from '../../../../../db/schema';
+import { eq, desc } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,49 +13,52 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    });
+    const userResult = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, session.user.email))
+      .limit(1);
 
+    const user = userResult[0];
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    // Get activity logs based on user role
+    }    // Get activity logs based on user role
     const activities = user.role === 'ADMIN' 
-      ? await prisma.activityLog.findMany({
-          take: 10,
-          orderBy: { createdAt: 'desc' },
-          include: {
+      ? await db
+          .select({
+            id: activityLogs.id,
+            description: activityLogs.description,
+            action: activityLogs.action,
+            createdAt: activityLogs.createdAt,
             user: {
-              select: {
-                name: true,
-                email: true,
-                firstName: true,
-                lastName: true
-              }
+              name: users.name,
+              email: users.email
             }
-          }
-        })
-      : await prisma.activityLog.findMany({
-          where: { userId: user.id },
-          take: 10,
-          orderBy: { createdAt: 'desc' },
-          include: {
+          })
+          .from(activityLogs)
+          .leftJoin(users, eq(activityLogs.userId, users.id))
+          .orderBy(desc(activityLogs.createdAt))
+          .limit(10)
+      : await db
+          .select({
+            id: activityLogs.id,
+            description: activityLogs.description,
+            action: activityLogs.action,
+            createdAt: activityLogs.createdAt,
             user: {
-              select: {
-                name: true,
-                email: true,
-                firstName: true,
-                lastName: true
-              }
+              name: users.name,
+              email: users.email
             }
-          }
-        });    // Format activities for the frontend
-    const formattedActivities = activities.map((activity: any) => {
-      const userName = activity.user.name || 
-                      `${activity.user.firstName || ''} ${activity.user.lastName || ''}`.trim() ||
-                      activity.user.email;
+          })
+          .from(activityLogs)
+          .leftJoin(users, eq(activityLogs.userId, users.id))
+          .where(eq(activityLogs.userId, user.id))
+          .orderBy(desc(activityLogs.createdAt))
+          .limit(10);
+
+    // Format activities for the frontend
+    const formattedActivities = activities.map((activity) => {
+      const userName = activity.user?.name || activity.user?.email || 'Unknown User';
 
       return {
         id: activity.id,

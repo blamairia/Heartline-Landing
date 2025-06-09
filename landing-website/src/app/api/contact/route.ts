@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { prisma } from '@/lib/prisma'
+import { prisma as db } from '@/lib/prisma'
+import { contactSubmissions } from '../../../../db/schema'
 import { sendContactInquiryConfirmation, sendContactInquiryNotification } from '@/lib/smtp-email'
 
 const contactSchema = z.object({
@@ -14,33 +15,28 @@ const contactSchema = z.object({
   message: z.string().min(1),
 })
 
-export async function POST(request: NextRequest) {
-  try {
+export async function POST(request: NextRequest) {  try {
     console.log('Contact API called')
-    console.log('Prisma client type:', typeof prisma)
-    console.log('Prisma contactInquiry:', typeof prisma?.contactInquiry)
+    console.log('Drizzle client type:', typeof db)
     
     const body = await request.json()
     console.log('Request body:', body)
     
     const validatedData = contactSchema.parse(body)
-    console.log('Validated data:', validatedData)    // Test if contactSubmission exists
-    if (!prisma.contactSubmission) {
-      throw new Error('ContactSubmission model not found on prisma client')
-    }    // Save contact inquiry to database
+    console.log('Validated data:', validatedData)
+
+    // Save contact inquiry to database
     console.log('Creating contact submission...')
-    const contact = await prisma.contactSubmission.create({
-      data: {
-        name: `${validatedData.firstName} ${validatedData.lastName}`,
-        email: validatedData.email,
-        phone: validatedData.phone,
-        organization: validatedData.company,
-        subject: validatedData.subject,
-        message: validatedData.message,
-        type: 'GENERAL',
-        status: 'PENDING',
-      },
-    })
+    const [contact] = await db.insert(contactSubmissions).values({
+      name: `${validatedData.firstName} ${validatedData.lastName}`,
+      email: validatedData.email,
+      phone: validatedData.phone,
+      organization: validatedData.company,
+      subject: validatedData.subject,
+      message: validatedData.message,
+      type: 'GENERAL',
+      status: 'PENDING',
+    }).returning()
     
     console.log('Contact created:', contact.id)
     
