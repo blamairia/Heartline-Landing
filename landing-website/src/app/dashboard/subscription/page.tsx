@@ -2,7 +2,13 @@ import { Metadata } from 'next'
 import { getServerSession } from 'next-auth/next'
 import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth'
-import { SubscriptionContent } from '@/components/dashboard/subscription-content'
+import dynamic from 'next/dynamic'
+
+// Dynamically import the client component
+const SubscriptionContent = dynamic(
+  () => import('@/components/dashboard/subscription-content-step1').then(mod => ({ default: mod.SubscriptionContent })),
+  { ssr: false }
+)
 
 export const metadata: Metadata = {
   title: 'Subscription | Hearline Dashboard',
