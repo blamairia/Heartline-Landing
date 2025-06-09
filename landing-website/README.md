@@ -34,10 +34,10 @@ This is the **marketing and subscription management platform** for Hearline, our
 - **Role-based Access** - User roles and permissions
 - **Password Security** - Bcrypt hashing
 
-### **Database: PostgreSQL with Prisma**
-- **Prisma ORM** - Type-safe database operations
+### **Database: PostgreSQL with Drizzle ORM**
+- **Drizzle ORM** - Modern, type-safe database operations
 - **PostgreSQL** - Robust relational database
-- **Database Migrations** - Version controlled schema
+- **Database Migrations** - Version controlled schema with Drizzle Kit
 - **Connection Pooling** - Optimized performance
 
 ### **Subscription Management Architecture**
@@ -46,6 +46,29 @@ This is the **marketing and subscription management platform** for Hearline, our
 - **Billing Cycles** - Monthly/Annual billing
 - **Add-on System** - Extensible feature additions
 - **Usage Tracking** - Feature usage monitoring
+- **Payment Processing** - Stripe integration with cash payments for Algeria
+
+## 🚀 Recent Major Update: Drizzle ORM Migration
+
+**✅ Successfully migrated from Prisma to Drizzle ORM** (December 2024)
+
+### Key Improvements:
+- **Better Performance**: Direct SQL generation with zero runtime overhead
+- **Enhanced Type Safety**: Full TypeScript inference across all database operations
+- **Smaller Bundle Size**: Significantly reduced application size
+- **Better Developer Experience**: Superior IDE support and debugging capabilities
+- **Modern Architecture**: Latest ORM technology with SQL-like query building
+
+### Migration Benefits:
+```typescript
+// Before (Prisma)
+const user = await prisma.user.findUnique({ where: { email } });
+
+// After (Drizzle) - More explicit and type-safe
+const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+```
+
+See [`DRIZZLE_MIGRATION_README.md`](./DRIZZLE_MIGRATION_README.md) for complete migration documentation.
 
 ## 📁 Project Structure
 

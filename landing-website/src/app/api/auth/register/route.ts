@@ -34,18 +34,12 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await hash(validatedData.password, 12)
 
     // Map role to USER role - all user registrations get USER role
-    const userRole = 'USER' // All new registrations are regular users
-
-    // Create user
+    const userRole = 'USER' // All new registrations are regular users    // Create user
     const [user] = await db.insert(users).values({
+      name: `${validatedData.firstName} ${validatedData.lastName}`, // Combine first and last name
       email: validatedData.email,
       password: hashedPassword,
-      firstName: validatedData.firstName,
-      lastName: validatedData.lastName,
       role: userRole,
-      phone: validatedData.phone,
-      organization: validatedData.organizationName,
-      position: validatedData.role, // Store the actual role/position as string
       emailVerified: new Date(), // Skip email verification for development
     }).returning()
 

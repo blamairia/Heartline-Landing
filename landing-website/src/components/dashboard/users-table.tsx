@@ -7,7 +7,7 @@ import React from 'react';
 interface User {
   id: string;
   name: string | null;
-  email: string;
+  email: string | null; // Changed to allow null
   role: string; // Adjust if Role is an enum in your Prisma schema
   isActive: boolean;
   createdAt: Date;

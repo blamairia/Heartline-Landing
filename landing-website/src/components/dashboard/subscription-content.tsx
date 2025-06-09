@@ -58,17 +58,16 @@ interface SubscriptionData {
   hasActiveSubscription: boolean
 }
 
-interface BillingData {
-  paymentMethods: Array<{
+interface BillingData {  paymentMethods: Array<{
     id: string
     type: string
-    provider: string
+    provider: string;
     last4: string
     brand: string
     holderName: string
     isDefault: boolean
     display: string
-  }>
+  }>;
   invoices: Array<{
     id: string
     invoiceNumber: string
@@ -78,12 +77,13 @@ interface BillingData {
     dueDate: string
     paidAt: string | null
     createdAt: string
+    description?: string // Added optional description field
     subscription: {
       plan: {
         displayName: string
       }
     }
-  }>
+  }>;
   summary: {
     totalPaid: number
     pendingAmount: number

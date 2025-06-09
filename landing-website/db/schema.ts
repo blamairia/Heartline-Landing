@@ -52,6 +52,7 @@ export const users = pgTable('user', {
   emailVerified: timestamp('email_verified', { mode: 'date', withTimezone: true }),
   image: text('image'),
   role: userRoleEnum('role').default('USER').notNull(),
+  isActive: boolean('is_active').default(true).notNull(), // Added isActive field
   organizationId: varchar('organization_id', { length: 30 }).references(() => organizations.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at', { mode: 'date', withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { mode: 'date', withTimezone: true }).defaultNow().notNull().$onUpdate(() => new Date()),

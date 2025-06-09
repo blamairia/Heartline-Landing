@@ -170,11 +170,11 @@ async function cancelSubscription(userId: string) {
         autoRenew: false,
         updatedAt: new Date()
       })
-      .where(eq(subscriptions.id, subscription.id));
-
-    // Log the activity
+      .where(eq(subscriptions.id, subscription.id));    // Log the activity
     await db.insert(activityLogs).values({
       userId,
+      entityType: 'subscription', // Added missing entityType
+      entityId: subscription.id, // Added missing entityId
       action: 'subscription_cancelled',
       description: 'User cancelled their subscription',
       metadata: { subscriptionId: subscription.id },
@@ -218,11 +218,11 @@ async function toggleAutoRenew(userId: string, subscriptionId: string) {
         autoRenew: newAutoRenew,
         updatedAt: new Date()
       })
-      .where(eq(subscriptions.id, subscriptionId));
-
-    // Log the activity
+      .where(eq(subscriptions.id, subscriptionId));    // Log the activity
     await db.insert(activityLogs).values({
       userId,
+      entityType: 'subscription', // Added missing entityType
+      entityId: subscriptionId, // Added missing entityId
       action: newAutoRenew ? 'auto_renew_enabled' : 'auto_renew_disabled',
       description: `User ${newAutoRenew ? 'enabled' : 'disabled'} auto-renewal`,
       metadata: { subscriptionId },
@@ -276,11 +276,11 @@ async function changePlan(userId: string, newPlanId: string) {
         planId: newPlanId,
         updatedAt: new Date()
       })
-      .where(eq(subscriptions.id, currentSubscription.id));
-
-    // Log the activity
+      .where(eq(subscriptions.id, currentSubscription.id));    // Log the activity
     await db.insert(activityLogs).values({
       userId,
+      entityType: 'subscription', // Added missing entityType
+      entityId: currentSubscription.id, // Added missing entityId
       action: 'plan_changed',
       description: `User changed to ${newPlan.displayName}`,
       metadata: { 

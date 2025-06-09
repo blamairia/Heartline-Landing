@@ -351,13 +351,13 @@ async function processPayment(userId: string, data: any) {
 async function generateInvoice(userId: string, data: any) {
   const { subscriptionId, amount, description, dueDate } = data;
 
-  try {
-    // Generate invoice number
+  try {    // Generate invoice number
     const [{ value: invoiceCount }] = await db.select({ value: count() }).from(invoices).where(eq(invoices.userId, userId));
     const invoiceNumber = `INV-${new Date().getFullYear()}-${String(invoiceCount + 1).padStart(4, '0')}`;    const [invoice] = await db.insert(invoices).values({
       userId,
       subscriptionId,
       invoiceNumber,
+      amount: amount, // Added missing amount field
       amountDue: amount,
       amountRemaining: amount,
       currency: 'DZD',
@@ -399,12 +399,11 @@ async function generateInvoiceInternal(userId: string, data: any) {
   try {
     // Generate invoice number
     const [{ value: invoiceCount }] = await db.select({ value: count() }).from(invoices).where(eq(invoices.userId, userId));
-    const invoiceNumber = `INV-${new Date().getFullYear()}-${String(invoiceCount + 1).padStart(4, '0')}`;
-
-    const [invoice] = await db.insert(invoices).values({
+    const invoiceNumber = `INV-${new Date().getFullYear()}-${String(invoiceCount + 1).padStart(4, '0')}`;    const [invoice] = await db.insert(invoices).values({
       userId,
       subscriptionId,
       invoiceNumber,
+      amount: amount, // Added missing amount field
       amountDue: amount,
       amountRemaining: amount,
       currency: 'DZD',

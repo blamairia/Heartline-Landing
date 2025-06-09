@@ -35,18 +35,16 @@ export async function GET(
       issueDate: invoices.issueDate,
       dueDate: invoices.dueDate,
       paidAt: invoices.paidAt,
-      notes: invoices.notes,
-      planName: subscriptionPlans.displayName,
-      planPrice: subscriptionPlans.monthlyPrice,
+      notes: invoices.notes,      planName: subscriptionPlans.displayName,
+      planPrice: subscriptionPlans.price, // Fixed field name
       orgName: organizations.name,
-      orgAddress: organizations.address,
-      orgPhone: organizations.phone,
-      orgEmail: organizations.email
+      // Remove non-existent organization fields for now
     })
     .from(invoices)
     .leftJoin(subscriptions, eq(invoices.subscriptionId, subscriptions.id))
     .leftJoin(subscriptionPlans, eq(subscriptions.planId, subscriptionPlans.id))
-    .leftJoin(organizations, eq(subscriptions.organizationId, organizations.id))
+    .leftJoin(users, eq(invoices.userId, users.id))
+    .leftJoin(organizations, eq(users.organizationId, organizations.id)) // Fixed join path
     .where(and(eq(invoices.id, params.id), eq(invoices.userId, user.id)));
 
     if (!invoiceData) {

@@ -23,19 +23,12 @@ export async function POST(request: NextRequest) {  try {
     console.log('Request body:', body)
     
     const validatedData = contactSchema.parse(body)
-    console.log('Validated data:', validatedData)
-
-    // Save contact inquiry to database
+    console.log('Validated data:', validatedData)    // Save contact inquiry to database
     console.log('Creating contact submission...')
     const [contact] = await db.insert(contactSubmissions).values({
       name: `${validatedData.firstName} ${validatedData.lastName}`,
       email: validatedData.email,
-      phone: validatedData.phone,
-      organization: validatedData.company,
-      subject: validatedData.subject,
-      message: validatedData.message,
-      type: 'GENERAL',
-      status: 'PENDING',
+      message: `Subject: ${validatedData.subject}\nCompany: ${validatedData.company}\nPhone: ${validatedData.phone}\n\nMessage:\n${validatedData.message}`,
     }).returning()
     
     console.log('Contact created:', contact.id)

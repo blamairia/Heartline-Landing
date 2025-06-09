@@ -294,13 +294,13 @@ async function main() {
     },
   ]); // Assuming no specific unique constraint for simple insert, or add onConflict
   console.log('Subscription addon instances seeded');
-
   // 12. INVOICES
   const [invoice1] = await db.insert(invoices).values({
     userId:         demo.id,
     subscriptionId: subscription.id,
     teamId:         team.id,
     invoiceNumber:  'INV-2025-001',
+    amount:         38800, // Added missing amount field
     status:         'PAID',
     amountDue:      38800, // professionalPlan.price (29900) + advancedAnalysis.price (4900) + extraUsers.price*3 (990*3=2970) = 37770. Original seed had 38800. Adjust if needed.
     amountPaid:     38800,
@@ -314,12 +314,12 @@ async function main() {
     target: invoices.invoiceNumber,
     set: { status: 'PAID' }
   }).returning();
-
   const [invoice2] = await db.insert(invoices).values({
     userId:         demo.id,
     subscriptionId: subscription.id,
     teamId:         team.id,
     invoiceNumber:  'INV-2025-002',
+    amount:         38800, // Added missing amount field
     status:         'OPEN',
     amountDue:      38800, // Same as above, adjust if needed
     amountPaid:     0,
