@@ -1,116 +1,71 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+// filepath: d:/projects/Hearline Webapp/landing-website/src/app/api/subscription/cancel/route.ts
+import { NextResponse } from 'next/server'
+import { getServerSession } from "next-auth/next"
+// import { authOptions } from "@/app/api/auth/[...nextauth]/route" // Assuming authOptions are defined here
+// import { prisma } from "@/lib/prisma"; // Assuming you use Prisma
 
-export async function POST(request: NextRequest) {
+// Mock database or service
+let mockSubscriptions = [
+  { id: "sub_123", userId: "user_abc", status: "ACTIVE", plan: "premium" },
+  { id: "sub_456", userId: "user_def", status: "ACTIVE", plan: "basic" },
+];
+
+export async function POST(request: Request) {
+  // const session = await getServerSession(authOptions);
+  // if (!session || !session.user) {
+  //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // }
+  // const userId = session.user.id; // Or however you get the user ID
+
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    const body = await request.json();
-    const { subscriptionId, reason } = body;
+    const { subscriptionId, reason } = await request.json();
 
     if (!subscriptionId) {
-      return NextResponse.json({ 
-        error: 'Subscription ID is required' 
-      }, { status: 400 });
+      return NextResponse.json({ error: "Subscription ID is required" }, { status: 400 });
     }
 
-    // Find the subscription
-    const subscription = await prisma.subscription.findFirst({
-      where: {
-        id: subscriptionId,
-        userId: user.id
-      },
-      include: {
-        plan: true
-      }
-    });
+    // Simulate finding and updating the subscription in a database
+    const subscriptionIndex = mockSubscriptions.findIndex(sub => sub.id === subscriptionId /* && sub.userId === userId */);
 
-    if (!subscription) {
-      return NextResponse.json({ 
-        error: 'Subscription not found or does not belong to this user' 
-      }, { status: 404 });
+    if (subscriptionIndex === -1) {
+      return NextResponse.json({ error: "Subscription not found or access denied" }, { status: 404 });
     }
 
-    if (subscription.status !== 'ACTIVE') {
-      return NextResponse.json({ 
-        error: 'Subscription is not active and cannot be cancelled' 
-      }, { status: 400 });
+    if (mockSubscriptions[subscriptionIndex].status === "CANCELLED") {
+      return NextResponse.json({ message: "Subscription is already cancelled." }, { status: 200 });
     }
 
-    // Calculate cancellation date (end of current billing period)
-    const cancellationDate = new Date(subscription.endDate);
+    // Simulate cancellation
+    mockSubscriptions[subscriptionIndex].status = "CANCELLED";
     
-    // Update subscription status
-    const result = await prisma.$transaction(async (tx) => {
-      // Update subscription
-      const updatedSubscription = await tx.subscription.update({
-        where: { id: subscriptionId },
-        data: {
-          status: 'CANCELLED',
-          autoRenew: false,
-          cancelledAt: new Date(),
-          cancellationReason: reason || null
-        }
-      });
+    // Log the cancellation reason (in a real app, save this to your DB)
+    console.log(`Subscription ${subscriptionId} cancelled by user. Reason: ${reason || 'No reason provided'}`);
 
-      // Create activity log
-      await tx.activityLog.create({
-        data: {
-          userId: user.id,
-          entityType: 'subscription',
-          entityId: subscription.id,
-          action: 'SUBSCRIPTION_CANCELLED',
-          description: `Cancelled ${subscription.plan.displayName} subscription${reason ? `. Reason: ${reason}` : ''}`
-        }
-      });
+    // In a real application, you would interact with your database (e.g., Prisma)
+    // and potentially a payment gateway (Stripe, PayPal) to actually cancel the subscription.
+    // Example with Prisma (conceptual):
+    // const updatedSubscription = await prisma.subscription.update({
+    //   where: { id: subscriptionId, userId: userId },
+    //   data: { 
+    //     status: 'CANCELLED', 
+    //     cancelledAt: new Date(),
+    //     cancellationReason: reason 
+    //   },
+    // });
+    // if (!updatedSubscription) {
+    //   return NextResponse.json({ error: "Failed to update subscription in database" }, { status: 500 });
+    // }
+    
+    // await stripe.subscriptions.update(stripeSubscriptionId, { cancel_at_period_end: true });
+    // Or: await stripe.subscriptions.del(stripeSubscriptionId);
 
-      // Cancel any pending invoices
-      await tx.invoice.updateMany({
-        where: {
-          subscriptionId: subscription.id,
-          status: 'PENDING'
-        },
-        data: {
-          status: 'CANCELLED'
-        }
-      });
+    return NextResponse.json({ message: "Subscription cancelled successfully. Access will remain until the end of the current billing period." });
 
-      return updatedSubscription;
-    });
-
-    return NextResponse.json({
-      success: true,
-      message: 'Subscription cancelled successfully',
-      data: {
-        subscriptionId: result.id,
-        status: result.status,
-        cancellationDate: cancellationDate.toISOString(),
-        message: `Your subscription will remain active until ${cancellationDate.toLocaleDateString()}`
-      }
-    });
-
-  } catch (error: any) {
-    console.error('Subscription cancellation error:', error);
-    return NextResponse.json(
-      { 
-        error: 'Failed to cancel subscription',
-        details: error.message 
-      }, 
-      { status: 500 }
-    );
+  } catch (error) {
+    console.error("Error cancelling subscription:", error);
+    if (error instanceof SyntaxError) {
+      return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+    }
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

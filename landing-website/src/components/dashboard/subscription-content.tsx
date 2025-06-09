@@ -6,12 +6,12 @@ import { DashboardHeader } from '@/components/dashboard/dashboard-header'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/dashboard/ui/dialog'
+import { Switch } from '@/components/dashboard/ui/switch'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
 import { Crown, CreditCard, Calendar, CheckCircle, AlertTriangle, Settings, Plus, Minus, Users, BarChart3, Shield, Phone, Loader2 } from 'lucide-react'
 
@@ -150,6 +150,50 @@ export function SubscriptionContent() {
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleCancelSubscription = async () => {
+    if (!subscriptionData?.subscription?.id) {
+      toast({
+        title: "Error",
+        description: "Subscription ID not found. Cannot cancel.",
+        variant: "destructive",
+      })
+      return
+    }
+    setActionLoading('cancel_subscription')
+    try {
+      const response = await fetch('/api/subscription/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          subscriptionId: subscriptionData.subscription.id, 
+          reason: cancelReason 
+        }),
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: result.message || "Subscription cancelled successfully.",
+        })
+        await fetchData() // Refresh data to reflect cancellation
+        setShowCancelDialog(false)
+        setCancelReason('')
+      } else {
+        throw new Error(result.error || "Failed to cancel subscription.")
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "An unexpected error occurred.",
+        variant: "destructive",
+      })
+    } finally {
+      setActionLoading(null)
     }
   }
 
@@ -447,7 +491,7 @@ export function SubscriptionContent() {
                         </Button>
                         <Button 
                           variant="destructive"
-                          onClick={() => handleAction('cancel_subscription', { reason: cancelReason })}
+                          onClick={handleCancelSubscription} // Updated onClick handler
                           disabled={actionLoading === 'cancel_subscription'}
                         >
                           {actionLoading === 'cancel_subscription' && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}

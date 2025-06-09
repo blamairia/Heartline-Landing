@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic'
 
 // Dynamically import the client component
 const SubscriptionContent = dynamic(
-  () => import('@/components/dashboard/subscription-content-step1').then(mod => ({ default: mod.SubscriptionContent })),
+  () => import('@/components/dashboard/subscription-content').then(mod => ({ default: mod.SubscriptionContent })),
   { ssr: false }
 )
 
