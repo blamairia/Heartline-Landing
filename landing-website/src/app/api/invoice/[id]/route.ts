@@ -74,13 +74,12 @@ export async function GET(
           displayName: invoice.plan?.displayName || 'Unknown Plan',
           billingCycle: invoice.plan?.billingCycle || 'MONTHLY'
         }
-      } : null,
-      invoiceItems: items.map(item => ({
+      } : null,      invoiceItems: items.map(item => ({
         id: item.id,
         description: item.description,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
-        amount: item.amount
+        amount: item.totalAmount
       }))
     }
 

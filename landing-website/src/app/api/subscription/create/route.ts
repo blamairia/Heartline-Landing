@@ -108,16 +108,15 @@ export async function POST(request: NextRequest) {
       description: `Subscription to ${plan.displayName} - ${plan.billingCycle}`,
       paymentProvider: 'OFFLINE_BANK_TRANSFER',
       offlinePaymentMethod: 'Bank Transfer',
-    }).returning()
-
-    // Create invoice item
+    }).returning()    // Create invoice item
     await db.insert(invoiceItems).values({
       invoiceId: newInvoice.id,
       description: `${plan.displayName} Subscription - ${plan.billingCycle}`,
       quantity: 1,
       unitPrice: plan.price,
-      amount: plan.price,
-      currency: plan.currency || 'DZD',
+      totalAmount: plan.price,
+      discountAmount: 0,
+      taxAmount: 0,
     })
 
     return NextResponse.json(
