@@ -19,18 +19,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Get user's subscriptions with plans
+    // Get ALL user's subscriptions with plans (regardless of status)
     const userSubscriptions = await db
       .select({
         id: subscriptions.id,
         status: subscriptions.status,
         startDate: subscriptions.startDate,
-        endDate: subscriptions.endDate,        trialStart: subscriptions.trialStartDate,
+        endDate: subscriptions.endDate,
+        trialStart: subscriptions.trialStartDate,
         trialEnd: subscriptions.trialEndDate,
         autoRenew: subscriptions.autoRenew,
         createdAt: subscriptions.createdAt,
+        updatedAt: subscriptions.updatedAt,
+        cancelledAt: subscriptions.cancelledAt,
+        cancellationReason: subscriptions.cancellationReason,
+        paymentProvider: subscriptions.paymentProvider,
+        offlinePaymentReference: subscriptions.offlinePaymentReference,
         planId: subscriptionPlans.id,
-        planName: subscriptionPlans.displayName,
+        planName: subscriptionPlans.name,
+        planDisplayName: subscriptionPlans.displayName,
         planPrice: subscriptionPlans.price,
         planCurrency: subscriptionPlans.currency,
         planBillingCycle: subscriptionPlans.billingCycle,
@@ -41,68 +48,67 @@ export async function GET(request: NextRequest) {
       .where(eq(subscriptions.userId, user.id))
       .orderBy(desc(subscriptions.createdAt));
 
-    // Get current active subscription
+    // Get current active subscription (if any)
     const activeSubscription = userSubscriptions.find(
       (sub: any) => sub.status === 'ACTIVE' || sub.status === 'TRIALING'
     );
 
-    if (!activeSubscription) {
-      return NextResponse.json({
-        message: 'No active subscription found',
-        subscription: null,
-        allSubscriptions: userSubscriptions,
-        addons: [],
-        usage: []
-      });
-    }
+    // For each subscription, get its addons
+    const subscriptionsWithAddons = await Promise.all(
+      userSubscriptions.map(async (subscription: any) => {
+        const subAddons = await db
+          .select({
+            id: subscriptionAddonInstances.id,
+            quantity: subscriptionAddonInstances.quantity,
+            priceAtPurchase: subscriptionAddonInstances.priceAtPurchase,
+            status: subscriptionAddonInstances.status,
+            startDate: subscriptionAddonInstances.startDate,
+            endDate: subscriptionAddonInstances.endDate,
+            addonId: subscriptionAddons.id,
+            addonName: subscriptionAddons.name,
+            addonDisplayName: subscriptionAddons.displayName,
+            addonDescription: subscriptionAddons.description
+          })
+          .from(subscriptionAddonInstances)
+          .innerJoin(subscriptionAddons, eq(subscriptionAddonInstances.addonId, subscriptionAddons.id))
+          .where(eq(subscriptionAddonInstances.subscriptionId, subscription.id));
 
-    // Get subscription addon instances
-    const subAddons = await db
-      .select({
-        id: subscriptionAddonInstances.id,
-        quantity: subscriptionAddonInstances.quantity,
-        priceAtPurchase: subscriptionAddonInstances.priceAtPurchase,
-        status: subscriptionAddonInstances.status,
-        startDate: subscriptionAddonInstances.startDate,
-        endDate: subscriptionAddonInstances.endDate,
-        addonName: subscriptionAddons.displayName,
-        addonDescription: subscriptionAddons.description
+        return {
+          ...subscription,
+          addons: subAddons
+        };
       })
-      .from(subscriptionAddonInstances)
-      .innerJoin(subscriptionAddons, eq(subscriptionAddonInstances.addonId, subscriptionAddons.id))
-      .where(
-        and(
-          eq(subscriptionAddonInstances.subscriptionId, activeSubscription.id),
-          eq(subscriptionAddonInstances.status, 'ACTIVE')
-        )
-      );
+    );
 
     return NextResponse.json({
-      subscription: {
+      subscriptions: subscriptionsWithAddons,
+      activeSubscription: activeSubscription ? {
         id: activeSubscription.id,
         status: activeSubscription.status,
         plan: {
           id: activeSubscription.planId,
           name: activeSubscription.planName,
+          displayName: activeSubscription.planDisplayName,
           price: activeSubscription.planPrice,
           currency: activeSubscription.planCurrency,
           billingCycle: activeSubscription.planBillingCycle,
           features: activeSubscription.planFeatures
         },
         currentPeriodStart: activeSubscription.startDate,
-        currentPeriodEnd: activeSubscription.endDate,        trialStart: activeSubscription.trialStart,
+        currentPeriodEnd: activeSubscription.endDate,
+        trialStart: activeSubscription.trialStart,
         trialEnd: activeSubscription.trialEnd,
         autoRenew: activeSubscription.autoRenew,
         createdAt: activeSubscription.createdAt
-      },
-      allSubscriptions: userSubscriptions.map((sub: any) => ({
-        id: sub.id,
-        status: sub.status,
-        planName: sub.planName,
-        createdAt: sub.createdAt
-      })),
-      addons: subAddons,
-      usage: [] // Usage tracking can be implemented later
+      } : null,
+      hasActiveSubscription: !!activeSubscription,
+      totalSubscriptions: userSubscriptions.length,
+      summary: {
+        active: userSubscriptions.filter(s => s.status === 'ACTIVE').length,
+        pending: userSubscriptions.filter(s => s.status === 'PENDING_ACTIVATION').length,
+        cancelled: userSubscriptions.filter(s => s.status === 'CANCELLED').length,
+        trialing: userSubscriptions.filter(s => s.status === 'TRIALING').length
+      }
     });
 
   } catch (error) {

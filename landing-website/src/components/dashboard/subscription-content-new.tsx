@@ -6,12 +6,13 @@ import { DashboardHeader } from '@/components/dashboard/dashboard-header'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
-import { Crown, CheckCircle, AlertTriangle, Plus, Clock, Loader2 } from 'lucide-react'
+import { Crown, CreditCard, Calendar, CheckCircle, AlertTriangle, Settings, Plus, Clock, Users, BarChart3, Shield, Phone, Loader2 } from 'lucide-react'
 
 interface SubscriptionData {
   subscriptions: Array<{
@@ -35,6 +36,14 @@ interface SubscriptionData {
     planCurrency: string
     planBillingCycle: string
     planFeatures: any
+    addons: Array<{
+      id: string
+      quantity: number
+      priceAtPurchase: number
+      status: string
+      addonDisplayName: string
+      addonDescription: string
+    }>
   }>
   activeSubscription: {
     id: string
@@ -65,6 +74,41 @@ interface SubscriptionData {
   }
 }
 
+interface BillingData {
+  paymentMethods: Array<{
+    id: string
+    type: string
+    provider: string
+    last4: string
+    brand: string
+    holderName: string
+    isDefault: boolean
+    display: string
+  }>
+  invoices: Array<{
+    id: string
+    invoiceNumber: string
+    amount: number
+    currency: string
+    status: string
+    dueDate: string
+    paidAt: string | null
+    createdAt: string
+    description?: string
+    subscription: {
+      plan: {
+        displayName: string
+      }
+    }
+  }>
+  summary: {
+    totalPaid: number
+    pendingAmount: number
+    nextPaymentAmount: number
+    nextPaymentDate: string | null
+  }
+}
+
 interface AvailablePlan {
   id: string
   name: string
@@ -78,6 +122,7 @@ interface AvailablePlan {
 
 export function SubscriptionContent() {
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null)
+  const [billingData, setBillingData] = useState<BillingData | null>(null)
   const [availablePlans, setAvailablePlans] = useState<AvailablePlan[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
@@ -94,14 +139,20 @@ export function SubscriptionContent() {
 
   const fetchData = async () => {
     try {
-      const [subResponse, plansResponse] = await Promise.all([
+      const [subResponse, billingResponse, plansResponse] = await Promise.all([
         fetch('/api/dashboard/subscription'),
+        fetch('/api/dashboard/billing'),
         fetch('/api/subscription/plans')
       ])
 
       if (subResponse.ok) {
         const subData = await subResponse.json()
         setSubscriptionData(subData)
+      }
+
+      if (billingResponse.ok) {
+        const billData = await billingResponse.json()
+        setBillingData(billData)
       }
 
       if (plansResponse.ok) {
