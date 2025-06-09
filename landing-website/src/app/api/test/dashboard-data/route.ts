@@ -5,21 +5,18 @@ import { prisma } from '@/lib/prisma'
 export async function GET() {
   try {
     // Test all the database queries without auth
-    const [stats, activities, users, addons, billing, subscription] = await Promise.all([
-      // Stats query
+    const [stats, activities, users, addons, billing, subscription] = await Promise.all([      // Stats query
       Promise.all([
         prisma.user.count(),
         prisma.subscription.count({ where: { status: 'ACTIVE' } }),
-        prisma.subscriptionBilling.aggregate({
+        prisma.invoice.aggregate({
           _sum: { amount: true }
         }),
         prisma.user.count({ where: { emailVerified: { not: null } } })
-      ]),
-
-      // Activities query
+      ]),      // Activities query
       prisma.activityLog.findMany({
         take: 10,
-        orderBy: { timestamp: 'desc' },
+        orderBy: { createdAt: 'desc' },
         include: {
           user: {
             select: { name: true, email: true }
@@ -49,16 +46,13 @@ export async function GET() {
       }),
 
       // Billing query (mock for now)
-      Promise.resolve([]),
-
-      // Subscription query
+      Promise.resolve([]),      // Subscription query
       prisma.subscription.findFirst({
         include: {
           plan: true,
           addons: {
             include: { addon: true }
-          },
-          billing: true
+          }
         }
       })
     ])
@@ -74,12 +68,11 @@ export async function GET() {
           activeSubscriptions,
           totalRevenue: revenueResult._sum.amount || 0,
           conversionRate: totalUsers > 0 ? (verifiedUsers / totalUsers) * 100 : 0
-        },
-        activities: activities.map((activity: any) => ({
+        },        activities: activities.map((activity: any) => ({
           id: activity.id,
-          type: activity.type,
+          type: activity.action,
           description: activity.description,
-          timestamp: activity.timestamp,
+          timestamp: activity.createdAt,
           user: activity.user?.name || 'System'
         })),
         users: {
