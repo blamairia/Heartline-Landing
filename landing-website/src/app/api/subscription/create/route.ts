@@ -47,11 +47,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         error: 'User already has an active subscription' 
       }, { status: 400 });
-    }
-
-    // Get the subscription plan
+    }    // Get the subscription plan
     const plan = await prisma.subscriptionPlan.findUnique({
-      where: { id: planId }
+      where: { name: planId }
     });
 
     if (!plan || !plan.isActive) {
