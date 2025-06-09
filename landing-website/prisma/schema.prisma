@@ -1,26 +1,60 @@
-generator client {
-  provider = "prisma-client-js"
-}
-
+// ----------------------------
+// 1. DATASOURCE & GENERATOR
+// ----------------------------
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["referentialActions"]
+}
+
+// ----------------------------
+// 2. MODELS & RELATIONS
+// ----------------------------
+
+model User {
+  id                  String              @id @default(cuid())
+  name                String?
+  email               String?             @unique
+  emailVerified       DateTime?
+  image               String?
+  role                UserRole            @default(USER)
+  organizationId      String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  // Relations
+  organization        Organization?       @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  accounts            Account[]
+  sessions            Session[]
+  subscriptions       Subscription[]
+  invoices            Invoice[]
+  TeamMembership      TeamMembership[]
+  createdTeams        Team[]              @relation("TeamAdmin")
+  notifications       Notification[]
+  payments            Payment[]           @relation("UserPayments")
+  couponRedemptions   CouponRedemption[]  @relation("UserCouponRedemptions")
+  auditLogs           AuditLog[]          @relation("UserAuditLogs")
+}
+
 model Account {
-  id                String  @id @default(cuid())
+  id                String    @id @default(cuid())
   userId            String
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String?
-  access_token      String?
+  refresh_token     String?   @db.Text
+  access_token      String?   @db.Text
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String?
+  id_token          String?   @db.Text
   session_state     String?
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -30,6 +64,7 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
+
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -41,426 +76,435 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-model User {
-  id                 String              @id @default(cuid())
-  name               String?
-  email              String              @unique
-  emailVerified      DateTime?
-  image              String?
-  password           String?
-  role               Role                @default(USER)
-  isActive           Boolean             @default(true)
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
-  firstName          String?
-  lastName           String?
-  phone              String?
-  organization       String?
-  organizationId     String?
-  position           String?
-  city               String?
-  wilaya             String?
-  address            String?
-  accounts           Account[]
-  sessions           Session[]
-  contactSubmissions ContactSubmission[]
-  subscriptions      Subscription[]
-  usageRecords       UsageRecord[]
-  paymentMethods     PaymentMethod[]
-  activityLogs       ActivityLog[]
-  invoices           Invoice[]
-  notifications      SystemNotification[]
-  organizationRel    Organization?       @relation(fields: [organizationId], references: [id])
-
-  @@map("users")
-}
-
 model SubscriptionPlan {
-  id            String         @id @default(cuid())
-  name          String         @unique
-  displayName   String
-  description   String?
-  price         Decimal        @db.Money
-  currency      String         @default("DZD")
-  billingCycle  BillingCycle
-  isActive      Boolean        @default(true)
-  isPopular     Boolean        @default(false)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  features      Json
-  sortOrder     Int            @default(0)
-  subscriptions Subscription[]
+  id               String        @id @default(cuid())
+  name             String        @unique
+  displayName      String
+  description      String?
+  price            Int
+  currency         String        @default("usd")
+  billingCycle     BillingCycle  @default(MONTHLY)
+  features         Json
+  trialDays        Int?
+  stripePriceId    String?       @unique
+  paypalPlanId     String?       @unique
+  paddleProductId  String?       @unique
+  isActive         Boolean       @default(true)
+  isArchived       Boolean       @default(false)
+  isPopular        Boolean       @default(false)
+  displayOrder     Int?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
-  @@map("subscription_plans")
+  subscriptions    Subscription[]
+  coupons          Coupon[]      @relation("PlanCoupons")
 }
 
 model Subscription {
-  id              String              @id @default(cuid())
-  userId          String
-  planId          String
-  status          SubscriptionStatus  @default(TRIAL)
-  startDate       DateTime
-  endDate         DateTime?
-  billingCycle    BillingCycle
-  autoRenew       Boolean             @default(true)
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  trialStartDate  DateTime?
-  trialEndDate    DateTime?
-  isTrialUsed     Boolean             @default(false)
-  lastPaymentDate DateTime?
-  nextPaymentDate DateTime?
-  paymentMethod   String?
-  addons          SubscriptionAddon[]
-  plan            SubscriptionPlan    @relation(fields: [planId], references: [id])
-  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  usageRecords    UsageRecord[]
-  invoices        Invoice[]
+  id                           String                      @id @default(cuid())
+  userId                       String
+  planId                       String
+  teamId                       String?
+  status                       SubscriptionStatus         @default(PENDING_PAYMENT)
+  startDate                    DateTime
+  endDate                      DateTime?
+  trialStartDate               DateTime?
+  trialEndDate                 DateTime?
+  cancelledAt                  DateTime?
+  cancellationReason           String?
+  cancellationEffectiveDate    DateTime?
+  autoRenew                    Boolean                    @default(true)
+  paymentProvider              PaymentProvider?
+  paymentProviderSubscriptionId String?
+  priceAtRenewal               Int?
+  currencyAtRenewal            String?
+  billingCycleAtRenewal        BillingCycle?
+  offlinePaymentReference      String?
+  offlinePaymentNotes          String?                    @db.Text
+  createdAt                    DateTime                   @default(now())
+  updatedAt                    DateTime                   @updatedAt
 
-  @@map("subscriptions")
-}
+  user                         User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan                         SubscriptionPlan           @relation(fields: [planId], references: [id], onDelete: Cascade)
+  team                         Team?                      @relation(fields: [teamId], references: [id], onDelete: SetNull)
 
-model Addon {
-  id                 String              @id @default(cuid())
-  name               String              @unique
-  displayName        String
-  description        String?
-  price              Decimal             @db.Money
-  currency           String              @default("DZD")
-  type               AddonType
-  isActive           Boolean             @default(true)
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
-  config             Json?
-  subscriptionAddons SubscriptionAddon[]
+  invoices                     Invoice[]
+  addons                       SubscriptionAddonInstance[]
+  usageRecords                 SubscriptionUsageRecord[]
+  couponRedemptions            CouponRedemption[]         @relation("SubscriptionCouponRedemptions")
 
-  @@map("addons")
+  @@index([userId])
+  @@index([planId])
+  @@index([teamId])
+  @@index([status])
+  @@index([paymentProviderSubscriptionId])
 }
 
 model SubscriptionAddon {
-  id             String       @id @default(cuid())
-  subscriptionId String
-  addonId        String
-  quantity       Int          @default(1)
-  isActive       Boolean      @default(true)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  addon          Addon        @relation(fields: [addonId], references: [id])
-  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  id               String        @id @default(cuid())
+  name             String        @unique
+  displayName      String
+  description      String?
+  price            Int
+  currency         String        @default("usd")
+  billingCycle     BillingCycle
+  type             AddonType     @default(RECURRING)
+  features         Json?
+  stripePriceId    String?       @unique
+  isActive         Boolean       @default(true)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
-  @@unique([subscriptionId, addonId])
-  @@map("subscription_addons")
+  instances        SubscriptionAddonInstance[]
 }
 
-model UsageRecord {
-  id             String       @id @default(cuid())
-  userId         String
-  subscriptionId String
-  featureType    FeatureType
-  usage          Int          @default(1)
-  metadata       Json?
-  recordDate     DateTime     @default(now())
-  createdAt      DateTime     @default(now())
-  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+model SubscriptionAddonInstance {
+  id                 String            @id @default(cuid())
+  subscriptionId     String
+  addonId            String
+  quantity           Int               @default(1)
+  priceAtPurchase    Int
+  currencyAtPurchase String
+  startDate          DateTime
+  endDate            DateTime?
+  status             AddonStatus       @default(ACTIVE)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
 
-  @@index([userId, featureType, recordDate])
-  @@index([subscriptionId, featureType, recordDate])
-  @@map("usage_records")
-}
+  subscription       Subscription      @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  addon              SubscriptionAddon @relation(fields: [addonId], references: [id], onDelete: Cascade)
 
-model ContactSubmission {
-  id           String           @id @default(cuid())
-  name         String
-  email        String
-  phone        String?
-  organization String?
-  subject      String
-  message      String
-  type         ContactType      @default(GENERAL)
-  status       SubmissionStatus @default(PENDING)
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-  userId       String?
-  user         User?            @relation(fields: [userId], references: [id])
-
-  @@map("contact_submissions")
-}
-
-model NewsletterSubscription {
-  id             String    @id @default(cuid())
-  email          String    @unique
-  isActive       Boolean   @default(true)
-  subscribedAt   DateTime  @default(now())
-  unsubscribedAt DateTime?
-  preferences    Json?
-
-  @@map("newsletter_subscriptions")
-}
-
-model Organization {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  description String?
-  website     String?
-  phone       String?
-  email       String?
-  address     String?
-  city        String?
-  wilaya      String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  users       User[]
-
-  @@map("organizations")
-}
-
-model PaymentMethod {
-  id             String              @id @default(cuid())
-  userId         String
-  type           PaymentMethodType
-  provider       String              // "stripe", "ccp", "bank_transfer"
-  providerCardId String?             // External payment provider's card/method ID
-  last4          String?             // Last 4 digits for cards
-  brand          String?             // "visa", "mastercard", etc.
-  expiryMonth    Int?
-  expiryYear     Int?
-  holderName     String?
-  bankName       String?             // For bank transfers
-  accountNumber  String?             // For CCP or bank accounts
-  isDefault      Boolean             @default(false)
-  isActive       Boolean             @default(true)
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  invoices       Invoice[]
-
-  @@map("payment_methods")
-}
-
-model ActivityLog {
-  id          String       @id @default(cuid())
-  userId      String
-  entityType  String       // "subscription", "addon", "payment", "user"
-  entityId    String?      // ID of the related entity
-  action      ActivityType
-  description String
-  metadata    Json?        // Additional context data
-  ipAddress   String?
-  userAgent   String?
-  createdAt   DateTime     @default(now())
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, createdAt])
-  @@index([entityType, entityId])
-  @@index([action, createdAt])
-  @@map("activity_logs")
+  @@index([subscriptionId])
+  @@index([addonId])
 }
 
 model Invoice {
-  id              String        @id @default(cuid())
-  userId          String
-  subscriptionId  String?
-  paymentMethodId String?
-  invoiceNumber   String        @unique
-  amount          Decimal       @db.Money
-  currency        String        @default("DZD")
-  status          InvoiceStatus @default(PENDING)
-  dueDate         DateTime
-  paidAt          DateTime?
-  description     String?
-  metadata        Json?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subscription    Subscription? @relation(fields: [subscriptionId], references: [id])
-  paymentMethod   PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+  id                          String               @id @default(cuid())
+  userId                      String
+  subscriptionId              String?
+  teamId                      String?
+  invoiceNumber               String               @unique
+  status                      InvoiceStatus        @default(DRAFT)
+  amountDue                   Int
+  amountPaid                  Int      @default(0)
+  amountRemaining             Int
+  currency                    String
+  issueDate                   DateTime             @default(now())
+  dueDate                     DateTime?
+  paidAt                      DateTime?
+  closedAt                    DateTime?
+  description                 String?              @db.Text
+  paymentProvider             PaymentProvider?
+  paymentProviderInvoiceId    String?
+  paymentAttemptCount         Int                  @default(0)
+  lastPaymentError            String?              @db.Text
+  offlinePaymentMethod        String?
+  offlinePaymentReference     String?
+  pdfUrl                      String?
+  notes                       String?              @db.Text
+  createdAt                   DateTime             @default(now())
+  updatedAt                   DateTime             @updatedAt
 
-  @@map("invoices")
-}
+  user                        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription                Subscription?        @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  team                        Team?                @relation(fields: [teamId], references: [id], onDelete: SetNull)
 
-model SystemNotification {
-  id          String             @id @default(cuid())
-  userId      String?            // null for system-wide notifications
-  type        NotificationType
-  title       String
-  message     String
-  isRead      Boolean            @default(false)
-  priority    NotificationPriority @default(NORMAL)
-  expiresAt   DateTime?
-  metadata    Json?
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  user        User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items                       InvoiceItem[]
+  payments                    Payment[]
+  couponRedemptions           CouponRedemption[]   @relation("InvoiceCouponRedemptions")
 
-  @@index([userId, isRead, createdAt])
-  @@index([type, createdAt])
-  @@map("system_notifications")
-}
-
-model PasswordResetToken {
-  id        String   @id @default(cuid())
-  email     String
-  token     String   @unique
-  expires   DateTime
-  createdAt DateTime @default(now())
-  
-  @@index([email])
-}
-
-model ContactInquiry {
-  id                String            @id @default(cuid())
-  firstName         String
-  lastName          String
-  email             String
-  phone             String?
-  organizationName  String?
-  organizationType  OrganizationType?
-  subject           String
-  message           String
-  status            ContactStatus     @default(PENDING)
-  priority          ContactPriority   @default(NORMAL)
-  assignedTo        String?
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-  
-  @@index([email])
+  @@index([userId])
+  @@index([subscriptionId])
+  @@index([teamId])
   @@index([status])
-  @@index([createdAt])
+  @@index([invoiceNumber])
 }
 
-enum Role {
+model InvoiceItem {
+  id             String             @id @default(cuid())
+  invoiceId      String
+  productId      String?
+  productType    String?
+  description    String
+  quantity       Int                @default(1)
+  unitPrice      Int
+  totalAmount    Int
+  discountAmount Int      @default(0)
+  taxAmount      Int      @default(0)
+  periodStartDate DateTime?
+  periodEndDate   DateTime?
+  metadata       Json?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  invoice        Invoice            @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  usageRecords   SubscriptionUsageRecord[] @relation("UsageInvoiceItem")
+
+  @@index([invoiceId])
+}
+
+model Payment {
+  id                            String          @id @default(cuid())
+  invoiceId                     String
+  userId                        String
+  amount                        Int
+  currency                      String
+  status                        PaymentStatus   @default(PENDING)
+  paymentMethodUsed             String?
+  paymentProvider               PaymentProvider?
+  paymentProviderTransactionId  String?         @unique
+  processedAt                   DateTime        @default(now())
+  providerRespondedAt           DateTime?
+  failureReason                 String?         @db.Text
+  refundAmount                  Int?
+  refundReason                  String?         @db.Text
+  metadata                      Json?
+  createdAt                     DateTime        @default(now())
+  updatedAt                     DateTime        @updatedAt
+
+  invoice                       Invoice         @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  user                          User            @relation("UserPayments", fields: [userId], references: [id], onDelete: NoAction)
+
+  @@index([invoiceId])
+  @@index([userId])
+  @@index([paymentProviderTransactionId])
+  @@index([status])
+}
+
+model Team {
+  id            String           @id @default(cuid())
+  name          String
+  slug          String?          @unique
+  adminId       String
+  billingEmail  String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  admin         User             @relation("TeamAdmin", fields: [adminId], references: [id], onDelete: Cascade)
+  members       TeamMembership[]
+  subscriptions Subscription[]
+  invoices      Invoice[]
+}
+
+model TeamMembership {
+  id        String    @id @default(cuid())
+  teamId    String
+  userId    String
+  role      TeamRole  @default(MEMBER)
+  joinedAt  DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  team      Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([userId])
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+  users     User[]
+}
+
+model Coupon {
+  id                    String             @id @default(cuid())
+  code                  String             @unique
+  description           String?
+  discountType          DiscountType       @default(PERCENTAGE)
+  discountValue         Float
+  maxRedemptions        Int?
+  maxRedemptionsPerUser Int      @default(1)
+  validFrom             DateTime?
+  validUntil            DateTime?
+  isActive              Boolean            @default(true)
+  minPurchaseAmount     Int?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  applicablePlans       SubscriptionPlan[] @relation("PlanCoupons")
+  redemptions           CouponRedemption[]
+}
+
+model CouponRedemption {
+  id                      String        @id @default(cuid())
+  couponId                String
+  userId                  String
+  invoiceId               String?
+  subscriptionId          String?
+  redeemedAt              DateTime      @default(now())
+  discountAmountApplied   Int
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @default(now())
+
+  coupon                  Coupon        @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  user                    User          @relation("UserCouponRedemptions", fields: [userId], references: [id], onDelete: NoAction)
+  invoice                 Invoice?      @relation("InvoiceCouponRedemptions", fields: [invoiceId], references: [id], onDelete: SetNull)
+  subscription            Subscription? @relation("SubscriptionCouponRedemptions", fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([couponId])
+  @@index([userId])
+  @@index([invoiceId])
+  @@index([subscriptionId])
+}
+
+model SubscriptionUsageRecord {
+  id               String        @id @default(cuid())
+  subscriptionId   String
+  featureSlug      String
+  quantityUsed     Float
+  recordDate       DateTime
+  description      String?
+  invoiceItemId    String?
+  createdAt        DateTime      @default(now())
+
+  subscription     Subscription             @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  invoiceItem      InvoiceItem?             @relation("UsageInvoiceItem", fields: [invoiceItemId], references: [id], onDelete: SetNull)
+
+  @@index([subscriptionId])
+  @@index([featureSlug])
+  @@index([recordDate])
+}
+
+model Notification {
+  id                 String           @id @default(cuid())
+  userId             String
+  type               NotificationType  @default(GENERAL)
+  title              String
+  message            String           @db.Text
+  isRead             Boolean          @default(false)
+  readAt             DateTime?
+  link               String?
+  relatedEntityType  String?
+  relatedEntityId    String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @default(now())
+
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+}
+
+model AuditLog {
+  id                String    @id @default(cuid())
+  timestamp         DateTime  @default(now())
+  userId            String?
+  action            String
+  targetEntityType  String?
+  targetEntityId    String?
+  details           Json?
+  ipAddress         String?
+  userAgent         String?   @db.Text
+
+  user              User?     @relation("UserAuditLogs", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([targetEntityType, targetEntityId])
+}
+
+// ----------------------------
+// 3. ENUMS
+// ----------------------------
+enum UserRole {
   USER
   ADMIN
-  SUPPORT
-}
-
-enum SubscriptionStatus {
-  TRIAL
-  ACTIVE
-  INACTIVE
-  CANCELLED
-  EXPIRED
-  PAST_DUE
+  SUPER_ADMIN
+  SUPPORT_STAFF
 }
 
 enum BillingCycle {
+  ONCE
+  DAILY
+  WEEKLY
   MONTHLY
-  ANNUAL
+  QUARTERLY
+  SEMI_ANNUALLY
+  YEARLY
+  BIENNIALLY
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PENDING_PAYMENT
+  PENDING_ACTIVATION
+  PAST_DUE
+  UNPAID
+  CANCELLED
+  EXPIRED
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+  PAUSED
+  DEACTIVATED
+}
+
+enum AddonStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
 }
 
 enum AddonType {
-  FEATURE
-  USAGE
-  INTEGRATION
-  SUPPORT
-}
-
-enum FeatureType {
-  PATIENT_CREATION
-  ECG_ANALYSIS
-  PRESCRIPTION_CREATION
-  VISIT_CREATION
-  API_CALL
-  REPORT_GENERATION
-  DATA_EXPORT
-}
-
-enum ContactType {
-  GENERAL
-  DEMO_REQUEST
-  SALES
-  SUPPORT
-  PARTNERSHIP
-  PRESS
-}
-
-enum SubmissionStatus {
-  PENDING
-  IN_PROGRESS
-  RESOLVED
-  CLOSED
-}
-
-enum PaymentMethodType {
-  CREDIT_CARD
-  DEBIT_CARD
-  BANK_TRANSFER
-  CCP_ACCOUNT
-  PAYPAL
-}
-
-enum ActivityType {
-  USER_LOGIN
-  USER_LOGOUT
-  USER_CREATED
-  USER_UPDATED
-  USER_DELETED
-  SUBSCRIPTION_CREATED
-  SUBSCRIPTION_UPDATED
-  SUBSCRIPTION_CANCELLED
-  SUBSCRIPTION_RENEWED
-  ADDON_ADDED
-  ADDON_REMOVED
-  ADDON_UPDATED
-  PAYMENT_SUCCESSFUL
-  PAYMENT_FAILED
-  INVOICE_CREATED
-  INVOICE_PAID
-  PROFILE_UPDATED
-  PASSWORD_CHANGED
-  ORGANIZATION_CREATED
-  ORGANIZATION_UPDATED
-  PAYMENT_METHOD_ADDED
-  PAYMENT_METHOD_REMOVED
+  RECURRING
+  ONE_TIME
 }
 
 enum InvoiceStatus {
-  PENDING
+  DRAFT
+  OPEN
   PAID
-  OVERDUE
-  CANCELLED
+  VOID
+  UNCOLLECTIBLE
+  PENDING_CONFIRMATION
   REFUNDED
+  PARTIALLY_REFUNDED
+  FAILED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+  CHARGEBACK
+  AWAITING_ACTION
+}
+
+enum PaymentProvider {
+  STRIPE
+  PAYPAL
+  PADDLE
+  OFFLINE_CASH
+  OFFLINE_BANK_TRANSFER
+  OFFLINE_CHECK
+  APPLE_IAP
+  GOOGLE_PLAY_BILLING
+  OTHER
+}
+
+enum TeamRole {
+  OWNER
+  ADMIN
+  MEMBER
+  BILLING_MANAGER
+  GUEST
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
 }
 
 enum NotificationType {
-  SYSTEM
-  BILLING
-  SUBSCRIPTION
-  FEATURE
-  SECURITY
-  ANNOUNCEMENT
-}
-
-enum NotificationPriority {
-  LOW
-  NORMAL
-  HIGH
-  URGENT
-}
-
-enum ContactStatus {
-  PENDING
-  IN_PROGRESS
-  RESOLVED
-  CLOSED
-}
-
-enum ContactPriority {
-  LOW
-  NORMAL
-  HIGH
-  URGENT
-}
-
-enum OrganizationType {
-  HOSPITAL
-  CLINIC
-  MEDICAL_CENTER
-  RESEARCH_INSTITUTION
-  PRIVATE_PRACTICE
-  GOVERNMENT_HEALTH
-  OTHER
+  GENERAL
+  BILLING_ALERT
+  SUBSCRIPTION_UPDATE
+  NEW_FEATURE
+  SECURITY_ALERT
+  USAGE_ALERT
 }

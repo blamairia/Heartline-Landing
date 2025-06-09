@@ -1,405 +1,441 @@
 import { PrismaClient } from '@prisma/client'
-import { hash } from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('🌱 Starting database seeding...')
+  console.log('🌱 Starting database seeding…')
 
-  // Create organizations
-  const organization = await prisma.organization.upsert({
-    where: { slug: 'hearline-medical' },
-    update: {},
-    create: {
-      name: 'Hearline Medical Center',
-      slug: 'hearline-medical',
-      description: 'Leading cardiovascular healthcare provider',
-      website: 'https://hearlinemedical.com',
-      email: 'contact@hearlinemedical.com',
-      phone: '+213 21 123 456',
-      address: '123 Medical Avenue',
-      city: 'Algiers',
-      wilaya: 'Algiers',
-      isActive: true
-    }
+  // 1. ORGANIZATION
+  let org = await prisma.organization.findFirst({
+    where: { name: 'Hearline Medical Center' },
   })
+  if (!org) {
+    org = await prisma.organization.create({
+      data: { name: 'Hearline Medical Center' },
+    })
+  }
 
-  // Create subscription plans
+  // 2. SUBSCRIPTION PLANS
   const basicPlan = await prisma.subscriptionPlan.upsert({
     where: { name: 'basic' },
     update: {},
     create: {
-      name: 'basic',
-      displayName: 'Basic Plan',
-      description: 'Perfect for small clinics',
-      price: 9900, // 99.00 DZD
-      currency: 'DZD',
+      name:         'basic',
+      displayName:  'Basic Plan',
+      description:  'Perfect for small clinics',
+      price:        9900,
+      currency:     'DZD',
       billingCycle: 'MONTHLY',
-      isActive: true,
-      isPopular: false,
       features: {
-        maxUsers: 5,
+        maxUsers:       5,
         maxECGAnalyses: 100,
-        maxPatients: 500,
-        features: ['Basic ECG Analysis', 'Patient Management', 'Basic Reports']
+        maxPatients:    500,
+        supportLevel:   'email',
       },
-      sortOrder: 1
-    }
+      trialDays:    14,
+      isActive:     true,
+      isArchived:   false,
+      isPopular:    false,
+      displayOrder: 1,
+    },
   })
 
   const professionalPlan = await prisma.subscriptionPlan.upsert({
     where: { name: 'professional' },
     update: {},
     create: {
-      name: 'professional',
-      displayName: 'Professional Plan',
-      description: 'Ideal for growing practices',
-      price: 29900, // 299.00 DZD
-      currency: 'DZD',
+      name:         'professional',
+      displayName:  'Professional Plan',
+      description:  'Ideal for growing practices',
+      price:        29900,
+      currency:     'DZD',
       billingCycle: 'MONTHLY',
-      isActive: true,
-      isPopular: true,
       features: {
-        maxUsers: 25,
+        maxUsers:       25,
         maxECGAnalyses: 1000,
-        maxPatients: 2000,
-        features: ['Advanced ECG Analysis', 'Patient Management', 'Advanced Reports', 'API Access', 'Priority Support']
+        maxPatients:    2000,
+        supportLevel:   'priority',
       },
-      sortOrder: 2
-    }
+      trialDays:    30,
+      isActive:     true,
+      isArchived:   false,
+      isPopular:    true,
+      displayOrder: 2,
+    },
   })
 
   const enterprisePlan = await prisma.subscriptionPlan.upsert({
     where: { name: 'enterprise' },
     update: {},
     create: {
-      name: 'enterprise',
-      displayName: 'Enterprise Plan',
-      description: 'For large healthcare institutions',
-      price: 99900, // 999.00 DZD
-      currency: 'DZD',
+      name:         'enterprise',
+      displayName:  'Enterprise Plan',
+      description:  'For large healthcare institutions',
+      price:        99900,
+      currency:     'DZD',
       billingCycle: 'MONTHLY',
-      isActive: true,
-      isPopular: false,
       features: {
-        maxUsers: 'unlimited',
+        maxUsers:       'unlimited',
         maxECGAnalyses: 'unlimited',
-        maxPatients: 'unlimited',
-        features: ['Advanced ECG Analysis', 'Patient Management', 'Advanced Reports', 'API Access', 'Priority Support', 'Custom Integrations', 'Dedicated Account Manager']
+        maxPatients:    'unlimited',
+        supportLevel:   'dedicated',
       },
-      sortOrder: 3
-    }
+      trialDays:    null,
+      isActive:     true,
+      isArchived:   false,
+      isPopular:    false,
+      displayOrder: 3,
+    },
   })
 
-  // Create addons
-  const advancedAnalysisAddon = await prisma.addon.upsert({
+  // 3. SUBSCRIPTION ADDONS
+  const advancedAnalysis = await prisma.subscriptionAddon.upsert({
     where: { name: 'advanced-analysis' },
     update: {},
     create: {
-      name: 'advanced-analysis',
-      displayName: 'Advanced ECG Analysis',
-      description: 'AI-powered advanced ECG analysis with detailed insights',
-      price: 4900, // 49.00 DZD
-      currency: 'DZD',
-      type: 'FEATURE',
-      isActive: true,
-      config: {
-        features: ['AI Analysis', 'Risk Assessment', 'Trend Analysis']
-      }
-    }
+      name:         'advanced-analysis',
+      displayName:  'Advanced ECG Analysis',
+      description:  'AI-powered detailed ECG insights',
+      price:        4900,
+      currency:     'DZD',
+      billingCycle: 'ONCE',
+      type:         'ONE_TIME',
+      features:     { aiAnalysis: true, riskAssessment: true, trendAnalysis: true },
+      isActive:     true,
+    },
   })
 
-  const extraUsersAddon = await prisma.addon.upsert({
+  const extraUsers = await prisma.subscriptionAddon.upsert({
     where: { name: 'extra-users' },
     update: {},
     create: {
-      name: 'extra-users',
-      displayName: 'Additional Users',
-      description: 'Add more users to your subscription',
-      price: 990, // 9.90 DZD per user
-      currency: 'DZD',
-      type: 'USAGE',
-      isActive: true,
-      config: {
-        unit: 'user',
-        billing: 'per_user_per_month'
-      }
-    }
+      name:         'extra-users',
+      displayName:  'Additional Users',
+      description:  'Add more seats to your plan',
+      price:        990,
+      currency:     'DZD',
+      billingCycle: 'MONTHLY',
+      type:         'RECURRING',
+      features:     { unit: 'user', billing: 'per_user_per_month' },
+      isActive:     true,
+    },
   })
 
-  const apiAccessAddon = await prisma.addon.upsert({
+  const apiAccess = await prisma.subscriptionAddon.upsert({
     where: { name: 'api-access' },
     update: {},
     create: {
-      name: 'api-access',
-      displayName: 'API Access',
-      description: 'Full API access for custom integrations',
-      price: 1990, // 19.90 DZD
-      currency: 'DZD',
-      type: 'INTEGRATION',
-      isActive: true,
-      config: {
-        features: ['REST API', 'WebHooks', 'Real-time Data']
-      }
-    }
+      name:         'api-access',
+      displayName:  'API Access',
+      description:  'Full REST API & webhooks',
+      price:        1990,
+      currency:     'DZD',
+      billingCycle: 'MONTHLY',
+      type:         'RECURRING',
+      features:     { restApi: true, webHooks: true, realTime: true },
+      isActive:     true,
+    },
   })
 
-  // Create admin user
-  const hashedAdminPassword = await hash('admin123!', 12)
-  const adminUser = await prisma.user.upsert({
+  // 4. COUPON
+  const coupon = await prisma.coupon.upsert({
+    where: { code: 'WELCOME10' },
+    update: {},
+    create: {
+      code:                  'WELCOME10',
+      description:           '10% off your first month',
+      discountType:          'PERCENTAGE',
+      discountValue:         10,
+      maxRedemptions:        1000,
+      maxRedemptionsPerUser: 1,
+      validFrom:             new Date(),
+      validUntil:            new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      isActive:              true,
+      minPurchaseAmount:     0,
+      applicablePlans: {
+        connect: [
+          { id: basicPlan.id },
+          { id: professionalPlan.id },
+          { id: enterprisePlan.id },
+        ],
+      },
+    },
+  })
+
+  // 5. USERS
+  const admin = await prisma.user.upsert({
     where: { email: 'admin@hearline.dz' },
     update: {},
     create: {
-      email: 'admin@hearline.dz',
-      password: hashedAdminPassword,
-      name: 'System Administrator',
-      firstName: 'System',
-      lastName: 'Administrator',
-      role: 'ADMIN',
-      isActive: true,
-      organizationId: organization.id,
-      position: 'System Administrator',
-      city: 'Algiers',
-      wilaya: 'Algiers'
-    }
+      name:           'System Administrator',
+      email:          'admin@hearline.dz',
+      role:           'ADMIN',
+      organizationId: org.id,
+    },
   })
 
-  // Create demo user
-  const hashedUserPassword = await hash('demo123!', 12)
-  const demoUser = await prisma.user.upsert({
+  const demo = await prisma.user.upsert({
     where: { email: 'demo@hearline.dz' },
     update: {},
     create: {
-      email: 'demo@hearline.dz',
-      password: hashedUserPassword,
-      name: 'Dr. Ahmed Benaissa',
-      firstName: 'Ahmed',
-      lastName: 'Benaissa',
-      role: 'USER',
-      isActive: true,
-      organizationId: organization.id,
-      position: 'Cardiologist',
-      phone: '+213 555 123 456',
-      city: 'Algiers',
-      wilaya: 'Algiers'
-    }
+      name:           'Dr. Ahmed Benaissa',
+      email:          'demo@hearline.dz',
+      role:           'USER',
+      organizationId: org.id,
+    },
   })
 
-  // Create subscription for demo user
-  const startDate = new Date()
-  const endDate = new Date()
-  endDate.setMonth(endDate.getMonth() + 1)
+  // 6. ACCOUNTS
+  // 6. ACCOUNTS
+await prisma.account.createMany({
+  data: [
+    {
+      userId:            admin.id,
+      type:              'oauth',
+      provider:          'google',
+      providerAccountId: 'google-admin-001',
+    },
+    {
+      userId:            demo.id,
+      type:              'oauth',
+      provider:          'google',
+      providerAccountId: 'google-demo-001',
+    },
+  ],
+  skipDuplicates: true, // <-- this prevents unique constraint errors
+})
 
-  const demoSubscription = await prisma.subscription.create({
+
+  // 7. SESSIONS
+  // 7. SESSIONS
+const sessionExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+await prisma.session.createMany({
+  data: [
+    { sessionToken: 'sess-admin-001', userId: admin.id, expires: sessionExpiry },
+    { sessionToken: 'sess-demo-001',  userId: demo.id,  expires: sessionExpiry },
+  ],
+  skipDuplicates: true, // prevents unique constraint errors on sessionToken
+})
+
+  // 8. VERIFICATION TOKEN
+await prisma.verificationToken.createMany({
+  data: [
+    {
+      identifier: demo.email!,
+      token:      'verif-token-demo-001',
+      expires:    new Date(Date.now() + 24 * 60 * 60 * 1000),
+    },
+  ],
+  skipDuplicates: true,
+})
+
+
+
+  // 9. TEAM & MEMBERSHIP
+  const team = await prisma.team.upsert({
+    where: { slug: 'demo-team' },
+    update: {},
+    create: {
+      name:         'Demo Team',
+      slug:         'demo-team',
+      adminId:      admin.id,
+      billingEmail: admin.email!,
+    },
+  })
+
+  // 9. TEAM MEMBERSHIP (avoid duplicates)
+await prisma.teamMembership.createMany({
+  data: [
+    {
+      teamId: team.id,
+      userId: demo.id,
+      role:   'OWNER',
+    },
+  ],
+  skipDuplicates: true, // now valid on createMany
+})
+
+
+  // 10. SUBSCRIPTION
+  const startDate = new Date()
+  const endDate   = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+  const subscription = await prisma.subscription.create({
     data: {
-      userId: demoUser.id,
-      planId: professionalPlan.id,
-      status: 'ACTIVE',
+      userId:    demo.id,
+      planId:    professionalPlan.id,
+      teamId:    team.id,
+      status:    'ACTIVE',
       startDate,
       endDate,
-      billingCycle: 'MONTHLY',
       autoRenew: true,
-      nextPaymentDate: endDate
-    }
+    },
   })
 
-  // Add addons to demo subscription
-  await prisma.subscriptionAddon.createMany({
+  // 11. SUBSCRIPTION ADDON INSTANCES
+  const now = new Date()
+  await prisma.subscriptionAddonInstance.createMany({
     data: [
       {
-        subscriptionId: demoSubscription.id,
-        addonId: advancedAnalysisAddon.id,
-        quantity: 1,
-        isActive: true
+        subscriptionId:     subscription.id,
+        addonId:            advancedAnalysis.id,
+        quantity:           1,
+        priceAtPurchase:    advancedAnalysis.price,
+        currencyAtPurchase: advancedAnalysis.currency,
+        startDate:          now,
+        status:             'ACTIVE',
       },
       {
-        subscriptionId: demoSubscription.id,
-        addonId: extraUsersAddon.id,
-        quantity: 3,
-        isActive: true
-      }
-    ]
+        subscriptionId:     subscription.id,
+        addonId:            extraUsers.id,
+        quantity:           3,
+        priceAtPurchase:    extraUsers.price,
+        currencyAtPurchase: extraUsers.currency,
+        startDate:          now,
+        status:             'ACTIVE',
+      },
+    ],
   })
 
-  // Create payment methods for demo user
-  await prisma.paymentMethod.createMany({
-    data: [
-      {
-        userId: demoUser.id,
-        type: 'CREDIT_CARD',
-        provider: 'stripe',
-        last4: '4242',
-        brand: 'visa',
-        expiryMonth: 12,
-        expiryYear: 2025,
-        holderName: 'Dr. Ahmed Benaissa',
-        isDefault: true,
-        isActive: true
-      },
-      {
-        userId: demoUser.id,
-        type: 'CCP_ACCOUNT',
-        provider: 'ccp',
-        accountNumber: '1234567890',
-        holderName: 'Dr. Ahmed Benaissa',
-        isDefault: false,
-        isActive: true
-      }
-    ]
+  // 12. INVOICES
+  // 12. INVOICES (use upsert to avoid unique violations)
+const invoice1 = await prisma.invoice.upsert({
+  where: { invoiceNumber: 'INV-2025-001' },
+  update: {}, // nothing to change if it already exists
+  create: {
+    userId:         demo.id,
+    subscriptionId: subscription.id,
+    teamId:         team.id,
+    invoiceNumber:  'INV-2025-001',
+    status:         'PAID',
+    amountDue:      38800,
+    amountPaid:     38800,
+    amountRemaining:0,
+    currency:       'DZD',
+    issueDate:      new Date(),
+    dueDate:        new Date(),
+    paidAt:         new Date(),
+    description:    'Professional Plan + Add-ons',
+  },
+})
+
+const invoice2 = await prisma.invoice.upsert({
+  where: { invoiceNumber: 'INV-2025-002' },
+  update: {},
+  create: {
+    userId:         demo.id,
+    subscriptionId: subscription.id,
+    teamId:         team.id,
+    invoiceNumber:  'INV-2025-002',
+    status:         'OPEN',
+    amountDue:      38800,
+    amountPaid:     0,
+    amountRemaining:38800,
+    currency:       'DZD',
+    issueDate:      new Date(),
+    dueDate:        new Date(),
+    description:    'Professional Plan + Add-ons',
+  },
+})
+
+
+  // 13. PAYMENTS
+  await prisma.payment.create({
+    data: {
+      invoiceId: invoice1.id,
+      userId:    demo.id,
+      amount:    invoice1.amountDue,
+      currency:  invoice1.currency,
+      status:    'SUCCEEDED',
+    },
   })
+  // 13. INVOICE ITEMS
 
-  // Create sample invoices
-  await prisma.invoice.createMany({
-    data: [
-      {
-        userId: demoUser.id,
-        subscriptionId: demoSubscription.id,
-        invoiceNumber: 'INV-2024-001',
-        amount: 38800, // 388.00 DZD (299 + 49 + 3*9.90)
-        currency: 'DZD',
-        status: 'PAID',
-        dueDate: new Date(),
-        paidAt: new Date(),
-        description: 'Professional Plan + Advanced Analysis + 3 Extra Users'
-      },
-      {
-        userId: demoUser.id,
-        subscriptionId: demoSubscription.id,
-        invoiceNumber: 'INV-2024-002',
-        amount: 38800,
-        currency: 'DZD',
-        status: 'PENDING',
-        dueDate: endDate,
-        description: 'Professional Plan + Advanced Analysis + 3 Extra Users'
-      }
-    ]
-  })
 
-  // Create activity logs
-  await prisma.activityLog.createMany({
-    data: [
-      {
-        userId: demoUser.id,
-        entityType: 'subscription',
-        entityId: demoSubscription.id,
-        action: 'SUBSCRIPTION_CREATED',
-        description: 'Subscribed to Professional Plan'
-      },
-      {
-        userId: demoUser.id,
-        entityType: 'addon',
-        entityId: advancedAnalysisAddon.id,
-        action: 'ADDON_ADDED',
-        description: 'Added Advanced ECG Analysis addon'
-      },
-      {
-        userId: demoUser.id,
-        entityType: 'addon',
-        entityId: extraUsersAddon.id,
-        action: 'ADDON_ADDED',
-        description: 'Added 3 additional users'
-      },
-      {
-        userId: demoUser.id,
-        entityType: 'payment',
-        action: 'PAYMENT_SUCCESSFUL',
-        description: 'Payment processed successfully for INV-2024-001'
-      },
-      {
-        userId: adminUser.id,
-        entityType: 'user',
-        entityId: demoUser.id,
-        action: 'USER_CREATED',
-        description: 'Created new user: demo@hearline.dz'
-      }
-    ]
-  })
+// 14. USAGE RECORDS
+// Prepare usageBase (first day of current month)
+const usageBase = new Date()
+usageBase.setDate(1)
 
-  // Create usage records for demo user
-  const usageStartDate = new Date()
-  usageStartDate.setDate(1) // First day of current month
+// 14. USAGE RECORDS
+await prisma.subscriptionUsageRecord.createMany({
+  data: [
+    {
+      subscriptionId: subscription.id,
+      featureSlug:    'ecg_analyses',
+      quantityUsed:   156,
+      recordDate:     usageBase,
+      description:    'Monthly ECG analyses count',
+    },
+    {
+      subscriptionId: subscription.id,
+      featureSlug:    'patient_creations',
+      quantityUsed:    23,
+      recordDate:     usageBase,
+      description:    'Patient profiles created',
+    },
+  ],
+})
 
-  await prisma.usageRecord.createMany({
-    data: [
-      {
-        userId: demoUser.id,
-        subscriptionId: demoSubscription.id,
-        featureType: 'ECG_ANALYSIS',
-        usage: 156,
-        recordDate: usageStartDate
-      },
-      {
-        userId: demoUser.id,
-        subscriptionId: demoSubscription.id,
-        featureType: 'PATIENT_CREATION',
-        usage: 23,
-        recordDate: usageStartDate
-      },
-      {
-        userId: demoUser.id,
-        subscriptionId: demoSubscription.id,
-        featureType: 'REPORT_GENERATION',
-        usage: 45,
-        recordDate: usageStartDate
-      },
-      {
-        userId: demoUser.id,
-        subscriptionId: demoSubscription.id,
-        featureType: 'PRESCRIPTION_CREATION',
-        usage: 67,
-        recordDate: usageStartDate
-      }
-    ]
-  })
 
-  // Create system notifications
-  await prisma.systemNotification.createMany({
-    data: [
-      {
-        userId: demoUser.id,
-        type: 'BILLING',
-        title: 'Payment Due Soon',
-        message: 'Your subscription payment is due in 3 days',
-        priority: 'NORMAL'
-      },
-      {
-        userId: demoUser.id,
-        type: 'FEATURE',
-        title: 'New Feature Available',
-        message: 'Advanced ECG Analysis now includes risk assessment',
-        priority: 'LOW'
-      },
-      {
-        type: 'ANNOUNCEMENT',
-        title: 'System Maintenance',
-        message: 'Scheduled maintenance on Sunday 2AM-4AM',
-        priority: 'HIGH'
-      }
-    ]
-  })
+// 15. NOTIFICATIONS
+await prisma.notification.createMany({
+  data: [
+    {
+      userId:             demo.id,
+      type:               'BILLING_ALERT',
+      title:              'Payment Due Soon',
+      message:            'Your subscription payment is due in 3 days',
+      isRead:             false,
+      link:               'https://app.hearline.io/billing',
+      relatedEntityType:  'INVOICE',
+      relatedEntityId:    invoice1.id,
+    },
+    {
+      userId:             demo.id,
+      type:               'NEW_FEATURE',
+      title:              'New Feature Live',
+      message:            'Advanced ECG Analysis risk assessment is now available',
+      isRead:             false,
+      link:               null,
+      relatedEntityType:  null,
+      relatedEntityId:    null,
+    },
+  ],
+})
 
-  console.log('✅ Database seeding completed!')
-  console.log('\n📊 Created:')
-  console.log('- 1 Organization')
-  console.log('- 3 Subscription Plans')
-  console.log('- 3 Addons')
-  console.log('- 2 Users (admin@hearline.dz, demo@hearline.dz)')
-  console.log('- 1 Active Subscription')
-  console.log('- 2 Payment Methods')
-  console.log('- 2 Invoices')
-  console.log('- 5 Activity Log entries')
-  console.log('- 4 Usage Records')
-  console.log('- 3 System Notifications')
-  console.log('\n🔑 Login credentials:')
-  console.log('Admin: admin@hearline.dz / admin123!')
-  console.log('Demo User: demo@hearline.dz / demo123!')
+// 16. AUDIT LOGS
+await prisma.auditLog.createMany({
+  data: [
+    {
+      timestamp:         new Date(),
+      userId:            admin.id,
+      action:            'USER_CREATED',
+      targetEntityType:  'User',
+      targetEntityId:    demo.id,
+      details:           { email: demo.email },
+      ipAddress:         '127.0.0.1',
+      userAgent:         'seed.ts script',
+    },
+    {
+      timestamp:         new Date(),
+      userId:            demo.id,
+      action:            'SUBSCRIPTION_STARTED',
+      targetEntityType:  'Subscription',
+      targetEntityId:    subscription.id,
+      details:           { plan: professionalPlan.name },
+      ipAddress:         '127.0.0.1',
+      userAgent:         'seed.ts script',
+    },
+  ],
+})
+
+
+  console.log('✅ Database seeding complete!')
 }
 
 main()
-  .catch((e) => {
-    console.error('❌ Error seeding database:', e)
+  .catch(e => {
+    console.error('❌ Seed error:', e)
     process.exit(1)
   })
-  .finally(async () => {
-    await prisma.$disconnect()
-  })
+  .finally(() => prisma.$disconnect())
