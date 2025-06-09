@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import { PricingContent } from '@/components/pricing/pricing-content'
+import { PricingFunctional } from '@/components/pricing/pricing-functional'
 
 export const metadata: Metadata = {
   title: 'Pricing | Hearline',
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 }
 
 export default function PricingPage() {
-  return <PricingContent />
+  return <PricingFunctional />
 }

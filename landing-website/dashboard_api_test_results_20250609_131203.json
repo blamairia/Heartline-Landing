@@ -1,0 +1,230 @@
+{
+  "authentication": {
+    "success": true,
+    "timestamp": "2025-06-09T13:11:56.752216"
+  },
+  "endpoints": {
+    "stats": {
+      "name": "stats",
+      "url": "/api/dashboard/stats",
+      "method": "GET",
+      "status_code": 200,
+      "success": true,
+      "response_data": {
+        "stats": [
+          {
+            "title": "Active Status",
+            "value": "Inactive",
+            "change": "",
+            "trend": "up",
+            "icon": "Users"
+          },
+          {
+            "title": "Subscription Plan",
+            "value": "No Plan",
+            "change": "",
+            "trend": "up",
+            "icon": "CreditCard"
+          },
+          {
+            "title": "Active Add-ons",
+            "value": "0",
+            "change": "",
+            "trend": "up",
+            "icon": "Package"
+          },
+          {
+            "title": "Monthly Usage",
+            "value": "0",
+            "change": "",
+            "trend": "up",
+            "icon": "TrendingUp"
+          }
+        ]
+      },
+      "error": null,
+      "response_time": 204.3
+    },
+    "activity": {
+      "name": "activity",
+      "url": "/api/dashboard/activity",
+      "method": "GET",
+      "status_code": 200,
+      "success": true,
+      "response_data": {
+        "activities": []
+      },
+      "error": null,
+      "response_time": 236.52
+    },
+    "users": {
+      "name": "users",
+      "url": "/api/dashboard/users",
+      "method": "GET",
+      "status_code": 403,
+      "success": false,
+      "response_data": {
+        "error": "Admin access required"
+      },
+      "error": "HTTP 403: {\"error\":\"Admin access required\"}",
+      "response_time": 436.22
+    },
+    "subscription": {
+      "name": "subscription",
+      "url": "/api/dashboard/subscription",
+      "method": "GET",
+      "status_code": 200,
+      "success": true,
+      "response_data": {
+        "subscription": null,
+        "hasActiveSubscription": false
+      },
+      "error": null,
+      "response_time": 399.4
+    },
+    "billing": {
+      "name": "billing",
+      "url": "/api/dashboard/billing",
+      "method": "GET",
+      "status_code": 200,
+      "success": true,
+      "response_data": {
+        "paymentMethods": [],
+        "invoices": [],
+        "summary": {
+          "totalPaid": 0,
+          "pendingAmount": 0,
+          "overdueAmount": 0,
+          "currency": "DZD"
+        }
+      },
+      "error": null,
+      "response_time": 167.47
+    },
+    "addons": {
+      "name": "addons",
+      "url": "/api/dashboard/addons",
+      "method": "GET",
+      "status_code": 200,
+      "success": true,
+      "response_data": {
+        "activeAddons": [],
+        "availableAddons": [
+          {
+            "id": "cmboxvlpa0004fs4ky1liyxbs",
+            "name": "Advanced ECG Analysis",
+            "description": "AI-powered advanced ECG analysis with detailed insights",
+            "price": 4900,
+            "currency": "DZD",
+            "type": "FEATURE",
+            "features": [
+              "features"
+            ],
+            "popular": false
+          },
+          {
+            "id": "cmboxvlpi0006fs4kz69nwvye",
+            "name": "API Access",
+            "description": "Full API access for custom integrations",
+            "price": 1990,
+            "currency": "DZD",
+            "type": "INTEGRATION",
+            "features": [
+              "features"
+            ],
+            "popular": false
+          },
+          {
+            "id": "cmboxvlpg0005fs4k94ho6si2",
+            "name": "Additional Users",
+            "description": "Add more users to your subscription",
+            "price": 990,
+            "currency": "DZD",
+            "type": "USAGE",
+            "features": [
+              "unit",
+              "billing"
+            ],
+            "popular": false
+          }
+        ],
+        "hasActiveSubscription": false
+      },
+      "error": null,
+      "response_time": 176.54
+    },
+    "users_post": {
+      "name": "users_post",
+      "url": "/api/dashboard/users",
+      "method": "POST",
+      "status_code": 403,
+      "success": false,
+      "response_data": {
+        "error": "Admin access required"
+      },
+      "error": "HTTP 403: {\"error\":\"Admin access required\"}",
+      "response_time": 17.36
+    },
+    "subscription_update": {
+      "name": "subscription_update",
+      "url": "/api/dashboard/subscription",
+      "method": "PUT",
+      "status_code": 405,
+      "success": false,
+      "response_data": "",
+      "error": "HTTP 405: ",
+      "response_time": 14.94
+    },
+    "billing_update": {
+      "name": "billing_update",
+      "url": "/api/dashboard/billing",
+      "method": "POST",
+      "status_code": 400,
+      "success": false,
+      "response_data": {
+        "error": "Invalid action"
+      },
+      "error": "HTTP 400: {\"error\":\"Invalid action\"}",
+      "response_time": 18.99
+    },
+    "addons_toggle": {
+      "name": "addons_toggle",
+      "url": "/api/dashboard/addons",
+      "method": "POST",
+      "status_code": 400,
+      "success": false,
+      "response_data": {
+        "error": "Active subscription required to add addons"
+      },
+      "error": "HTTP 400: {\"error\":\"Active subscription required to add addons\"}",
+      "response_time": 21.97
+    }
+  },
+  "summary": {
+    "total_tests": 10,
+    "passed": 5,
+    "failed": 5,
+    "errors": [
+      {
+        "endpoint": "users",
+        "error": "HTTP 403: {\"error\":\"Admin access required\"}"
+      },
+      {
+        "endpoint": "users_post",
+        "error": "HTTP 403: {\"error\":\"Admin access required\"}"
+      },
+      {
+        "endpoint": "subscription_update",
+        "error": "HTTP 405: "
+      },
+      {
+        "endpoint": "billing_update",
+        "error": "HTTP 400: {\"error\":\"Invalid action\"}"
+      },
+      {
+        "endpoint": "addons_toggle",
+        "error": "HTTP 400: {\"error\":\"Active subscription required to add addons\"}"
+      }
+    ]
+  }
+}

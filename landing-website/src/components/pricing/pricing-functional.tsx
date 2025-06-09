@@ -1,0 +1,545 @@
+'use client'
+
+import { useState } from 'react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+
+interface Plan {
+  id: string
+  name: string
+  price: number
+  currency: string
+  billing: string
+  features: string[]
+  popular?: boolean
+}
+
+interface BillingForm {
+  firstName: string
+  lastName: string
+  phone: string
+  organization: string
+  address: string
+  city: string
+  wilaya: string
+}
+
+export function PricingFunctional() {
+  const { data: session } = useSession()
+  const router = useRouter()
+  const [loading, setLoading] = useState(false)
+  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
+  const [showBillingForm, setShowBillingForm] = useState(false)
+  const [subscriptionLoading, setSubscriptionLoading] = useState(false)
+  const [billingForm, setBillingForm] = useState<BillingForm>({
+    firstName: '',
+    lastName: '',
+    phone: '',
+    organization: '',
+    address: '',
+    city: '',
+    wilaya: ''
+  })
+
+  const plans: Plan[] = [
+    {
+      id: 'basic',
+      name: 'Basic',
+      price: 9900,
+      currency: 'DZD',
+      billing: 'month',
+      features: [
+        'Up to 100 ECG analyses per month',
+        'Basic patient management',
+        'Email support',
+        'Mobile app access',
+        'Basic reporting'
+      ]
+    },
+    {
+      id: 'professional',
+      name: 'Professional',
+      price: 29900,
+      currency: 'DZD',
+      billing: 'month',
+      features: [
+        'Up to 500 ECG analyses per month',
+        'Advanced patient management',
+        'Priority support',
+        'API access',
+        'Custom reports',
+        'Multi-user support'
+      ],
+      popular: true
+    },
+    {
+      id: 'enterprise',
+      name: 'Enterprise',
+      price: 99900,
+      currency: 'DZD',
+      billing: 'month',
+      features: [
+        'Unlimited ECG analyses',
+        'Full patient management suite',
+        '24/7 dedicated support',
+        'Custom integrations',
+        'White-label options',
+        'Advanced analytics'
+      ]
+    }
+  ]
+
+  const wilayaOptions = [
+    "Adrar", "Chlef", "Laghouat", "Oum El Bouaghi", "Batna", "Béjaïa", "Biskra",
+    "Blida", "Bouira", "Tamanrasset", "Tébessa", "Tlemcen", "Tiaret", "Tizi Ouzou", "Alger",
+    "Djelfa", "Jijel", "Sétif", "Saïda", "Skikda", "Sidi Bel Abbès", "Annaba", "Guelma",
+    "Constantine", "Médéa", "Mostaganem", "M'Sila", "Mascara", "Ouargla", "Oran", "El Bayadh",
+    "Illizi", "Bordj Bou Arréridj", "Boumerdès", "El Tarf", "Tindouf", "Tissemsilt", "El Oued",
+    "Khenchela", "Souk Ahras", "Tipaza", "Mila", "Aïn Defla", "Naâma", "Aïn Témouchent",
+    "Ghardaïa", "Relizane"
+  ]
+  const handlePlanSelect = (plan: Plan) => {
+    if (!session) {
+      router.push('/auth/login?callbackUrl=/pricing')
+      return
+    }
+    
+    setSelectedPlan(plan)
+    setBillingForm(prev => ({
+      ...prev,
+      firstName: session.user?.name?.split(' ')[0] || '',
+      lastName: session.user?.name?.split(' ').slice(1).join(' ') || ''
+    }))
+    setShowBillingForm(true)
+  }
+
+  const updateBillingForm = (field: keyof BillingForm, value: string) => {
+    setBillingForm(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  const handleSubscribe = async () => {
+    if (!selectedPlan || !session) return
+
+    setSubscriptionLoading(true)
+    try {
+      const response = await fetch('/api/subscription/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },        body: JSON.stringify({
+          planId: selectedPlan.id,
+          billingAddress: billingForm
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        alert(`✅ Subscription successful!\n\nPlan: ${selectedPlan.name}\nInvoice ID: ${data.invoiceId}\nAmount: ${(selectedPlan.price / 100).toFixed(0)} DZD\n\nYour subscription has been activated and saved to the database.\nRedirecting to dashboard...`)
+        setShowBillingForm(false)
+        router.push('/dashboard?tab=subscription')
+      } else {
+        const error = await response.json()
+        alert(`❌ Subscription failed: ${error.message || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('Subscription error:', error)
+      alert('❌ Failed to create subscription. Please try again.')
+    } finally {
+      setSubscriptionLoading(false)
+    }
+  }
+
+  const formatCurrency = (amount: number) => {
+    return `${(amount / 100).toFixed(0)} DZD`
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb', padding: '2rem 0' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1rem' }}>
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+          <h1 style={{ fontSize: '3rem', fontWeight: 'bold', color: '#111827', marginBottom: '1rem' }}>
+            Choose Your Perfect Plan
+          </h1>
+          <p style={{ fontSize: '1.25rem', color: '#6b7280', maxWidth: '600px', margin: '0 auto' }}>
+            Start with a professional plan and scale as you grow. All plans include invoice generation and database integration.
+          </p>
+        </div>
+
+        {/* Pricing Cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', marginBottom: '3rem' }}>
+          {plans.map((plan) => (
+            <div
+              key={plan.id}
+              style={{
+                backgroundColor: 'white',
+                border: plan.popular ? '2px solid #3b82f6' : '1px solid #e5e7eb',
+                borderRadius: '0.5rem',
+                padding: '2rem',
+                position: 'relative',
+                boxShadow: plan.popular ? '0 10px 25px rgba(0, 0, 0, 0.1)' : '0 1px 3px rgba(0, 0, 0, 0.1)',
+                transform: plan.popular ? 'scale(1.05)' : 'scale(1)',
+                transition: 'transform 0.2s'
+              }}
+            >
+              {plan.popular && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '-10px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    padding: '0.25rem 1rem',
+                    borderRadius: '1rem',
+                    fontSize: '0.875rem',
+                    fontWeight: '500'
+                  }}
+                >
+                  ⭐ Most Popular
+                </div>
+              )}
+
+              <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827', marginBottom: '0.5rem' }}>
+                  {plan.name}
+                </h3>
+                <div style={{ marginBottom: '1rem' }}>
+                  <span style={{ fontSize: '3rem', fontWeight: 'bold', color: '#111827' }}>
+                    {formatCurrency(plan.price)}
+                  </span>
+                  <span style={{ color: '#6b7280', marginLeft: '0.25rem' }}>
+                    /{plan.billing}
+                  </span>
+                </div>
+              </div>
+
+              <ul style={{ marginBottom: '2rem', listStyle: 'none', padding: 0 }}>
+                {plan.features.map((feature, index) => (
+                  <li key={index} style={{ display: 'flex', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <span style={{ color: '#10b981', marginRight: '0.75rem', fontSize: '1.25rem' }}>✓</span>
+                    <span style={{ color: '#374151' }}>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <button
+                onClick={() => handlePlanSelect(plan)}
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1.5rem',
+                  backgroundColor: plan.popular ? '#3b82f6' : 'white',
+                  color: plan.popular ? 'white' : '#3b82f6',
+                  border: '2px solid #3b82f6',
+                  borderRadius: '0.375rem',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.5 : 1,
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.transform = 'translateY(-2px)'
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4)'
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.transform = 'translateY(0)'
+                    e.currentTarget.style.boxShadow = 'none'
+                  }
+                }}
+              >
+                {loading ? 'Processing...' : session ? 'Subscribe Now' : 'Sign Up to Continue'}
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* Billing Form Modal */}
+        {showBillingForm && selectedPlan && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000,
+              padding: '1rem'
+            }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowBillingForm(false)
+              }
+            }}
+          >
+            <div
+              style={{
+                backgroundColor: 'white',
+                borderRadius: '0.5rem',
+                padding: '2rem',
+                maxWidth: '600px',
+                width: '100%',
+                maxHeight: '90vh',
+                overflowY: 'auto'
+              }}
+            >
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>
+                Complete Your Subscription
+              </h2>
+              <p style={{ color: '#6b7280', marginBottom: '2rem' }}>
+                Subscribe to {selectedPlan.name} for {formatCurrency(selectedPlan.price)} per {selectedPlan.billing}
+              </p>
+
+              {/* Billing Information */}
+              <div style={{ marginBottom: '2rem' }}>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem', display: 'flex', alignItems: 'center' }}>
+                  🏢 Billing Information
+                </h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.25rem' }}>
+                      First Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={billingForm.firstName}
+                      onChange={(e) => updateBillingForm('firstName', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.375rem',
+                        fontSize: '0.875rem'
+                      }}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.25rem' }}>
+                      Last Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={billingForm.lastName}
+                      onChange={(e) => updateBillingForm('lastName', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.375rem',
+                        fontSize: '0.875rem'
+                      }}
+                      required
+                    />
+                  </div>
+                </div>                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.25rem' }}>
+                      Phone
+                    </label>
+                    <input
+                      type="tel"
+                      value={billingForm.phone}
+                      onChange={(e) => updateBillingForm('phone', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.375rem',
+                        fontSize: '0.875rem'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.25rem' }}>
+                      Company/Practice
+                    </label>
+                    <input
+                      type="text"
+                      value={billingForm.organization}
+                      onChange={(e) => updateBillingForm('organization', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.375rem',
+                        fontSize: '0.875rem'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.25rem' }}>
+                    Address *
+                  </label>
+                  <input
+                    type="text"
+                    value={billingForm.address}
+                    onChange={(e) => updateBillingForm('address', e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.375rem',
+                      fontSize: '0.875rem'
+                    }}
+                    required
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.25rem' }}>
+                      City *
+                    </label>
+                    <input
+                      type="text"
+                      value={billingForm.city}
+                      onChange={(e) => updateBillingForm('city', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.375rem',
+                        fontSize: '0.875rem'
+                      }}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.25rem' }}>
+                      Wilaya *
+                    </label>
+                    <select
+                      value={billingForm.wilaya}
+                      onChange={(e) => updateBillingForm('wilaya', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.375rem',
+                        fontSize: '0.875rem'
+                      }}
+                      required
+                    >
+                      <option value="">Select wilaya</option>
+                      {wilayaOptions.map((wilaya) => (
+                        <option key={wilaya} value={wilaya}>
+                          {wilaya}
+                        </option>
+                      ))}
+                    </select>                  </div>
+                </div>
+              </div>
+
+              {/* Payment Simulation Notice */}
+              <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '0.375rem', padding: '1rem', marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', alignItems: 'start', gap: '0.75rem' }}>
+                  <span style={{ fontSize: '1.25rem' }}>💳</span>
+                  <div>
+                    <h4 style={{ fontWeight: '600', color: '#1e40af', marginBottom: '0.25rem' }}>Payment Simulation</h4>
+                    <p style={{ color: '#1e40af', fontSize: '0.875rem' }}>
+                      This is a demo environment. Your subscription will be activated immediately 
+                      and an invoice will be generated for testing purposes. No actual payment will be processed.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => setShowBillingForm(false)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.375rem',
+                    backgroundColor: 'white',
+                    color: '#374151',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubscribe}
+                  disabled={subscriptionLoading || !billingForm.firstName || !billingForm.lastName || !billingForm.address || !billingForm.city || !billingForm.wilaya}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    border: 'none',
+                    borderRadius: '0.375rem',
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    cursor: subscriptionLoading ? 'not-allowed' : 'pointer',
+                    opacity: subscriptionLoading || !billingForm.firstName || !billingForm.lastName || !billingForm.address || !billingForm.city || !billingForm.wilaya ? 0.5 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  {subscriptionLoading && (
+                    <div style={{ width: '1rem', height: '1rem', border: '2px solid white', borderTop: '2px solid transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                  )}
+                  Complete Subscription
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Features Section */}
+        <div style={{ textAlign: 'center', marginTop: '4rem' }}>
+          <h2 style={{ fontSize: '2rem', fontWeight: 'bold', color: '#111827', marginBottom: '2rem' }}>
+            All plans include
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem' }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔬</div>
+              <h3 style={{ fontWeight: '600', color: '#111827', marginBottom: '0.5rem' }}>Premium ECG Analysis</h3>
+              <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>Advanced AI-powered ECG interpretation</p>
+            </div>
+            
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👥</div>
+              <h3 style={{ fontWeight: '600', color: '#111827', marginBottom: '0.5rem' }}>Patient Management</h3>
+              <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>Complete patient record system</p>
+            </div>
+            
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔒</div>
+              <h3 style={{ fontWeight: '600', color: '#111827', marginBottom: '0.5rem' }}>Secure & Compliant</h3>
+              <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>HIPAA compliant data protection</p>
+            </div>
+            
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📞</div>
+              <h3 style={{ fontWeight: '600', color: '#111827', marginBottom: '0.5rem' }}>24/7 Support</h3>
+              <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>Expert technical support</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Add CSS for spin animation */}
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
+  )
+}

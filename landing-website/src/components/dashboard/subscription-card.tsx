@@ -209,11 +209,9 @@ export function SubscriptionCard() {
                 </span>
               </div>
             )}
-          </div>
-
-          <div className="pt-4 space-y-2">
+          </div>          <div className="pt-4 space-y-2">
             <Button className="w-full" size="sm" asChild>
-              <Link href="/dashboard/subscription/upgrade">
+              <Link href="/pricing">
                 Upgrade Plan
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Link>

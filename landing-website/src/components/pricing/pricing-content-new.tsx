@@ -1,63 +1,199 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useToast } from '@/hooks/use-toast'
-import { Check, Crown, Star, Loader2, CreditCard, Building, MapPin, Phone, Mail } from 'lucide-react'
-
-interface Plan {
-  id: string
-  name: string
-  displayName: string
-  description: string
-  price: number
-  currency: string
-  billingCycle: string
-  features: any
-  isPopular: boolean
-}
-
-interface BillingForm {
-  billingName: string
-  billingEmail: string
-  billingPhone: string
-  company: string
-  address: string
-  city: string
-  wilaya: string
-  postalCode: string
-  country: string
-}
 
 export function PricingContent() {
-  const [plans, setPlans] = useState<Plan[]>([])
-  const [loading, setLoading] = useState(true)
-  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
-  const [showSubscriptionDialog, setShowSubscriptionDialog] = useState(false)
-  const [subscriptionLoading, setSubscriptionLoading] = useState(false)
-  const [billingForm, setBillingForm] = useState<BillingForm>({
-    billingName: '',
-    billingEmail: '',
-    billingPhone: '',
-    company: '',
-    address: '',
-    city: '',
-    wilaya: '',
-    postalCode: '',
-    country: 'Algeria'
-  })
-  
   const { data: session } = useSession()
   const router = useRouter()
-  const { toast } = useToast()
+  const [loading, setLoading] = useState(false)
+
+  const plans = [
+    {
+      id: 'basic',
+      name: 'Basic',
+      price: 9900,
+      currency: 'DZD',
+      billing: 'month',
+      features: [
+        'Up to 100 ECG analyses per month',
+        'Basic patient management',
+        'Email support',
+        'Mobile app access'
+      ]
+    },
+    {
+      id: 'professional',
+      name: 'Professional',
+      price: 29900,
+      currency: 'DZD',
+      billing: 'month',
+      features: [
+        'Up to 500 ECG analyses per month',
+        'Advanced patient management',
+        'Priority support',
+        'API access',
+        'Custom reports'
+      ],
+      popular: true
+    },
+    {
+      id: 'enterprise',
+      name: 'Enterprise',
+      price: 99900,
+      currency: 'DZD',
+      billing: 'month',
+      features: [
+        'Unlimited ECG analyses',
+        'Full patient management suite',
+        '24/7 dedicated support',
+        'Custom integrations',
+        'White-label options'
+      ]
+    }
+  ]
+
+  const handlePlanSelect = (planId: string) => {
+    if (!session) {
+      router.push('/auth/login?callbackUrl=/pricing')
+      return
+    }
+    
+    // For demo purposes, simulate subscription
+    setLoading(true)
+    setTimeout(() => {
+      alert(`Subscription to ${planId} plan activated! (Demo mode)`)
+      setLoading(false)
+      router.push('/dashboard')
+    }, 2000)
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb', padding: '2rem 0' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1rem' }}>
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+          <h1 style={{ fontSize: '3rem', fontWeight: 'bold', color: '#111827', marginBottom: '1rem' }}>
+            Choose Your Perfect Plan
+          </h1>
+          <p style={{ fontSize: '1.25rem', color: '#6b7280', maxWidth: '600px', margin: '0 auto' }}>
+            Start with a free trial and upgrade anytime. All plans include our core ECG analysis features.
+          </p>
+        </div>
+
+        {/* Pricing Cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', marginBottom: '3rem' }}>
+          {plans.map((plan) => (
+            <div
+              key={plan.id}
+              style={{
+                backgroundColor: 'white',
+                border: plan.popular ? '2px solid #3b82f6' : '1px solid #e5e7eb',
+                borderRadius: '0.5rem',
+                padding: '2rem',
+                position: 'relative',
+                boxShadow: plan.popular ? '0 10px 25px rgba(0, 0, 0, 0.1)' : '0 1px 3px rgba(0, 0, 0, 0.1)'
+              }}
+            >
+              {plan.popular && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '-10px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    padding: '0.25rem 1rem',
+                    borderRadius: '1rem',
+                    fontSize: '0.875rem',
+                    fontWeight: '500'
+                  }}
+                >
+                  Most Popular
+                </div>
+              )}
+
+              <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827', marginBottom: '0.5rem' }}>
+                  {plan.name}
+                </h3>
+                <div style={{ marginBottom: '1rem' }}>
+                  <span style={{ fontSize: '3rem', fontWeight: 'bold', color: '#111827' }}>
+                    {(plan.price / 100).toFixed(0)}
+                  </span>
+                  <span style={{ color: '#6b7280', marginLeft: '0.25rem' }}>
+                    DZD/{plan.billing}
+                  </span>
+                </div>
+              </div>
+
+              <ul style={{ marginBottom: '2rem', listStyle: 'none', padding: 0 }}>
+                {plan.features.map((feature, index) => (
+                  <li key={index} style={{ display: 'flex', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <span style={{ color: '#10b981', marginRight: '0.75rem', fontSize: '1.25rem' }}>✓</span>
+                    <span style={{ color: '#374151' }}>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <button
+                onClick={() => handlePlanSelect(plan.id)}
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1.5rem',
+                  backgroundColor: plan.popular ? '#3b82f6' : 'white',
+                  color: plan.popular ? 'white' : '#3b82f6',
+                  border: '2px solid #3b82f6',
+                  borderRadius: '0.375rem',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.5 : 1
+                }}
+              >
+                {loading ? 'Processing...' : session ? 'Get Started' : 'Sign Up to Continue'}
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* Additional Features */}
+        <div style={{ textAlign: 'center' }}>
+          <h2 style={{ fontSize: '2rem', fontWeight: 'bold', color: '#111827', marginBottom: '2rem' }}>
+            All plans include
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem' }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔬</div>
+              <h3 style={{ fontWeight: '600', color: '#111827', marginBottom: '0.5rem' }}>Premium ECG Analysis</h3>
+              <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>Advanced AI-powered ECG interpretation</p>
+            </div>
+            
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>👥</div>
+              <h3 style={{ fontWeight: '600', color: '#111827', marginBottom: '0.5rem' }}>Patient Management</h3>
+              <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>Complete patient record system</p>
+            </div>
+            
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔒</div>
+              <h3 style={{ fontWeight: '600', color: '#111827', marginBottom: '0.5rem' }}>Secure & Compliant</h3>
+              <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>HIPAA compliant data protection</p>
+            </div>
+            
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📞</div>
+              <h3 style={{ fontWeight: '600', color: '#111827', marginBottom: '0.5rem' }}>24/7 Support</h3>
+              <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>Expert technical support</p>
+            </div>
+          </div>        </div>
+      </div>
+    </div>
+  )
+}
 
   useEffect(() => {
     fetchPlans()
@@ -105,36 +241,51 @@ export function PricingContent() {
     setShowSubscriptionDialog(true)
   }
 
+  const updateBillingForm = (field: keyof BillingForm, value: string) => {
+    setBillingForm(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
   const handleSubscribe = async () => {
-    if (!selectedPlan) return
-    
+    if (!selectedPlan || !session) return
+
     setSubscriptionLoading(true)
     try {
       const response = await fetch('/api/subscription/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
           planId: selectedPlan.id,
           billingInfo: billingForm
         })
       })
 
-      const result = await response.json()
-
       if (response.ok) {
+        const data = await response.json()
         toast({
           title: "Success!",
-          description: "Subscription created successfully. You can now access all features.",
+          description: `Successfully subscribed to ${selectedPlan.displayName}. Invoice ID: ${data.invoiceId}`,
+          variant: "default"
         })
         setShowSubscriptionDialog(false)
-        router.push('/dashboard/subscription')
+        router.push('/dashboard?tab=subscription')
       } else {
-        throw new Error(result.error)
+        const error = await response.json()
+        toast({
+          title: "Error",
+          description: error.message || "Failed to create subscription",
+          variant: "destructive"
+        })
       }
-    } catch (error: any) {
+    } catch (error) {
+      console.error('Subscription error:', error)
       toast({
         title: "Error",
-        description: error.message || "Failed to create subscription",
+        description: "Failed to create subscription",
         variant: "destructive"
       })
     } finally {
@@ -142,12 +293,8 @@ export function PricingContent() {
     }
   }
 
-  const updateBillingForm = (field: keyof BillingForm, value: string) => {
-    setBillingForm(prev => ({ ...prev, [field]: value }))
-  }
-
   const wilayaOptions = [
-    "Adrar", "Chlef", "Laghouat", "Oum El Bouaghi", "Batna", "Béjaïa", "Biskra", "Béchar", 
+    "Adrar", "Chlef", "Laghouat", "Oum El Bouaghi", "Batna", "Béjaïa", "Biskra",
     "Blida", "Bouira", "Tamanrasset", "Tébessa", "Tlemcen", "Tiaret", "Tizi Ouzou", "Alger",
     "Djelfa", "Jijel", "Sétif", "Saïda", "Skikda", "Sidi Bel Abbès", "Annaba", "Guelma",
     "Constantine", "Médéa", "Mostaganem", "M'Sila", "Mascara", "Ouargla", "Oran", "El Bayadh",
@@ -161,7 +308,7 @@ export function PricingContent() {
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-16">
           <div className="flex items-center justify-center h-64">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
           </div>
         </div>
       </div>
@@ -188,12 +335,11 @@ export function PricingContent() {
       <div className="container mx-auto px-4 py-16">
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
           {plans.map((plan) => (
-            <Card key={plan.id} className={`relative ${plan.isPopular ? 'border-primary shadow-lg' : 'border-gray-200'}`}>
+            <Card key={plan.id} className={`relative ${plan.isPopular ? 'border-blue-500 shadow-lg' : 'border-gray-200'}`}>
               {plan.isPopular && (
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <Badge className="bg-primary text-white px-4 py-1">
-                    <Star className="w-3 h-3 mr-1" />
-                    Most Popular
+                  <Badge className="bg-blue-500 text-white px-4 py-1">
+                    ⭐ Most Popular
                   </Badge>
                 </div>
               )}
@@ -212,9 +358,10 @@ export function PricingContent() {
               </CardHeader>
 
               <CardContent>
-                <ul className="space-y-3 mb-8">                  {plan.features?.features?.map((feature: string, index: number) => (
+                <ul className="space-y-3 mb-8">
+                  {plan.features?.features?.map((feature: string, index: number) => (
                     <li key={index} className="flex items-center gap-3">
-                      <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+                      <span className="w-5 h-5 text-green-500 flex-shrink-0">✓</span>
                       <span className="text-gray-700">{feature}</span>
                     </li>
                   ))}
@@ -222,7 +369,7 @@ export function PricingContent() {
                   {/* Plan limits */}
                   {plan.features?.maxECGAnalyses && (
                     <li className="flex items-center gap-3">
-                      <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+                      <span className="w-5 h-5 text-green-500 flex-shrink-0">✓</span>
                       <span className="text-gray-700">
                         {plan.features.maxECGAnalyses === -1 ? 'Unlimited' : plan.features.maxECGAnalyses} ECG analyses
                       </span>
@@ -231,7 +378,7 @@ export function PricingContent() {
                   
                   {plan.features?.maxPatients && (
                     <li className="flex items-center gap-3">
-                      <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+                      <span className="w-5 h-5 text-green-500 flex-shrink-0">✓</span>
                       <span className="text-gray-700">
                         {plan.features.maxPatients === -1 ? 'Unlimited' : plan.features.maxPatients} patients
                       </span>
@@ -240,7 +387,7 @@ export function PricingContent() {
                   
                   {plan.features?.maxUsers && (
                     <li className="flex items-center gap-3">
-                      <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+                      <span className="w-5 h-5 text-green-500 flex-shrink-0">✓</span>
                       <span className="text-gray-700">
                         Up to {plan.features.maxUsers} users
                       </span>
@@ -268,32 +415,32 @@ export function PricingContent() {
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-4xl mx-auto">
             <div className="text-center">
-              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Crown className="w-6 h-6 text-primary" />
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">👑</span>
               </div>
               <h3 className="font-semibold text-gray-900 mb-2">Premium ECG Analysis</h3>
               <p className="text-gray-600 text-sm">Advanced AI-powered ECG interpretation</p>
             </div>
             
             <div className="text-center">
-              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Building className="w-6 h-6 text-primary" />
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">🏥</span>
               </div>
               <h3 className="font-semibold text-gray-900 mb-2">Patient Management</h3>
               <p className="text-gray-600 text-sm">Complete patient record system</p>
             </div>
             
             <div className="text-center">
-              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CreditCard className="w-6 h-6 text-primary" />
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">🔒</span>
               </div>
               <h3 className="font-semibold text-gray-900 mb-2">Secure & Compliant</h3>
               <p className="text-gray-600 text-sm">HIPAA compliant data protection</p>
             </div>
             
             <div className="text-center">
-              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Phone className="w-6 h-6 text-primary" />
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">📞</span>
               </div>
               <h3 className="font-semibold text-gray-900 mb-2">24/7 Support</h3>
               <p className="text-gray-600 text-sm">Expert technical support</p>
@@ -316,7 +463,7 @@ export function PricingContent() {
             {/* Billing Information */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Building className="w-5 h-5" />
+                <span className="text-xl">🏢</span>
                 Billing Information
               </h3>
               
@@ -407,7 +554,7 @@ export function PricingContent() {
             {/* Payment Simulation Notice */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <div className="flex items-start gap-3">
-                <CreditCard className="w-5 h-5 text-blue-600 mt-0.5" />
+                <span className="text-xl">💳</span>
                 <div>
                   <h4 className="font-semibold text-blue-900">Payment Simulation</h4>
                   <p className="text-blue-700 text-sm mt-1">
@@ -427,7 +574,9 @@ export function PricingContent() {
               onClick={handleSubscribe}
               disabled={subscriptionLoading || !billingForm.billingName || !billingForm.billingEmail || !billingForm.address || !billingForm.city || !billingForm.wilaya}
             >
-              {subscriptionLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {subscriptionLoading && (
+                <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              )}
               Complete Subscription
             </Button>
           </DialogFooter>

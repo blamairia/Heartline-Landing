@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { DashboardHeader } from '@/components/dashboard/dashboard-header'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -246,13 +247,14 @@ export function SubscriptionContent() {
     return (
       <div className="min-h-screen bg-gray-50">
         <DashboardHeader />
-        <main className="container mx-auto px-4 py-8">
-          <div className="text-center py-16">
+        <main className="container mx-auto px-4 py-8">          <div className="text-center py-16">
             <Crown className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-gray-900 mb-2">No Active Subscription</h2>
             <p className="text-gray-600 mb-8">Get started with a subscription plan to access all features.</p>
-            <Button size="lg">
-              View Available Plans
+            <Button size="lg" asChild>
+              <Link href="/pricing">
+                View Available Plans
+              </Link>
             </Button>
           </div>
         </main>
