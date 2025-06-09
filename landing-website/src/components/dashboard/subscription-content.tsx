@@ -282,6 +282,39 @@ export function SubscriptionContent() {
     }
   }
 
+  const handleViewInvoice = async (subscriptionId: string) => {
+    setActionLoading(`view_invoice_${subscriptionId}`)
+    try {
+      const invoice = await fetchInvoiceForSubscription(subscriptionId)
+      
+      if (!invoice) {
+        toast({
+          title: "Error",
+          description: "No invoice found for this subscription",
+          variant: "destructive"
+        })
+        return
+      }
+
+      // Open invoice API endpoint for viewing
+      const invoiceUrl = `/api/subscription/${subscriptionId}/invoice/pdf`
+      window.open(invoiceUrl, '_blank')
+      
+      toast({
+        title: "Success",
+        description: "Invoice opened in new tab"
+      })
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to view invoice",
+        variant: "destructive"
+      })
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
   const generateInvoiceHTML = (invoice: any, subscriptionName: string) => {
     return `
       <!DOCTYPE html>
@@ -745,8 +778,7 @@ export function SubscriptionContent() {
                           </div>
                         )}
                       </div>
-                        <div className="flex flex-col gap-2 ml-4">
-                        {/* Invoice Actions */}
+                        <div className="flex flex-col gap-2 ml-4">                        {/* Invoice Actions */}
                         <div className="flex gap-2">
                           <Button 
                             size="sm" 
@@ -754,6 +786,7 @@ export function SubscriptionContent() {
                             onClick={() => handlePrintInvoice(subscription.id, subscription.planDisplayName)}
                             disabled={actionLoading === `print_invoice_${subscription.id}`}
                             className="flex-1"
+                            title="Print Invoice"
                           >
                             {actionLoading === `print_invoice_${subscription.id}` ? (
                               <Loader2 className="w-3 h-3 animate-spin" />
@@ -764,11 +797,12 @@ export function SubscriptionContent() {
                           <Button 
                             size="sm" 
                             variant="outline"
-                            onClick={() => handlePrintInvoice(subscription.id, subscription.planDisplayName)}
-                            disabled={actionLoading === `print_invoice_${subscription.id}`}
+                            onClick={() => handleViewInvoice(subscription.id)}
+                            disabled={actionLoading === `view_invoice_${subscription.id}`}
                             className="flex-1"
+                            title="View Invoice"
                           >
-                            {actionLoading === `print_invoice_${subscription.id}` ? (
+                            {actionLoading === `view_invoice_${subscription.id}` ? (
                               <Loader2 className="w-3 h-3 animate-spin" />
                             ) : (
                               <FileText className="w-3 h-3" />
