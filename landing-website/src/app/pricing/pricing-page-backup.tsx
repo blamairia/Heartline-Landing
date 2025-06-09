@@ -114,7 +114,8 @@ export default function PricingPage() {
     }
 
     setSubmitting(true)
-    try {      const response = await fetch('/api/subscription/create', {
+    try {
+      const response = await fetch('/api/subscription/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -128,16 +129,10 @@ export default function PricingPage() {
       if (response.ok) {
         toast({
           title: "Success",
-          description: "Subscription created successfully! Redirecting to invoice..."
+          description: "Subscription created successfully!"
         })
         setShowDialog(false)
-        
-        // Redirect to invoice confirmation page
-        if (result.redirectTo) {
-          router.push(result.redirectTo)
-        } else {
-          router.push('/dashboard/subscription')
-        }
+        router.push('/dashboard/subscription')
       } else {
         throw new Error(result.message || 'Failed to create subscription')
       }
