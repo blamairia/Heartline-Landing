@@ -8,6 +8,7 @@ import { getServerSession } from "next-auth/next"
 let mockSubscriptions = [
   { id: "sub_123", userId: "user_abc", status: "ACTIVE", plan: "premium" },
   { id: "sub_456", userId: "user_def", status: "ACTIVE", plan: "basic" },
+  { id: "cmbp4g6ew0002zw85nyekyls9", userId: "user_xyz", status: "ACTIVE", plan: "enterprise" } // Added the test subscription ID
 ];
 
 export async function POST(request: Request) {

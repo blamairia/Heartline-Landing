@@ -180,7 +180,24 @@ export function SubscriptionContent() {
           title: "Success",
           description: result.message || "Subscription cancelled successfully.",
         })
-        await fetchData() // Refresh data to reflect cancellation
+        
+        // Optimistically update UI for immediate feedback
+        if (subscriptionData && subscriptionData.subscription) {
+          setSubscriptionData(prevData => {
+            if (!prevData || !prevData.subscription) return prevData;
+            return {
+              ...prevData,
+              subscription: {
+                ...prevData.subscription,
+                status: 'CANCELLED',
+              },
+              // Optionally, if cancellation should immediately reflect as no active subscription:
+              // hasActiveSubscription: false, 
+            };
+          });
+        }
+
+        await fetchData() // Refresh data to reflect cancellation from backend
         setShowCancelDialog(false)
         setCancelReason('')
       } else {
@@ -525,7 +542,7 @@ export function SubscriptionContent() {
                                 {formatDate(invoice.createdAt)}
                               </p>
                               <p className="text-sm text-gray-600">
-                                {invoice.subscription?.plan?.displayName || 'Subscription'}
+                                {invoice.description || 'Subscription'} {/* Changed to use invoice.description */}
                               </p>
                             </div>
                           </div>
