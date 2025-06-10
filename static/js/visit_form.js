@@ -8,11 +8,23 @@ let prescriptionCounter = 0;
 let documentCounter = 0;
 
 /**
+ * Debounce utility function to limit API calls
+ */
+window.debounce = function debounce(func, delay) {
+    let timeoutId;
+    return function (...args) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => func.apply(this, args), delay);
+    };
+};
+
+/**
  * Initialize the visit form when DOM is ready
  */
 document.addEventListener('DOMContentLoaded', function() {
     initializeForm();
     initializeECGAnalysis();
+    initializeMedicamentSearch();
 });
 
 /**
@@ -24,6 +36,19 @@ function initializeForm() {
     documentCounter = document.querySelectorAll('.document-row').length;
     
     console.log('Form initialized - Prescriptions:', prescriptionCounter, 'Documents:', documentCounter);
+}
+
+/**
+ * Initialize medicament search for all existing prescription rows
+ */
+function initializeMedicamentSearch() {
+    const rows = document.querySelectorAll('.prescription-row');
+    console.log('Found prescription rows:', rows.length);
+    rows.forEach((row, index) => {
+        console.log(`Initializing row ${index}:`, row);
+        initializeMedSearch(row);
+    });
+    console.log('Medicament search initialized for existing rows');
 }
 
 /**
@@ -54,7 +79,14 @@ function addPrescription() {
     // Create the new element and add it to the container
     const newElement = document.createElement('div');
     newElement.innerHTML = htmlString;
-    prescriptionsContainer.appendChild(newElement.firstElementChild);
+    const newRow = newElement.firstElementChild;
+    prescriptionsContainer.appendChild(newRow);
+    
+    // Initialize medicament search for the new row
+    setTimeout(() => {
+        initializeMedSearch(newRow);
+        console.log('Initialized medicament search for new prescription row');
+    }, 100);
     
     prescriptionCounter++;
     console.log('Added prescription row, counter now:', prescriptionCounter);
@@ -307,6 +339,171 @@ function validateForm() {
     }
     
     return true;
+}
+
+/**
+ * Initialize medicament search functionality for a prescription row
+ */
+function initializeMedSearch(rowElement) {
+    console.log('initializeMedSearch called with row:', rowElement);
+    
+    const searchBox = rowElement.querySelector('.med-search');
+    const optionsList = rowElement.querySelector('.med-options');
+    const hiddenInput = rowElement.querySelector('input[type="hidden"][name$="-medicament_num_enr"]');
+    
+    console.log('Found elements:', { searchBox, optionsList, hiddenInput });
+    
+    if (!searchBox || !optionsList || !hiddenInput) {
+        console.warn('Missing elements for medicament search in row:', rowElement);
+        console.log('searchBox:', searchBox);
+        console.log('optionsList:', optionsList);
+        console.log('hiddenInput:', hiddenInput);
+        return;
+    }
+    
+    const index = searchBox.dataset.index;
+    let currentPage = 1;
+    let isLoading = false;
+    
+    console.log('Initializing medicament search for index:', index);
+    
+    // Show dropdown and fetch initial medications when focused
+    searchBox.addEventListener('focus', () => {
+        console.log('Search box focused');
+        currentPage = 1;
+        fetchMedications('', index);
+        optionsList.style.display = 'block';
+    });
+    
+    // Hide dropdown when blurred (with delay for clicks)
+    searchBox.addEventListener('blur', () => {
+        setTimeout(() => {
+            optionsList.style.display = 'none';
+        }, 200);
+    });
+    
+    // Immediate search on input (removed debounce)
+    searchBox.addEventListener('input', () => {
+        console.log('Search input changed:', searchBox.value);
+        const query = searchBox.value.trim();
+        currentPage = 1;
+        fetchMedications(query, index);
+    });
+    
+    // Add scroll event for pagination
+    optionsList.addEventListener('scroll', () => {
+        if (optionsList.scrollTop + optionsList.clientHeight >= optionsList.scrollHeight - 5) {
+            if (!isLoading) {
+                loadMoreMedications();
+            }
+        }
+    });
+      /**
+     * Fetch medications from server
+     */
+    function fetchMedications(query, idx, page = 1, append = false) {
+        console.log('fetchMedications called with:', { query, idx, page, append });
+        
+        if (isLoading) {
+            console.log('Already loading, skipping request');
+            return;
+        }
+        
+        isLoading = true;
+        const url = `/search_medicaments?q=${encodeURIComponent(query)}&page=${page}`;
+        
+        console.log('Making API request to:', url);
+        
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Received medication data:', data);
+                
+                const meds = data.medicaments || [];
+                
+                if (!append) {
+                    optionsList.innerHTML = '';
+                }
+                
+                if (meds.length === 0 && !append) {
+                    const li = document.createElement('li');
+                    li.textContent = 'No matches found';
+                    li.classList.add('text-muted');
+                    li.style.padding = '8px 12px';
+                    li.style.fontStyle = 'italic';
+                    optionsList.appendChild(li);
+                } else {
+                    meds.forEach(item => {
+                        const li = document.createElement('li');
+                        li.classList.add('med-option');
+                        li.dataset.value = item.id;
+                        li.textContent = item.text;
+                        li.style.padding = '8px 12px';
+                        li.style.cursor = 'pointer';
+                        li.style.borderBottom = '1px solid #eee';
+                        
+                        li.addEventListener('click', () => {
+                            searchBox.value = item.text;
+                            hiddenInput.value = item.id;
+                            optionsList.style.display = 'none';
+                            console.log('Selected medication:', item);
+                        });
+                        
+                        li.addEventListener('mouseenter', () => {
+                            li.style.backgroundColor = '#f0f0f0';
+                        });
+                        
+                        li.addEventListener('mouseleave', () => {
+                            li.style.backgroundColor = '';
+                        });
+                        
+                        optionsList.appendChild(li);
+                    });
+                    
+                    // Update pagination info
+                    const pagination = data.pagination || {};
+                    if (!pagination.more) {
+                        const noMoreLi = document.createElement('li');
+                        noMoreLi.textContent = '--- End of results ---';
+                        noMoreLi.classList.add('text-muted');
+                        noMoreLi.style.padding = '8px 12px';
+                        noMoreLi.style.fontStyle = 'italic';
+                        noMoreLi.style.textAlign = 'center';
+                        optionsList.appendChild(noMoreLi);
+                    }
+                }
+                
+                isLoading = false;
+            })
+            .catch(error => {
+                console.error('Error fetching medications:', error);
+                
+                if (!append) {
+                    optionsList.innerHTML = '';
+                    const li = document.createElement('li');
+                    li.textContent = 'Error loading medications';
+                    li.classList.add('text-danger');
+                    li.style.padding = '8px 12px';
+                    optionsList.appendChild(li);
+                }
+                
+                isLoading = false;
+            });
+    }
+    
+    /**
+     * Load more medications (pagination)
+     */
+    function loadMoreMedications() {
+        const query = searchBox.value.trim();
+        currentPage++;
+        fetchMedications(query, index, currentPage, true);
+    }
 }
 
 // Make functions globally available

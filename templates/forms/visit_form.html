@@ -1,10 +1,10 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}New Visit | Heartline Medical Clinic{% endblock %}
 {% block extra_css %}
 
   <style>
-    /* ─── Basic Bootstrap overrides (optional) ─── */
+    /* â”€â”€â”€ Basic Bootstrap overrides (optional) â”€â”€â”€ */
     .ecg-analysis-card {
       border-left: 4px solid #007bff;
     }
@@ -34,7 +34,7 @@
       background-color: #f9f9f9;
     }
 
-    /* ─── Real-time validation styles ─── */
+    /* â”€â”€â”€ Real-time validation styles â”€â”€â”€ */
     .field-invalid {
       border-color: #dc3545 !important;
       box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
@@ -63,7 +63,7 @@
       cursor: not-allowed;
     }
 
-    /* ─── Custom dropdown styles ─── */
+    /* â”€â”€â”€ Custom dropdown styles â”€â”€â”€ */
     .dropdown-search-container {
       position: relative;
     }
@@ -230,7 +230,7 @@
                 <div class="dropdown-search-container">
                   <input type="text"
                          class="form-control med-search"
-                         placeholder="Type medication…"
+                         placeholder="Type medicationâ€¦"
                          autocomplete="off"
                          data-index="{{ loop.index0 }}"
                          required
@@ -284,7 +284,7 @@
               <div class="dropdown-search-container">
                 <input type="text"
                        class="form-control med-search"
-                       placeholder="Type medication…"
+                       placeholder="Type medicationâ€¦"
                        autocomplete="off"
                        data-index="__prefix__"
                        required
@@ -401,192 +401,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-// ──────────────────────────────────────────────────────────────────────────────
-// helpers for prescriptions / documents   (unchanged)
-// ──────────────────────────────────────────────────────────────────────────────
-function addPrescription() { /* ... original code ... */ }
-function removePrescription(btn) { btn.closest('.prescription-row').remove(); }
-function addDocument()    { /* ... original code ... */ }
-function removeDocument(btn){ btn.closest('.document-row').remove(); }
-
-/* ============================================================================
-   ECG  ─ real-time analysis helper
-=========================================================================== */
-function checkAndAnalyzeECG() {
-  const matFile = document.getElementById('ecg_mat_file').files[0];
-  const heaFile = document.getElementById('ecg_hea_file').files[0];
-
-  const section  = document.getElementById('ecg-analysis-section');
-  const banner   = section?.querySelector('.alert.alert-info');
-  const spinner  = document.getElementById('ecg-analysis-loading');
-  const results  = document.getElementById('ecg-analysis-results');
-  const errorBox = document.getElementById('ecg-analysis-error');
-
-  /* Make wrapper + banner visible at the very first click */
-  if (section) section.style.display = 'block';
-  if (banner)  banner.style.display  = 'block';
-
-  /* Nothing to analyse until both files are selected */
-  if (!(matFile && heaFile)) {
-    if (spinner) spinner.style.display = 'none';
-    if (results) results.style.display = 'none';
-    if (errorBox) errorBox.style.display = 'none';
-    return;                      // stop here – don’t fire request yet
-  }
-
-  /* -----------------------------------------------------------------------
-     Both files are present – show spinner and launch request
-  ----------------------------------------------------------------------- */
-  if (spinner)  spinner.style.display  = 'block';
-  if (results)  results.style.display  = 'none';
-  if (errorBox) errorBox.style.display = 'none';
-
-  analyzeECGFiles(matFile, heaFile);   // <- real work happens here
-}
-
-/* ============================================================================
-   Send files to backend, then render the result
-=========================================================================== */
-function analyzeECGFiles(matFile, heaFile) {
-  const spinner  = document.getElementById('ecg-analysis-loading');
-  const results  = document.getElementById('ecg-analysis-results');
-  const errorBox = document.getElementById('ecg-analysis-error');
-
-  const fd = new FormData();
-  fd.append('mat_file', matFile);
-  fd.append('hea_file', heaFile);
-
-  fetch('/analyze_ecg', { method: 'POST', body: fd })
-    .then(r => r.json())
-    .then(data => {
-      spinner.style.display = 'none';
-      if (data.success) {
-        displayECGResults(data);
-        results.style.display = 'block';
-      } else {
-        errorBox.textContent = data.error || 'Analysis failed';
-        errorBox.style.display = 'block';
-      }
-    })
-    .catch(err => {
-      spinner.style.display = 'none';
-      errorBox.textContent  = 'Network error: ' + err.message;
-      errorBox.style.display = 'block';
-    });
-}
-
-/* ============================================================================
-   Pretty-print backend response
-=========================================================================== */
-function displayECGResults(data) {
-  document.getElementById('primary-diagnosis').textContent = data.primary_diagnosis.name;
-
-  const conf = (data.primary_diagnosis.probability * 100).toFixed(1) + '%';
-  const confEl = document.getElementById('confidence-level');
-  confEl.textContent = conf;
-  confEl.className = 'font-weight-bold ' +
-        (data.primary_diagnosis.probability > 0.7 ? 'text-success'
-         : data.primary_diagnosis.probability > 0.5 ? 'text-warning'
-         : 'text-danger');
-
-  const classNames = {
-    'SNR':'Sinus Rhythm','AF':'Atrial Fibrillation','IAVB':'AV Block',
-    'LBBB':'Left Bundle Branch Block','RBBB':'Right Bundle Branch Block',
-    'PAC':'Premature Atrial Contraction','PVC':'Premature Ventricular Contraction',
-    'STD':'ST Depression','STE':'ST Elevation'
-  };
-  let html = '<div class="row">';
-  for (const [abbr, p] of Object.entries(data.probabilities)) {
-    const pct = (p * 100).toFixed(1);
-    html += `
-      <div class="col-md-6 mb-2">
-        <small><strong>${classNames[abbr]||abbr} (${abbr}):</strong> ${pct}%</small>
-        <div class="progress" style="height:5px;">
-          <div class="progress-bar" role="progressbar" style="width:${pct}%"></div>
-        </div>
-      </div>`;
-  }
-  html += '</div>';
-  document.getElementById('detailed-probabilities').innerHTML = html;
-}
-
-/* ============================================================================
-   Wire file-inputs on DOM ready
-=========================================================================== */
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('ecg_mat_file')
-          .addEventListener('change', checkAndAnalyzeECG);
-  document.getElementById('ecg_hea_file')
-          .addEventListener('change', checkAndAnalyzeECG);
-});
-    // ─── Fetch and populate Medicament dropdown for prescriptions ───
-    function initializeMedSearch(rowElement) {
-      const searchBox = rowElement.querySelector('.med-search');
-      const optionsList = rowElement.querySelector('.med-options');
-      const hiddenInput = rowElement.querySelector('input[type="hidden"][name$="-medicament_num_enr"]');
-      const idx = searchBox.dataset.index;
-      searchBox.addEventListener('focus', () => {
-        fetchMedications('', idx);
-        optionsList.style.display = 'block';
-      });
-      searchBox.addEventListener('blur', () => {
-        setTimeout(() => { optionsList.style.display = 'none'; }, 200);
-      });
-      searchBox.addEventListener('input', debounce(() => {
-        const query = searchBox.value.trim();
-        fetchMedications(query, idx);
-      }, 200));
-      function fetchMedications(query, index) {
-        fetch(`/search_medicaments?q=${encodeURIComponent(query)}`)
-          .then(resp => resp.json())
-          .then(data => {
-            const meds = data.medicaments || [];
-            optionsList.innerHTML = '';
-            if (meds.length === 0) {
-              const li = document.createElement('li');
-              li.textContent = 'No matches found';
-              li.classList.add('text-muted');
-              optionsList.appendChild(li);
-            } else {
-              meds.forEach(item => {
-                const li = document.createElement('li');
-                li.classList.add('med-option');
-                li.dataset.value = item.id;
-                li.textContent = item.text;
-                li.addEventListener('click', () => {
-                  searchBox.value = item.text;
-                  hiddenInput.value = item.id;
-                  optionsList.style.display = 'none';
-                });
-                optionsList.appendChild(li);
-              });
-            }
-          })
-          .catch(err => console.error('Error fetching medicaments:', err));
-      }
-    }
-    document.addEventListener('DOMContentLoaded', () => {
-      document.querySelectorAll('.prescription-row').forEach(row => initializeMedSearch(row));
-    });
-    (function() {
-      function wrapAddPrescription() {
-        if (typeof window.addPrescription === 'function') {
-          const orig = window.addPrescription;
-          window.addPrescription = function(...args) {
-            orig.apply(this, args);
-            setTimeout(() => {
-              const rows = document.querySelectorAll('.prescription-row');
-              const newRow = rows[rows.length - 1];
-              initializeMedSearch(newRow);
-            }, 100);
-          };
-        } else {
-          setTimeout(wrapAddPrescription, 100);
-        }
-      }
-      wrapAddPrescription();
-    })();
-</script>
+<script src="{{ url_for('static', filename='js/visit_form.js') }}"></script>
 {% endblock %}
-
