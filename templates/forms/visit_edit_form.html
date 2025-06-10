@@ -49,13 +49,48 @@
       font-size: 0.875rem;
       margin-top: 0.25rem;
     }
-    
-    .validation-message.invalid {
+      .validation-message.invalid {
       color: #dc3545;
     }
     
     .validation-message.valid {
       color: #28a745;
+    }
+
+    /* ─── Custom dropdown styles ─── */
+    .dropdown-search-container {
+      position: relative;
+    }
+    .dropdown-search-container input {
+      width: 100%;
+    }
+    
+    .dropdown-options {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      max-height: 350px;
+      overflow-y: auto;
+      z-index: 1000;
+      display: none;
+    }
+    .dropdown-options li {
+      margin: 0;
+      list-style: none;
+    }
+    .dropdown-options li:hover {
+      background: #f8f9fa !important;
+    }
+    .dropdown-options li.hidden {
+      display: none;
     }
     
     #submit-btn:disabled {
@@ -233,26 +268,25 @@
           Upload new files below to replace these.
         </small>
       </div>
-    {% endif %}
-
-    <div class="form-row">
+    {% endif %}    <div class="form-row">
       <div class="form-group col-md-6">
         {{ form.ecg_mat.label(class="form-label") }}
-        {{ form.ecg_mat(class="form-control-file") }}
+        {{ form.ecg_mat(class="form-control-file", id="ecg_mat_file") }}
         {% for err in form.ecg_mat.errors %}
           <small class="text-danger">{{ err }}</small>
         {% endfor %}
       </div>
       <div class="form-group col-md-6">
         {{ form.ecg_hea.label(class="form-label") }}
-        {{ form.ecg_hea(class="form-control-file") }}
+        {{ form.ecg_hea(class="form-control-file", id="ecg_hea_file") }}
         {% for err in form.ecg_hea.errors %}
           <small class="text-danger">{{ err }}</small>
         {% endfor %}
       </div>
     </div>
 
-    <div id="ecg-analysis-section" style="display: none;">
+    <!-- Enhanced ECG Analysis Results with Waveform Visualization -->
+    <div id="ecg-analysis-section">
       <div class="alert alert-info">
         <h5><i class="fa fa-heartbeat"></i> ECG Analysis Results</h5>
         <div id="ecg-analysis-loading" style="display: none;">
@@ -261,20 +295,75 @@
           </div>
           Analyzing ECG data...
         </div>
-        <div id="ecg-analysis-results" style="display: none;">
+        
+        <div id="ecg-analysis-results">
           <div class="row">
             <div class="col-md-6">
               <h6>Primary Diagnosis:</h6>
-              <div id="primary-diagnosis" class="font-weight-bold text-primary"></div>
+              <div id="primary-diagnosis" class="font-weight-bold text-primary">
+                {% if visit.ecg_prediction %}
+                  Loading existing analysis...
+                {% else %}
+                  No analysis available
+                {% endif %}
+              </div>
             </div>
             <div class="col-md-6">
               <h6>Confidence:</h6>
-              <div id="confidence-level" class="font-weight-bold"></div>
+              <div id="confidence-level" class="font-weight-bold">
+                {% if visit.ecg_prediction %}
+                  Calculating...
+                {% else %}
+                  N/A
+                {% endif %}
+              </div>
             </div>
           </div>
           <div class="mt-3">
             <h6>Detailed Probabilities:</h6>
-            <div id="detailed-probabilities"></div>
+            <div id="detailed-probabilities">
+              {% if visit.ecg_prediction %}
+                Loading detailed analysis...
+              {% else %}
+                Upload ECG files to see detailed analysis
+              {% endif %}
+            </div>
+          </div>
+          
+          <!-- ECG Waveform Visualization -->
+          <div class="mt-4">
+            <h6>ECG Waveform:</h6>
+            <div id="ecg-controls"></div>
+            <div id="ecg-waveform-container" 
+                 class="border rounded p-3 d-block" 
+                 style="background-color: #f8f9fa; 
+                        border: 2px solid #007bff !important; 
+                        overflow-x: auto; 
+                        text-align: center;
+                        width: 100%;
+                        position: relative;
+                        z-index: 1;">
+              <div id="ecg-waveform-loading" style="display: none; text-align: center; padding: 2rem;">
+                <div class="spinner-border spinner-border-sm" role="status">
+                  <span class="sr-only">Loading waveform...</span>
+                </div>
+                <p class="mt-2 mb-0">Rendering ECG waveform...</p>
+              </div>
+              
+              <div id="ecg-waveform-error" class="text-danger text-center" style="display: none; padding: 2rem;">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p class="mt-2 mb-0">Unable to display waveform</p>
+              </div>
+              <div style="position: relative; display: inline-block;">
+                <canvas id="ecg-waveform-chart" style="display: block; border: 1px solid #ccc;"></canvas>
+              </div>
+              <div class="mt-2 text-center">
+                <small class="text-muted">
+                  <strong>Medical Scale:</strong> 25mm/s × 10mm/mV | Each small box = 40ms × 0.1mV
+                  <br><strong>Controls:</strong> Hover for exact values, select different leads from dropdown above
+                </small>
+              </div>
+            </div>
           </div>
         </div>
         <div id="ecg-analysis-error" class="text-danger" style="display: none;"></div>
@@ -905,7 +994,271 @@
       wrapAddPrescription();
     })();
   </script>
-
   <!-- visit_form.js: only for add/remove row logic (no search logic here) -->
   <script src="{{ url_for('static', filename='js/visit_form.js') }}"></script>
+  
+  <!-- ECG Operations JavaScript -->
+  <script src="{{ url_for('static', filename='js/ecg_operations.js') }}"></script>
+  
+  <script>
+    // ─── ECG Enhancement for Edit Visit Form ───
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('Initializing ECG functionality for edit visit form');
+      
+      // Initialize ECG file change listeners
+      const matFileInput = document.getElementById('ecg_mat_file');
+      const heaFileInput = document.getElementById('ecg_hea_file');
+      
+      if (matFileInput && heaFileInput) {
+        matFileInput.addEventListener('change', window.checkAndAnalyzeECG);
+        heaFileInput.addEventListener('change', window.checkAndAnalyzeECG);
+        console.log('ECG file input listeners attached');
+      }
+      
+      // Load existing ECG analysis if available
+      loadExistingECGAnalysis();
+    });
+    
+    /**
+     * Load and display existing ECG analysis for this visit
+     */
+    function loadExistingECGAnalysis() {
+      const visitId = {{ visit.id }};
+      const hasECGData = {{ 'true' if visit.ecg_prediction else 'false' }};
+      const hasECGFiles = {{ 'true' if (visit.ecg_mat and visit.ecg_hea) else 'false' }};
+      
+      console.log('Loading existing ECG analysis:', { visitId, hasECGData, hasECGFiles });
+      
+      if (hasECGData) {
+        // Display existing ECG prediction data
+        const ecgPrediction = {{ visit.ecg_prediction|tojson if visit.ecg_prediction else '{}' }};
+        console.log('ECG prediction data:', ecgPrediction);
+        
+        // Find the primary diagnosis (highest probability)
+        let primaryDiagnosis = { name: 'Unknown', probability: 0 };
+        const classNames = {
+          'SNR': 'Sinus Rhythm (Normal)',
+          'AF': 'Atrial Fibrillation',
+          'IAVB': '1st Degree AV Block',
+          'LBBB': 'Left Bundle Branch Block',
+          'RBBB': 'Right Bundle Branch Block',
+          'PAC': 'Premature Atrial Complex',
+          'PVC': 'Premature Ventricular Complex',
+          'STD': 'ST Depression',
+          'STE': 'ST Elevation'
+        };
+        
+        // Find highest probability diagnosis
+        for (const [abbr, prob] of Object.entries(ecgPrediction)) {
+          if (prob > primaryDiagnosis.probability) {
+            primaryDiagnosis = {
+              name: classNames[abbr] || abbr,
+              probability: prob
+            };
+          }
+        }
+        
+        // Display the results
+        displayExistingECGResults(primaryDiagnosis, ecgPrediction, classNames);
+        
+        // Load ECG waveform if files exist
+        if (hasECGFiles) {
+          loadECGWaveform(visitId);
+        }
+      } else if (hasECGFiles) {
+        // Files exist but no analysis - show message
+        document.getElementById('primary-diagnosis').textContent = 'ECG files available but not analyzed';
+        document.getElementById('confidence-level').textContent = 'Click Analyze to process';
+        document.getElementById('detailed-probabilities').innerHTML = 
+          '<button class="btn btn-primary btn-sm" onclick="analyzeExistingECGFiles()">Analyze Existing ECG Files</button>';
+      }
+    }
+    
+    /**
+     * Display existing ECG analysis results
+     */
+    function displayExistingECGResults(primaryDiagnosis, ecgPrediction, classNames) {
+      console.log('Displaying existing ECG results:', primaryDiagnosis);
+      
+      // Update primary diagnosis
+      const primaryDiagnosisEl = document.getElementById('primary-diagnosis');
+      if (primaryDiagnosisEl) {
+        primaryDiagnosisEl.textContent = primaryDiagnosis.name;
+      }
+      
+      // Update confidence level
+      const confidence = (primaryDiagnosis.probability * 100).toFixed(1) + '%';
+      const confidenceEl = document.getElementById('confidence-level');
+      if (confidenceEl) {
+        confidenceEl.textContent = confidence;
+        
+        // Set color based on confidence level
+        confidenceEl.className = 'font-weight-bold ';
+        if (primaryDiagnosis.probability > 0.7) {
+          confidenceEl.className += 'text-success';
+        } else if (primaryDiagnosis.probability > 0.5) {
+          confidenceEl.className += 'text-warning';
+        } else {
+          confidenceEl.className += 'text-danger';
+        }
+      }
+      
+      // Update detailed probabilities
+      const detailedProbs = document.getElementById('detailed-probabilities');
+      if (detailedProbs) {
+        let html = '<div class="row">';
+        
+        // Sort by probability (descending)
+        const sortedEntries = Object.entries(ecgPrediction)
+          .sort(([,a], [,b]) => b - a);
+        
+        for (const [abbr, prob] of sortedEntries) {
+          const className = classNames[abbr] || abbr;
+          const percentage = (prob * 100).toFixed(1);
+          const isTopResult = prob === primaryDiagnosis.probability;
+          
+          html += `
+            <div class="col-md-6 mb-2">
+              <small><strong>${className} (${abbr}):</strong> ${percentage}%</small>
+              <div class="progress" style="height:5px;">
+                <div class="progress-bar ${isTopResult ? 'bg-primary' : ''}" 
+                     role="progressbar" 
+                     style="width:${percentage}%"></div>
+              </div>
+            </div>
+          `;
+        }
+        html += '</div>';
+        detailedProbs.innerHTML = html;
+      }
+    }
+    
+    /**
+     * Load ECG waveform for existing visit
+     */
+    function loadECGWaveform(visitId) {
+      console.log('Loading ECG waveform for visit:', visitId);
+      
+      // Show loading state
+      const waveformContainer = document.getElementById('ecg-waveform-container');
+      const loadingDiv = document.getElementById('ecg-waveform-loading');
+      const errorDiv = document.getElementById('ecg-waveform-error');
+      const canvas = document.getElementById('ecg-waveform-chart');
+      
+      if (loadingDiv) loadingDiv.style.display = 'block';
+      if (errorDiv) errorDiv.style.display = 'none';
+      if (canvas) canvas.style.display = 'none';
+      
+      // Create ECG controls dropdown
+      createECGControls();
+      
+      // For now, show a placeholder since we need to implement the backend endpoint
+      // to load ECG data from existing files
+      setTimeout(() => {
+        if (loadingDiv) loadingDiv.style.display = 'none';
+        if (canvas) {
+          canvas.style.display = 'block';
+          // Initialize with synthetic data or load from backend
+          initializeECGWaveform();
+        }
+      }, 1000);
+    }
+    
+    /**
+     * Create ECG lead selection controls
+     */
+    function createECGControls() {
+      const controlsDiv = document.getElementById('ecg-controls');
+      if (controlsDiv) {
+        controlsDiv.innerHTML = `
+          <div class="mb-3">
+            <label for="lead-select" class="form-label"><strong>Select ECG Lead:</strong></label>
+            <select id="lead-select" class="form-control" style="width: auto; display: inline-block;">
+              <option value="0">Lead I</option>
+              <option value="1">Lead II</option>
+              <option value="2">Lead III</option>
+              <option value="3">aVR</option>
+              <option value="4">aVL</option>
+              <option value="5">aVF</option>
+              <option value="6">V1</option>
+              <option value="7">V2</option>
+              <option value="8">V3</option>
+              <option value="9">V4</option>
+              <option value="10">V5</option>
+              <option value="11">V6</option>
+            </select>
+          </div>
+        `;
+        
+        // Add event listener for lead selection
+        const leadSelect = document.getElementById('lead-select');
+        if (leadSelect) {
+          leadSelect.addEventListener('change', function() {
+            const selectedLead = parseInt(this.value);
+            if (window.ECGOperations && window.ECGOperations.switchLead) {
+              window.ECGOperations.switchLead(selectedLead);
+            }
+          });
+        }
+      }
+    }
+    
+    /**
+     * Initialize ECG waveform visualization
+     */
+    function initializeECGWaveform() {
+      if (window.ECGOperations && window.ECGOperations.initializeWaveform) {
+        window.ECGOperations.initializeWaveform();
+      } else {
+        console.warn('ECG Operations not available for waveform initialization');
+      }
+    }
+    
+    /**
+     * Analyze existing ECG files
+     */
+    function analyzeExistingECGFiles() {
+      console.log('Analyzing existing ECG files...');
+      
+      // Show loading state
+      const loadingDiv = document.getElementById('ecg-analysis-loading');
+      const errorDiv = document.getElementById('ecg-analysis-error');
+      
+      if (loadingDiv) loadingDiv.style.display = 'block';
+      if (errorDiv) errorDiv.style.display = 'none';
+      
+      // Make request to analyze existing files
+      fetch(`/visit/{{ visit.id }}/analyze_ecg`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (loadingDiv) loadingDiv.style.display = 'none';
+        
+        if (data.success) {
+          // Reload the page to show updated results
+          window.location.reload();
+        } else {
+          if (errorDiv) {
+            errorDiv.textContent = data.error || 'Analysis failed';
+            errorDiv.style.display = 'block';
+          }
+        }
+      })
+      .catch(error => {
+        console.error('Error analyzing existing ECG files:', error);
+        if (loadingDiv) loadingDiv.style.display = 'none';
+        if (errorDiv) {
+          errorDiv.textContent = 'Network error: ' + error.message;
+          errorDiv.style.display = 'block';
+        }
+      });
+    }
+    
+    // Make analyzeExistingECGFiles globally available
+    window.analyzeExistingECGFiles = analyzeExistingECGFiles;
+  </script>
 {% endblock %}
