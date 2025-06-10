@@ -25,6 +25,8 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeForm();
     initializeECGAnalysis();
     initializeMedicamentSearch();
+    initializePatientSearch();
+    initializePatientModal();
 });
 
 /**
@@ -541,6 +543,368 @@ function initializeMedSearch(rowElement) {
         const query = searchBox.value.trim();
         currentPage++;
         fetchMedications(query, index, currentPage, true);
+    }
+}
+
+/**
+ * Initialize patient search functionality
+ */
+function initializePatientSearch() {
+    const searchBox = document.getElementById('patient-search');
+    const optionsList = document.getElementById('patient-options');
+    const hiddenInput = document.getElementById('patient_id');
+    
+    if (!searchBox || !optionsList || !hiddenInput) {
+        console.warn('Patient search elements not found');
+        return;
+    }
+    
+    let currentPage = 1;
+    let isLoading = false;
+    
+    console.log('Initializing patient search');
+    
+    // Show dropdown and fetch initial patients when focused
+    searchBox.addEventListener('focus', () => {
+        console.log('Patient search box focused');
+        currentPage = 1;
+        fetchPatients('');
+        optionsList.style.display = 'block';
+    });
+    
+    // Hide dropdown when blurred (with delay for clicks)
+    searchBox.addEventListener('blur', () => {
+        setTimeout(() => {
+            optionsList.style.display = 'none';
+        }, 200);
+    });
+    
+    // Search on input with debounce
+    searchBox.addEventListener('input', debounce(() => {
+        console.log('Patient search input changed:', searchBox.value);
+        const query = searchBox.value.trim();
+        currentPage = 1;
+        fetchPatients(query);
+    }, 300));
+    
+    // Add scroll event for pagination
+    optionsList.addEventListener('scroll', () => {
+        if (optionsList.scrollTop + optionsList.clientHeight >= optionsList.scrollHeight - 5) {
+            if (!isLoading) {
+                loadMorePatients();
+            }
+        }
+    });
+    
+    /**
+     * Fetch patients from server
+     */
+    function fetchPatients(query, page = 1, append = false) {
+        console.log('fetchPatients called with:', { query, page, append });
+        
+        if (isLoading) {
+            console.log('Already loading, skipping request');
+            return;
+        }
+        
+        isLoading = true;
+        const url = `/search_patients?q=${encodeURIComponent(query)}&page=${page}`;
+        
+        console.log('Making API request to:', url);
+        
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Received patient data:', data);
+                
+                const patients = data.patients || [];
+                
+                if (!append) {
+                    optionsList.innerHTML = '';
+                }
+                
+                if (patients.length === 0 && !append) {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <div style="padding: 12px; text-align: center; color: #666; font-style: italic;">
+                            No patients found
+                        </div>
+                    `;
+                    optionsList.appendChild(li);
+                } else {
+                    patients.forEach(patient => {
+                        const li = document.createElement('li');
+                        li.classList.add('patient-option');
+                        li.dataset.value = patient.id;
+                        
+                        // Create formatted display
+                        const firstName = patient.first_name || '';
+                        const lastName = patient.last_name || '';
+                        const fullName = `${firstName} ${lastName}`.trim();
+                        const phone = patient.phone || '';
+                        const email = patient.email || '';
+                        
+                        let contactInfo = '';
+                        if (phone && email) {
+                            contactInfo = `${phone} • ${email}`;
+                        } else if (phone) {
+                            contactInfo = phone;
+                        } else if (email) {
+                            contactInfo = email;
+                        }
+                        
+                        li.innerHTML = `
+                            <div style="padding: 12px; border-bottom: 1px solid #eee; cursor: pointer;">
+                                <div style="font-size: 16px; font-weight: bold; color: #333; line-height: 1.2;">
+                                    ${fullName || 'Unknown Patient'}
+                                </div>
+                                ${contactInfo ? `<div style="font-size: 14px; color: #666; margin-top: 2px;">${contactInfo}</div>` : ''}
+                            </div>
+                        `;
+                        
+                        li.addEventListener('click', () => {
+                            searchBox.value = fullName;
+                            hiddenInput.value = patient.id;
+                            optionsList.style.display = 'none';
+                            console.log('Selected patient:', patient);
+                        });
+                        
+                        li.addEventListener('mouseenter', () => {
+                            li.style.backgroundColor = '#f8f9fa';
+                        });
+                        
+                        li.addEventListener('mouseleave', () => {
+                            li.style.backgroundColor = '';
+                        });
+                        
+                        optionsList.appendChild(li);
+                    });
+                    
+                    // Update pagination info
+                    const pagination = data.pagination || {};
+                    if (!pagination.more) {
+                        const noMoreLi = document.createElement('li');
+                        noMoreLi.innerHTML = `
+                            <div style="padding: 8px 12px; text-align: center; color: #999; font-style: italic; font-size: 14px;">
+                                --- End of results ---
+                            </div>
+                        `;
+                        optionsList.appendChild(noMoreLi);
+                    }
+                }
+                
+                isLoading = false;
+            })
+            .catch(error => {
+                console.error('Error fetching patients:', error);
+                
+                if (!append) {
+                    optionsList.innerHTML = '';
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <div style="padding: 12px; text-align: center; color: #dc3545;">
+                            Error loading patients
+                        </div>
+                    `;
+                    optionsList.appendChild(li);
+                }
+                
+                isLoading = false;
+            });
+    }
+    
+    /**
+     * Load more patients (pagination)
+     */
+    function loadMorePatients() {
+        const query = searchBox.value.trim();
+        currentPage++;
+        fetchPatients(query, currentPage, true);
+    }
+}
+
+/**
+ * Initialize patient creation modal
+ */
+function initializePatientModal() {
+    const addPatientBtn = document.getElementById('add-patient-btn');
+    const modal = document.getElementById('addPatientModal');
+    const saveBtn = document.getElementById('savePatientBtn');
+    const form = document.getElementById('addPatientForm');
+    
+    if (!addPatientBtn || !modal || !saveBtn || !form) {
+        console.warn('Patient modal elements not found');
+        return;
+    }
+    
+    console.log('Initializing patient modal');
+    
+    // Show modal when button is clicked
+    addPatientBtn.addEventListener('click', () => {
+        // Clear form
+        form.reset();
+        clearValidationErrors();
+        hideMessages();
+        
+        // Show modal (using Bootstrap 4 modal)
+        $(modal).modal('show');
+    });
+    
+    // Save patient when save button is clicked
+    saveBtn.addEventListener('click', () => {
+        saveNewPatient();
+    });
+    
+    // Also save on Enter in form fields
+    form.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            saveNewPatient();
+        }
+    });
+    
+    /**
+     * Save new patient via AJAX
+     */
+    function saveNewPatient() {
+        const formData = new FormData(form);
+        const patientData = {
+            first_name: formData.get('first_name').trim(),
+            last_name: formData.get('last_name').trim(),
+            phone: formData.get('phone').trim(),
+            email: formData.get('email').trim(),
+            address: formData.get('address').trim()
+        };
+        
+        console.log('Saving new patient:', patientData);
+        
+        // Validate required fields
+        if (!patientData.first_name || !patientData.last_name) {
+            showValidationError('newPatientFirstName', 'First name is required');
+            showValidationError('newPatientLastName', 'Last name is required');
+            return;
+        }
+        
+        // Clear any previous errors
+        clearValidationErrors();
+        hideMessages();
+        
+        // Show loading state
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        
+        fetch('/create_patient', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(patientData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('Patient created successfully:', data.patient);
+                
+                // Show success message
+                showSuccessMessage(`Patient "${data.patient.text}" created successfully!`);
+                
+                // Update the patient search with the new patient
+                const searchBox = document.getElementById('patient-search');
+                const hiddenInput = document.getElementById('patient_id');
+                
+                if (searchBox && hiddenInput) {
+                    searchBox.value = data.patient.text;
+                    hiddenInput.value = data.patient.id;
+                }
+                
+                // Close modal after a short delay
+                setTimeout(() => {
+                    $(modal).modal('hide');
+                    form.reset();
+                    clearValidationErrors();
+                    hideMessages();
+                }, 1500);
+                
+            } else {
+                console.error('Failed to create patient:', data.error);
+                showErrorMessage(data.error || 'Failed to create patient');
+            }
+        })
+        .catch(error => {
+            console.error('Error creating patient:', error);
+            showErrorMessage('Network error: ' + error.message);
+        })
+        .finally(() => {
+            // Reset button state
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Patient';
+        });
+    }
+    
+    /**
+     * Show validation error for a field
+     */
+    function showValidationError(fieldId, message) {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.classList.add('is-invalid');
+            const feedback = field.parentNode.querySelector('.invalid-feedback');
+            if (feedback) {
+                feedback.textContent = message;
+            }
+        }
+    }
+    
+    /**
+     * Clear all validation errors
+     */
+    function clearValidationErrors() {
+        const fields = form.querySelectorAll('.form-control');
+        fields.forEach(field => {
+            field.classList.remove('is-invalid');
+            const feedback = field.parentNode.querySelector('.invalid-feedback');
+            if (feedback) {
+                feedback.textContent = '';
+            }
+        });
+    }
+    
+    /**
+     * Show error message
+     */
+    function showErrorMessage(message) {
+        const errorDiv = document.getElementById('patientCreationError');
+        if (errorDiv) {
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('d-none');
+        }
+    }
+    
+    /**
+     * Show success message
+     */
+    function showSuccessMessage(message) {
+        const successDiv = document.getElementById('patientCreationSuccess');
+        if (successDiv) {
+            successDiv.textContent = message;
+            successDiv.classList.remove('d-none');
+        }
+    }
+    
+    /**
+     * Hide all messages
+     */
+    function hideMessages() {
+        const errorDiv = document.getElementById('patientCreationError');
+        const successDiv = document.getElementById('patientCreationSuccess');
+        
+        if (errorDiv) errorDiv.classList.add('d-none');
+        if (successDiv) successDiv.classList.add('d-none');
     }
 }
 

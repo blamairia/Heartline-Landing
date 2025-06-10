@@ -10,6 +10,8 @@ import torch
 import torch.nn as nn
 import numpy as np
 import wfdb
+import tempfile
+import csv
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_sqlalchemy import SQLAlchemy
@@ -331,8 +333,8 @@ def create_visit():
     """
     form = VisitForm()
 
-    # Populate patient dropdown
-    form.patient_id.choices = [(p.id, f"{p.first_name} {p.last_name}") for p in Patient.query.order_by(Patient.first_name).all()]
+    # Note: Patient selection now uses AJAX search, no need to populate choices
+    # The patient_id will be set by the searchable dropdown via JavaScript
 
     # Populate medicament choices for each PrescriptionForm
     meds = Medicament.query.order_by(Medicament.nom_com).all()
@@ -968,39 +970,103 @@ def search_medicaments():
 @login_required
 @any_role_required
 def search_patients():
-    q = request.args.get('q', '', type=str).strip()
-    # If q is empty, we return the first 10 patients alphabetically.
-    # If q is nonempty, we filter by first_name ILIKE or last_name ILIKE.
-    if q == "":
-        patients = (
-            Patient.query
-            .order_by(Patient.first_name, Patient.last_name)
-            .limit(10)
-            .all()
-        )
-    else:
-        pattern = f'%{q}%'
-        patients = (
-            Patient.query
-            .filter(
-                or_(
+    """AJAX endpoint to search patients for searchable dropdown"""
+    try:
+        q = request.args.get('q', '', type=str).strip()
+        page = request.args.get('page', 1, type=int)
+        per_page = 10
+        
+        query = Patient.query
+        if q:
+            pattern = f"%{q}%"
+            # Search in both first_name and last_name fields
+            query = query.filter(
+                db.or_(
                     Patient.first_name.ilike(pattern),
                     Patient.last_name.ilike(pattern)
                 )
             )
-            .order_by(Patient.first_name, Patient.last_name)
-            .limit(10)
-            .all()
+        
+        # Sort by latest added (id desc), then by name
+        paginated = query.order_by(Patient.id.desc(), Patient.first_name, Patient.last_name).paginate(
+            page=page, per_page=per_page, error_out=False
         )
+        
+        patients = paginated.items
+        results = [
+            {
+                'id': p.id,
+                'text': f"{p.first_name} {p.last_name}",
+                'first_name': p.first_name or '',
+                'last_name': p.last_name or '',
+                'phone': p.phone or '',
+                'email': p.email or ''
+            }
+            for p in patients
+        ]
+        
+        more = paginated.pages > page
+        return jsonify({ 'patients': results, 'pagination': { 'more': more } })
+    except Exception as e:
+        return jsonify({ 'error': str(e) }), 500
 
-    results = [
-        {
-            'id': p.id,
-            'label': f"{p.first_name} {p.last_name}"
-        }
-        for p in patients
-    ]
-    return jsonify(results)
+
+# ─── Route to create a new patient via AJAX ───
+@app.route('/create_patient', methods=['POST'])
+@login_required
+@any_role_required
+def create_patient_ajax():
+    """AJAX endpoint to create a new patient"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        first_name = data.get('first_name', '').strip()
+        last_name = data.get('last_name', '').strip()
+        
+        if not first_name or not last_name:
+            return jsonify({'error': 'First name and last name are required'}), 400
+        
+        # Check if patient already exists
+        existing = Patient.query.filter(
+            db.and_(
+                Patient.first_name.ilike(first_name),
+                Patient.last_name.ilike(last_name)
+            )
+        ).first()
+        
+        if existing:
+            return jsonify({'error': 'Patient with this name already exists'}), 400
+        
+        # Create new patient
+        new_patient = Patient(
+            first_name=first_name,
+            last_name=last_name,
+            phone=data.get('phone', '').strip() or None,
+            email=data.get('email', '').strip() or None,
+            address=data.get('address', '').strip() or None,
+            date_of_birth=None,  # Can be added later
+            gender='Other'  # Default value, can be updated later
+        )
+        
+        db.session.add(new_patient)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'patient': {
+                'id': new_patient.id,
+                'text': f"{new_patient.first_name} {new_patient.last_name}",
+                'first_name': new_patient.first_name,
+                'last_name': new_patient.last_name,
+                'phone': new_patient.phone or '',
+                'email': new_patient.email or ''
+            }
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 
 # ─── Route to search medicaments by name ───
