@@ -746,10 +746,29 @@ def analyze_ecg():
             }
             
             prob_dict = {abbr: float(probs[i]) for i, abbr in enumerate(class_abbrs)}
-            
-            # Find the most likely condition (highest probability)
+              # Find the most likely condition (highest probability)
             max_prob_abbr = max(prob_dict, key=prob_dict.get)
             max_prob_value = prob_dict[max_prob_abbr]
+            
+            # Prepare ECG waveform data for frontend
+            fs = float(record.fs) if hasattr(record, 'fs') and record.fs else 250.0  # Default to 250 Hz
+            time_duration = nsteps / fs
+            time_data = np.linspace(0, time_duration, nsteps).tolist()
+            
+            # Convert signals to millivolts and prepare for JSON
+            # ECG signals are typically in microvolts, convert to millivolts
+            signals_mv = []
+            for lead_idx in range(min(nleads, 12)):  # Limit to 12 leads max
+                lead_signal = sig_all[:, lead_idx] * 1000  # Convert to mV (assuming input is in V)
+                signals_mv.append(lead_signal.tolist())
+            
+            ecg_data = {
+                "time": time_data,
+                "signals": signals_mv,
+                "sampling_rate": fs,
+                "duration": time_duration,
+                "leads": min(nleads, 12)
+            }
             
             # Prepare response
             response = {
@@ -760,6 +779,7 @@ def analyze_ecg():
                     "name": class_names.get(max_prob_abbr, max_prob_abbr),
                     "probability": max_prob_value
                 },
+                "ecg": ecg_data,
                 "summary": f"Primary finding: {class_names.get(max_prob_abbr, max_prob_abbr)} ({max_prob_value:.1%} confidence)"
             }
             

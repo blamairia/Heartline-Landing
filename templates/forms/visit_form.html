@@ -188,18 +188,17 @@
       </div>
       
       <hr>
-      <h4>Upload ECG Files (Optional)</h4>
-      <div class="form-row">
+      <h4>Upload ECG Files (Optional)</h4>      <div class="form-row">
         <div class="form-group col-md-6">
           {{ form.ecg_mat.label(class="form-label") }}
-          {{ form.ecg_mat(class="form-control-file", id="ecg_mat_file", onchange="checkAndAnalyzeECG()") }}
+          {{ form.ecg_mat(class="form-control-file", id="ecg_mat_file") }}
           {% for err in form.ecg_mat.errors %}
             <small class="text-danger">{{ err }}</small>
           {% endfor %}
         </div>
         <div class="form-group col-md-6">
           {{ form.ecg_hea.label(class="form-label") }}
-          {{ form.ecg_hea(class="form-control-file", id="ecg_hea_file", onchange="checkAndAnalyzeECG()") }}
+          {{ form.ecg_hea(class="form-control-file", id="ecg_hea_file") }}
           {% for err in form.ecg_hea.errors %}
             <small class="text-danger">{{ err }}</small>
           {% endfor %}
@@ -215,8 +214,7 @@
               <span class="sr-only">Analyzing...</span>
             </div>
             Analyzing ECG data...
-          </div>
-          <div id="ecg-analysis-results" style="display: none;">
+          </div>          <div id="ecg-analysis-results" style="display: none;">
             <div class="row">
               <div class="col-md-6">
                 <h6>Primary Diagnosis:</h6>
@@ -229,7 +227,31 @@
             </div>
             <div class="mt-3">
               <h6>Detailed Probabilities:</h6>
-              <div id="detailed-probabilities"></div>            </div>
+              <div id="detailed-probabilities"></div>
+            </div>
+            <div class="mt-4">
+              <h6>ECG Waveform:</h6>
+              <div id="ecg-waveform-container" class="border rounded p-3" style="background-color: #f8f9fa;">
+                <div id="ecg-waveform-loading" style="display: none; text-align: center; padding: 2rem;">
+                  <div class="spinner-border spinner-border-sm" role="status">
+                    <span class="sr-only">Loading waveform...</span>
+                  </div>
+                  <p class="mt-2 mb-0">Rendering ECG waveform...</p>
+                </div>
+                <div id="ecg-waveform-error" class="text-danger text-center" style="display: none; padding: 2rem;">
+                  <i class="fas fa-exclamation-triangle"></i>
+                  <p class="mt-2 mb-0">Unable to display waveform</p>
+                </div>
+                <div style="position: relative; height: 400px;">
+                  <canvas id="ecg-waveform-chart"></canvas>
+                </div>
+                <div class="mt-2 text-center">
+                  <small class="text-muted">
+                    <strong>Controls:</strong> Mouse wheel to zoom, drag to pan, hover for exact values
+                  </small>
+                </div>
+              </div>
+            </div>
           </div>
           <div id="ecg-analysis-error" class="text-danger" style="display: none;"></div>
         </div>
@@ -494,8 +516,18 @@
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- Scripts -->
+  </div>  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
   <script src="{{ url_for('static', filename='js/visit_form.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/ecg_operations.js') }}"></script>
+  <script>
+    // Initialize ECG operations after DOM content is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize ECG analysis functionality
+      if (typeof window.ECGOperations !== 'undefined') {
+        window.ECGOperations.initializeECGAnalysis();
+      }
+    });
+  </script>
 {% endblock %}
