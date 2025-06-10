@@ -3,6 +3,17 @@
  * Handles ECG file upload and real-time analysis functionality
  */
 
+// Global variables for ECG chart
+let ecgChart = null;
+let currentECGData = null;
+let currentLead = 0; // Default to the first lead
+
+// ECG Lead names mapping
+const ECG_LEADS = [
+    'Lead I', 'Lead II', 'Lead III', 'aVR', 'aVL', 'aVF',
+    'V1', 'V2', 'V3', 'V4', 'V5', 'V6'
+];
+
 /**
  * Initialize ECG analysis functionality
  */
@@ -10,10 +21,33 @@ function initializeECGAnalysis() {
     const matFileInput = document.getElementById('ecg_mat_file');
     const heaFileInput = document.getElementById('ecg_hea_file');
     
+    // Defer setup until DOM is likely ready, but still try to run it early.
+    // Using a small timeout or DOMContentLoaded listener
+    const setupProtection = () => {
+        // Ensure elements exist before setting up protection
+        const section = document.getElementById('ecg-analysis-section');
+        const banner = document.querySelector('#ecg-analysis-section .alert.alert-info');
+        const results = document.getElementById('ecg-analysis-results');
+
+        if (section && banner && results) {
+            setupECGSectionProtection(); // This already calls protectECGSectionVisibility once
+            console.log('TEMP FIX: ECG Protection setup initiated.');
+        } else {
+            console.warn('TEMP FIX: ECG elements not yet available for protection setup. Retrying...');
+            setTimeout(setupProtection, 100); // Retry if elements not found
+        }
+    };
+    
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupProtection);
+    } else {
+        setupProtection(); // DOM is already ready
+    }
+    
     if (matFileInput && heaFileInput) {
-        matFileInput.addEventListener('change', checkAndAnalyzeECG);
-        heaFileInput.addEventListener('change', checkAndAnalyzeECG);
-        console.log('ECG analysis event listeners attached');
+        matFileInput.addEventListener('change', () => { protectECGSectionVisibility(); checkAndAnalyzeECG(); });
+        heaFileInput.addEventListener('change', () => { protectECGSectionVisibility(); checkAndAnalyzeECG(); });
+        console.log('ECG analysis event listeners attached with visibility protection.');
     } else {
         console.warn('ECG file inputs not found');
     }
@@ -23,6 +57,8 @@ function initializeECGAnalysis() {
  * Check if both ECG files are uploaded and trigger analysis
  */
 function checkAndAnalyzeECG() {
+    protectECGSectionVisibility(); // Ensure visibility at the very start
+
     const matFile = document.getElementById('ecg_mat_file').files[0];
     const heaFile = document.getElementById('ecg_hea_file').files[0];
     
@@ -33,27 +69,57 @@ function checkAndAnalyzeECG() {
     const spinner = document.getElementById('ecg-analysis-loading');
     const results = document.getElementById('ecg-analysis-results');
     const errorBox = document.getElementById('ecg-analysis-error');
+      // Check if we're in edit mode and have existing data
+    const isEditMode = window.location.pathname.includes('/edit');
+    const existingResultsVisible = results && results.style.display !== 'none';
+    
+    console.log('ECG check context:', { isEditMode, existingResultsVisible });
     
     // Make wrapper + banner visible at the very first click
     if (section) section.style.display = 'block';
-    if (banner) banner.style.display = 'block';
+    if (banner) banner.style.display = 'block';    // Redundant due to protection, but harmless
+
+    // TEMP FIX: Always keep ECG section visible regardless of file state
+    // This logic is now primarily handled by protectECGSectionVisibility and setupECGSectionProtection
+    console.log('TEMP FIX: Relying on protection functions for visibility.');
     
-    // Nothing to analyse until both files are selected
-    if (!(matFile && heaFile)) {
-        if (spinner) spinner.style.display = 'none';
-        if (results) results.style.display = 'none';
-        if (errorBox) errorBox.style.display = 'none';
-        return; // stop here – don't fire request yet
+    // Always keep ECG section visible
+    if (section) {
+        section.style.display = 'block';
+        section.style.visibility = 'visible';
     }
     
-    // Both files are present – show spinner and launch request
+    // Always keep banner visible
+    if (banner) {
+        banner.style.display = 'block';
+        banner.style.visibility = 'visible';
+    }
+    
+    // Always keep results visible
+    if (results) {
+        results.style.display = 'block';
+        results.style.visibility = 'visible';
+    }
+    
+    // Hide loading and error states when no files
+    if (!(matFile && heaFile)) {
+        if (spinner) spinner.style.display = 'none';
+        if (errorBox) errorBox.style.display = 'none';
+        
+        console.log('TEMP FIX: No files selected, but keeping all ECG elements visible');
+        return; // stop here – don't fire request yet
+    }
+      // Both files are present – show spinner and launch request
     if (spinner) spinner.style.display = 'block';
-    if (results) results.style.display = 'none';
+    // TEMP FIX: Don't hide results during analysis - keep them visible
+    // if (results) results.style.display = 'none';
     if (errorBox) errorBox.style.display = 'none';
     
     console.log('Both ECG files present, starting analysis...');
+    console.log('TEMP FIX: Keeping results visible during analysis');
     
     // Start the actual analysis
+    protectECGSectionVisibility(); // Ensure visibility before starting async operation
     analyzeECGFiles(matFile, heaFile);
 }
 
@@ -61,6 +127,7 @@ function checkAndAnalyzeECG() {
  * Send ECG files to backend for analysis
  */
 function analyzeECGFiles(matFile, heaFile) {
+    protectECGSectionVisibility(); // Ensure visibility at the start of analysis
     console.log('Sending ECG files for analysis...');
     
     const spinner = document.getElementById('ecg-analysis-loading');
@@ -81,7 +148,8 @@ function analyzeECGFiles(matFile, heaFile) {
     })
     .then(data => {
         console.log('ECG analysis data:', data);
-        
+        protectECGSectionVisibility(); // Ensure visibility after receiving data
+
         if (spinner) spinner.style.display = 'none';
         
         if (data.success) {
@@ -102,7 +170,8 @@ function analyzeECGFiles(matFile, heaFile) {
     })
     .catch(error => {
         console.error('ECG analysis network error:', error);
-        
+        protectECGSectionVisibility(); // Ensure visibility on error
+
         if (spinner) spinner.style.display = 'none';
         if (errorBox) {
             errorBox.textContent = 'Network error: ' + error.message;
@@ -115,6 +184,7 @@ function analyzeECGFiles(matFile, heaFile) {
  * Display ECG analysis results in the UI
  */
 function displayECGResults(data) {
+    protectECGSectionVisibility(); // Ensure visibility when displaying results
     console.log('Displaying ECG results:', data);
     
     // Update primary diagnosis
@@ -188,27 +258,35 @@ window.ECGOperations = {
     initializeECGAnalysis,
     checkAndAnalyzeECG,
     analyzeECGFiles,
-    displayECGResults
+    displayECGResults,
+    displayECGWaveform,
+    switchLead: function(leadIndex) {
+        currentLead = parseInt(leadIndex, 10); // Ensure leadIndex is an integer
+        if (currentECGData) { // Only update if data exists
+            updateECGChart();
+        }
+    },
+    updateECGChart,
+    createLeadControls,
+    // TEMP FIX: Add protection functions
+    protectECGSectionVisibility,
+    setupECGSectionProtection,
+    forceECGVisibility // Assuming forceECGVisibility is defined elsewhere or calls protectECGSectionVisibility
 };
 
 // Also make checkAndAnalyzeECG globally available for HTML onchange attributes
 window.checkAndAnalyzeECG = checkAndAnalyzeECG;
-
-// Global variables for ECG chart
-let ecgChart = null;
-let currentECGData = null;
-let currentLead = 0;
-
-// ECG Lead names mapping
-const ECG_LEADS = [
-    'Lead I', 'Lead II', 'Lead III', 'aVR', 'aVL', 'aVF',
-    'V1', 'V2', 'V3', 'V4', 'V5', 'V6'
-];
+window.displayECGWaveform = displayECGWaveform; // Ensure this is intended to be global
+// TEMP FIX: Make protection functions globally available
+window.protectECGSectionVisibility = protectECGSectionVisibility;
+window.setupECGSectionProtection = setupECGSectionProtection;
+// window.forceECGVisibility = forceECGVisibility; // Assuming it's defined
 
 /**
  * Display ECG waveform with medical-grade scaling and lead selection
  */
 function displayECGWaveform(ecgData) {
+    protectECGSectionVisibility(); // Ensure visibility at the start
     console.log('Displaying ECG waveform:', ecgData);
     
     const loadingEl = document.getElementById('ecg-waveform-loading');
@@ -221,10 +299,12 @@ function displayECGWaveform(ecgData) {
         showWaveformError('Waveform canvas not available');
         return;
     }
-    
+      // TEMP FIX: Don't manipulate loading/error states - keep everything visible
     // Show loading state
-    if (loadingEl) loadingEl.style.display = 'block';
-    if (errorEl) errorEl.style.display = 'none';
+    // if (loadingEl) loadingEl.style.display = 'block';
+    // if (errorEl) errorEl.style.display = 'none';
+    
+    console.log('TEMP FIX: Skipping loading state manipulation to keep ECG visible');
     
     try {
         // Validate data structure
@@ -260,6 +340,7 @@ function displayECGWaveform(ecgData) {
  * Create lead selection controls
  */
 function createLeadControls(numberOfLeads) {
+    protectECGSectionVisibility(); // Ensure visibility when creating controls
     const controlsContainer = document.getElementById('ecg-controls');
     if (!controlsContainer) return;
     
@@ -314,7 +395,9 @@ function createLeadControls(numberOfLeads) {
  * Update ECG chart with current lead selection - Custom Canvas Implementation
  */
 function updateECGChart() {
+    protectECGSectionVisibility(); // Ensure visibility when updating chart
     if (!currentECGData || !currentECGData.time || !currentECGData.signals) {
+        console.warn('updateECGChart: No current ECG data to render.');
         return;
     }
     
@@ -624,9 +707,15 @@ function addCanvasInteractivity(canvas, timeStart, voltageStart, displayDuration
  * Show waveform error message
  */
 function showWaveformError(message) {
+    protectECGSectionVisibility(); // Ensure main sections are visible even when showing error
     const loadingEl = document.getElementById('ecg-waveform-loading');
     const errorEl = document.getElementById('ecg-waveform-error');
-    
+
+    // Call protection function at the beginning
+    if (typeof protectECGSectionVisibility === 'function') {
+        protectECGSectionVisibility();
+    }
+
     if (loadingEl) loadingEl.style.display = 'none';
     if (errorEl) {
         errorEl.style.display = 'block';
@@ -642,3 +731,142 @@ function showWaveformError(message) {
         ecgChart = null;
     }
 }
+
+/**
+ * TEMPORARY FIX: Protect ECG section from being hidden
+ * This function prevents any accidental hiding of the ECG analysis section, its results, its banner,
+ * and the ECG waveform display components.
+ */
+function protectECGSectionVisibility() {
+    const section = document.getElementById('ecg-analysis-section');
+    const results = document.getElementById('ecg-analysis-results');
+    const banner = section ? section.querySelector(':scope > .alert.alert-info') : null;
+    const controls = document.getElementById('ecg-controls');
+    const waveformContainer = document.getElementById('ecg-waveform-container');
+    const waveformChart = document.getElementById('ecg-waveform-chart'); // The canvas
+
+    const applyStyles = (el, name, displayType = 'block') => {
+        if (el) {
+            let changed = false;
+            if (el.style.getPropertyValue('display') !== displayType && !(displayType === 'block' && el.style.getPropertyValue('display') === 'inline-block' && name === 'ECG waveform chart')) { // Allow inline-block for canvas if already set
+                el.style.setProperty('display', displayType, 'important');
+                changed = true;
+            }
+            if (el.style.getPropertyValue('visibility') !== 'visible') {
+                el.style.setProperty('visibility', 'visible', 'important');
+                changed = true;
+            }
+            const currentOpacity = el.style.getPropertyValue('opacity');
+            if (currentOpacity !== '1' && currentOpacity !== '') {
+                 el.style.setProperty('opacity', '1', 'important');
+                 changed = true;
+            }
+
+            if (changed) {
+                console.log(`TEMP FIX: ${name} visibility forcefully protected (display: ${displayType}).`);
+            }
+        } else {
+            // console.warn(`TEMP FIX: ${name} not found during protection cycle.`);
+        }
+    };
+
+    applyStyles(section, 'ECG section');
+    applyStyles(results, 'ECG results');
+    applyStyles(banner, 'ECG banner (#ecg-analysis-section > .alert.alert-info)');
+    applyStyles(controls, 'ECG controls');
+    applyStyles(waveformContainer, 'ECG waveform container');
+    // For the canvas, 'inline-block' might be its intended style within its centered div.
+    // However, forcing 'block' is a strong measure for visibility.
+    // The parent div of canvas has 'display: inline-block', canvas itself has no explicit display in HTML.
+    // Let's try 'block' first for consistency with the protection logic.
+    // If the canvas was explicitly 'inline-block', the check `el.style.getPropertyValue('display') === 'inline-block'` would prevent override if `displayType` is `block`.
+    // The user HTML shows the canvas parent is <div style="position: relative; display: inline-block;">
+    // The canvas itself has no display property set in the HTML.
+    // Using 'block' for the canvas should be fine as a temporary measure.
+    applyStyles(waveformChart, 'ECG waveform chart', 'block'); // Canvas specific display type if needed, e.g. 'inline-block'
+}
+
+/**
+ * TEMPORARY FIX: Set up mutation observer and interval to watch for ECG section changes
+ */
+function setupECGSectionProtection() {
+    const section = document.getElementById('ecg-analysis-section');
+
+    if (!section) {
+        console.warn('ECG protection: Main section #ecg-analysis-section not found. Retrying setup in 500ms...');
+        setTimeout(setupECGSectionProtection, 500);
+        return;
+    }
+
+    const results = document.getElementById('ecg-analysis-results');
+    const banner = section.querySelector(':scope > .alert.alert-info');
+    const controls = document.getElementById('ecg-controls');
+    const waveformContainer = document.getElementById('ecg-waveform-container');
+    const waveformChart = document.getElementById('ecg-waveform-chart');
+
+    console.log('ECG protection: Setting up MutationObserver and interval for all relevant ECG components.');
+
+    const elementsToObserve = [
+        section, 
+        results, 
+        banner, 
+        controls, 
+        waveformContainer, 
+        waveformChart
+    ].filter(el => el); // Observe only currently existing elements
+
+    if (elementsToObserve.length === 0) {
+        console.warn('ECG protection: No specific ECG elements found to observe initially. Interval will still run for general protection.');
+    } else {
+        console.log('ECG protection: Observing elements: ', elementsToObserve.map(el => el.id || el.className));
+    }
+
+    const observerCallback = function(mutationsList, observerInstance) {
+        let relevantChangeDetected = false;
+        for (const mutation of mutationsList) {
+            if (mutation.type === 'attributes' && (mutation.attributeName === 'style' || mutation.attributeName === 'class')) {
+                const targetElement = mutation.target;
+                // Check if the style was changed to something that hides the element
+                if (targetElement.style.display === 'none' ||
+                    targetElement.style.visibility === 'hidden' ||
+                    (targetElement.style.opacity !== '' && parseFloat(targetElement.style.opacity) < 1)) {
+                    relevantChangeDetected = true;
+                    break;
+                }
+            }
+        }
+
+        if (relevantChangeDetected) {
+            console.log('ECG protection: Monitored attribute changed to hide element, re-applying protection.');
+            protectECGSectionVisibility(); // Re-apply styles to all protected elements
+        }
+    };
+
+    // Disconnect previous observer if one was already set up on window to avoid duplicates
+    if (window.ecgVisibilityObserver instanceof MutationObserver) {
+        window.ecgVisibilityObserver.disconnect();
+    }
+    window.ecgVisibilityObserver = new MutationObserver(observerCallback);
+
+    elementsToObserve.forEach(el => {
+        if (el) {
+            window.ecgVisibilityObserver.observe(el, { attributes: true, attributeFilter: ['style', 'class'] });
+        }
+    });
+
+    if (typeof window.ecgProtectionInterval === 'number') {
+        clearInterval(window.ecgProtectionInterval);
+    }
+    window.ecgProtectionInterval = setInterval(protectECGSectionVisibility, 250);
+
+    console.log('ECG protection: MutationObserver and periodic check (250ms) are active for extended ECG components.');
+}
+
+// It's good practice to have a function that can be called to explicitly force visibility if needed for debugging or setup.
+function forceECGVisibility() {
+    console.log('TEMP FIX: Manually triggering protectECGSectionVisibility.');
+    protectECGSectionVisibility();
+}
+
+// Ensure DOM is ready before trying to set up protections that rely on element existence.
+// The call in initializeECGAnalysis handles this,
