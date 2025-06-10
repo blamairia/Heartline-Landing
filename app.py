@@ -938,11 +938,23 @@ def search_medicaments():
         query = Medicament.query
         if q:
             pattern = f"%{q}%"
-            query = query.filter(Medicament.nom_com.ilike(pattern))
+            # Search in both nom_com and nom_dci fields
+            query = query.filter(
+                db.or_(
+                    Medicament.nom_com.ilike(pattern),
+                    Medicament.nom_dci.ilike(pattern)                )
+            )
         paginated = query.order_by(Medicament.nom_com).paginate(page=page, per_page=per_page, error_out=False)
         meds = paginated.items
         results = [
-            { 'id': m.num_enr, 'text': f"{m.nom_com} ({m.dosage}{m.unite})" }
+            { 
+                'id': m.num_enr, 
+                'text': f"{m.nom_com.upper()} - {m.nom_dci} - {m.dosage}",
+                'nom_com': m.nom_com or '',
+                'nom_dci': m.nom_dci or '',
+                'dosage': m.dosage or '',
+                'unite': m.unite or ''
+            }
             for m in meds
         ]
         more = paginated.pages > page

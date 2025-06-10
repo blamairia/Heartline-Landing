@@ -436,26 +436,64 @@ function initializeMedSearch(rowElement) {
                     li.classList.add('text-muted');
                     li.style.padding = '8px 12px';
                     li.style.fontStyle = 'italic';
-                    optionsList.appendChild(li);
-                } else {
+                    optionsList.appendChild(li);                } else {
                     meds.forEach(item => {
                         const li = document.createElement('li');
                         li.classList.add('med-option');
                         li.dataset.value = item.id;
-                        li.textContent = item.text;
-                        li.style.padding = '8px 12px';
-                        li.style.cursor = 'pointer';
-                        li.style.borderBottom = '1px solid #eee';
+                          // Create formatted display with individual fields
+                        const nomCom = item.nom_com || 'Unknown';
+                        const nomDci = item.nom_dci || '';
+                        const dosage = item.dosage || '';
+                        const unite = item.unite || '';
                         
-                        li.addEventListener('click', () => {
-                            searchBox.value = item.text;
+                        // Format dosage display
+                        let dosageDisplay = dosage;
+                        if (dosage && unite && !dosage.includes(unite)) {
+                            dosageDisplay = `${dosage} ${unite}`;
+                        }
+                        
+                        li.innerHTML = `
+                            <div style="padding: 12px; border-bottom: 1px solid #eee; cursor: pointer;">
+                                <div style="font-size: 16px; font-weight: bold; color: #333; line-height: 1.2;">
+                                    ${nomCom.toUpperCase()}
+                                </div>
+                                <div style="font-size: 14px; color: #666; margin-top: 2px;">
+                                    ${nomDci}${nomDci && dosageDisplay ? ' - ' : ''}${dosageDisplay}
+                                </div>
+                            </div>
+                        `;
+                          li.addEventListener('click', () => {
+                            // Create properly formatted display text
+                            const nomCom = item.nom_com || 'Unknown';
+                            const nomDci = item.nom_dci || '';
+                            const dosage = item.dosage || '';
+                            const unite = item.unite || '';
+                            
+                            // Format dosage display
+                            let dosageDisplay = dosage;
+                            if (dosage && unite && !dosage.includes(unite)) {
+                                dosageDisplay = `${dosage} ${unite}`;
+                            }
+                            
+                            // Create display text: "NOM_COM - NOM_DCI - DOSAGE"
+                            let displayText = nomCom.toUpperCase();
+                            if (nomDci) {
+                                displayText += ` - ${nomDci}`;
+                            }
+                            if (dosageDisplay) {
+                                displayText += ` - ${dosageDisplay}`;
+                            }
+                            
+                            searchBox.value = displayText;
                             hiddenInput.value = item.id;
                             optionsList.style.display = 'none';
                             console.log('Selected medication:', item);
+                            console.log('Display text:', displayText);
                         });
                         
                         li.addEventListener('mouseenter', () => {
-                            li.style.backgroundColor = '#f0f0f0';
+                            li.style.backgroundColor = '#f8f9fa';
                         });
                         
                         li.addEventListener('mouseleave', () => {
