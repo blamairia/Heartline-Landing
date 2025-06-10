@@ -194,11 +194,19 @@ window.ECGOperations = {
 // Also make checkAndAnalyzeECG globally available for HTML onchange attributes
 window.checkAndAnalyzeECG = checkAndAnalyzeECG;
 
-// Global variable to store the chart instance
+// Global variables for ECG chart
 let ecgChart = null;
+let currentECGData = null;
+let currentLead = 0;
+
+// ECG Lead names mapping
+const ECG_LEADS = [
+    'Lead I', 'Lead II', 'Lead III', 'aVR', 'aVL', 'aVF',
+    'V1', 'V2', 'V3', 'V4', 'V5', 'V6'
+];
 
 /**
- * Display ECG waveform using Chart.js
+ * Display ECG waveform with medical-grade scaling and lead selection
  */
 function displayECGWaveform(ecgData) {
     console.log('Displaying ECG waveform:', ecgData);
@@ -206,6 +214,7 @@ function displayECGWaveform(ecgData) {
     const loadingEl = document.getElementById('ecg-waveform-loading');
     const errorEl = document.getElementById('ecg-waveform-error');
     const canvas = document.getElementById('ecg-waveform-chart');
+    const controlsContainer = document.getElementById('ecg-controls');
     
     if (!canvas) {
         console.error('ECG waveform canvas not found');
@@ -227,160 +236,14 @@ function displayECGWaveform(ecgData) {
             throw new Error('No ECG signal data available');
         }
         
-        // Use Lead I (first signal) by default
-        const timeData = ecgData.time;
-        const signalData = ecgData.signals[0]; // Lead I
+        // Store ECG data globally for lead switching
+        currentECGData = ecgData;
         
-        if (timeData.length !== signalData.length) {
-            throw new Error('Time and signal data length mismatch');
-        }
+        // Create lead selection controls
+        createLeadControls(ecgData.signals.length);
         
-        // Prepare data for Chart.js
-        const chartData = timeData.map((time, index) => ({
-            x: time,
-            y: signalData[index]
-        }));
-        
-        // Calculate data range for better scaling
-        const minTime = Math.min(...timeData);
-        const maxTime = Math.max(...timeData);
-        const minSignal = Math.min(...signalData);
-        const maxSignal = Math.max(...signalData);
-        
-        // Add some padding to the signal range
-        const signalPadding = (maxSignal - minSignal) * 0.1;
-        const yMin = minSignal - signalPadding;
-        const yMax = maxSignal + signalPadding;
-        
-        // Destroy existing chart if it exists
-        if (ecgChart) {
-            ecgChart.destroy();
-            ecgChart = null;
-        }
-        
-        // Get canvas context
-        const ctx = canvas.getContext('2d');
-        
-        // Register zoom plugin
-        if (typeof Chart !== 'undefined' && Chart.register) {
-            try {
-                Chart.register(ChartZoom);
-            } catch (e) {
-                console.warn('Chart zoom plugin not available:', e);
-            }
-        }
-        
-        // Create the chart
-        ecgChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                datasets: [{
-                    label: 'Lead I',
-                    data: chartData,
-                    borderColor: '#dc3545',
-                    backgroundColor: 'rgba(220, 53, 69, 0.1)',
-                    borderWidth: 1.5,
-                    fill: false,
-                    pointRadius: 0,
-                    pointHoverRadius: 3,
-                    tension: 0,
-                    spanGaps: false
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: {
-                    duration: 0 // Disable animation for performance
-                },
-                scales: {
-                    x: {
-                        type: 'linear',
-                        position: 'bottom',
-                        title: {
-                            display: true,
-                            text: 'Time (s)',
-                            font: {
-                                size: 14,
-                                weight: 'bold'
-                            }
-                        },
-                        min: minTime,
-                        max: maxTime,
-                        grid: {
-                            display: true,
-                            color: 'rgba(0, 0, 0, 0.1)'
-                        },
-                        ticks: {
-                            maxTicksLimit: 20,
-                            callback: function(value) {
-                                return value.toFixed(3);
-                            }
-                        }
-                    },
-                    y: {
-                        title: {
-                            display: true,
-                            text: 'Amplitude (mV)',
-                            font: {
-                                size: 14,
-                                weight: 'bold'
-                            }
-                        },
-                        min: yMin,
-                        max: yMax,
-                        grid: {
-                            display: true,
-                            color: 'rgba(0, 0, 0, 0.1)'
-                        },
-                        ticks: {
-                            callback: function(value) {
-                                return value.toFixed(3);
-                            }
-                        }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top'
-                    },
-                    tooltip: {
-                        mode: 'nearest',
-                        intersect: false,
-                        callbacks: {
-                            title: function(context) {
-                                return `Time: ${context[0].parsed.x.toFixed(4)} s`;
-                            },
-                            label: function(context) {
-                                return `Amplitude: ${context.parsed.y.toFixed(4)} mV`;
-                            }
-                        }
-                    },
-                    zoom: {
-                        pan: {
-                            enabled: true,
-                            mode: 'xy',
-                            modifierKey: null
-                        },
-                        zoom: {
-                            wheel: {
-                                enabled: true,
-                                modifierKey: null
-                            },
-                            pinch: {
-                                enabled: true
-                            },
-                            mode: 'xy'
-                        }
-                    }
-                },
-                interaction: {
-                    intersect: false,
-                    mode: 'nearest'
-                }
-            }
-        });
+        // Display the chart with the current lead
+        updateECGChart();
         
         // Hide loading state
         if (loadingEl) loadingEl.style.display = 'none';
@@ -391,6 +254,370 @@ function displayECGWaveform(ecgData) {
         console.error('Error displaying ECG waveform:', error);
         showWaveformError(error.message || 'Failed to render waveform');
     }
+}
+
+/**
+ * Create lead selection controls
+ */
+function createLeadControls(numberOfLeads) {
+    const controlsContainer = document.getElementById('ecg-controls');
+    if (!controlsContainer) return;
+    
+    let controlsHTML = `
+        <div class="card mb-3">
+            <div class="card-body py-2">
+                <div class="row align-items-center">
+                    <div class="col-md-4">
+                        <label for="lead-selector" class="form-label mb-1"><strong>Select ECG Lead:</strong></label>
+                        <select id="lead-selector" class="form-control form-control-sm">
+    `;
+    
+    // Add available leads based on number of signals
+    for (let i = 0; i < numberOfLeads && i < ECG_LEADS.length; i++) {
+        const selected = i === currentLead ? 'selected' : '';
+        controlsHTML += `<option value="${i}" ${selected}>${ECG_LEADS[i]}</option>`;
+    }
+    
+    controlsHTML += `
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label mb-1"><strong>Standard ECG Scale:</strong></label>
+                        <div class="text-muted small">
+                            <i class="fas fa-ruler"></i> 25mm/s | 10mm/mV
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label mb-1"><strong>Grid Reference:</strong></label>
+                        <div class="text-muted small">
+                            <i class="fas fa-th"></i> 1 small box = 40ms × 0.1mV
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    controlsContainer.innerHTML = controlsHTML;
+    
+    // Add event listener for lead selection
+    const leadSelector = document.getElementById('lead-selector');
+    if (leadSelector) {
+        leadSelector.addEventListener('change', function() {
+            currentLead = parseInt(this.value);
+            updateECGChart();
+        });
+    }
+}
+
+/**
+ * Update ECG chart with current lead selection - Custom Canvas Implementation
+ */
+function updateECGChart() {
+    if (!currentECGData || !currentECGData.time || !currentECGData.signals) {
+        return;
+    }
+    
+    const canvas = document.getElementById('ecg-waveform-chart');
+    if (!canvas) return;
+    
+    const timeData = currentECGData.time;
+    const signalData = currentECGData.signals[currentLead];
+    
+    if (!signalData || timeData.length !== signalData.length) {
+        console.error('Invalid signal data for lead', currentLead);
+        return;
+    }
+    
+    // Set fixed canvas dimensions for realistic ECG paper size
+    // Standard ECG paper with margins for axes
+    const MARGIN_LEFT = 80;   // Space for Y-axis labels
+    const MARGIN_RIGHT = 40;  // Right margin
+    const MARGIN_TOP = 60;    // Top margin for title
+    const MARGIN_BOTTOM = 80; // Space for X-axis labels
+    
+    const plotWidth = 1000;   // Actual plot area width
+    const plotHeight = 600;   // Actual plot area height
+    
+    const canvasWidth = plotWidth + MARGIN_LEFT + MARGIN_RIGHT;
+    const canvasHeight = plotHeight + MARGIN_TOP + MARGIN_BOTTOM;
+    
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+    canvas.style.width = canvasWidth + 'px';
+    canvas.style.height = canvasHeight + 'px';
+    
+    const ctx = canvas.getContext('2d');
+    
+    // Medical ECG scaling constants (EXACT as real ECG)
+    // 1 small box = 1mm = 40ms horizontally, 0.1mV vertically
+    const PIXELS_PER_MM = 4;
+    const SMALL_BOX_SIZE = 4; // 4 pixels = 1mm
+    const LARGE_BOX_SIZE = 20; // 20 pixels = 5mm (5 small boxes)
+    
+    // Time scaling: 25mm/s means 1mm = 40ms
+    const TIME_PER_MM = 0.04; // 40ms per mm
+    const TIME_PER_PIXEL = TIME_PER_MM / PIXELS_PER_MM; // 10ms per pixel
+    
+    // Voltage scaling: 10mm/mV means 1mm = 0.1mV
+    const VOLTAGE_PER_MM = 0.1; // 0.1mV per mm
+    const VOLTAGE_PER_PIXEL = VOLTAGE_PER_MM / PIXELS_PER_MM; // 0.025mV per pixel
+    
+    // Clear entire canvas with white background
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    
+    // Fill plot area with ECG paper color
+    ctx.fillStyle = '#FFF8DC'; // Cream/orange ECG paper color
+    ctx.fillRect(MARGIN_LEFT, MARGIN_TOP, plotWidth, plotHeight);
+    
+    // Draw ECG grid in plot area only
+    drawECGGrid(ctx, plotWidth, plotHeight, MARGIN_LEFT, MARGIN_TOP);
+    
+    // Calculate data bounds and scaling
+    const minTime = Math.min(...timeData);
+    const maxTime = Math.max(...timeData);
+    const minVoltage = Math.min(...signalData);
+    const maxVoltage = Math.max(...signalData);
+    
+    // Use actual data range for better visualization
+    const dataDuration = maxTime - minTime;
+    const dataVoltageRange = maxVoltage - minVoltage;
+    
+    // Calculate display window - show full data with some padding
+    const timePadding = dataDuration * 0.05; // 5% padding
+    const voltagePadding = Math.max(dataVoltageRange * 0.1, 0.5); // 10% padding or minimum 0.5mV
+    
+    const timeStart = minTime - timePadding;
+    const timeEnd = maxTime + timePadding;
+    const voltageStart = minVoltage - voltagePadding;
+    const voltageEnd = maxVoltage + voltagePadding;
+    
+    const displayDuration = timeEnd - timeStart;
+    const displayVoltageRange = voltageEnd - voltageStart;
+    
+    // Draw axes and labels
+    drawAxes(ctx, MARGIN_LEFT, MARGIN_TOP, plotWidth, plotHeight, timeStart, timeEnd, voltageStart, voltageEnd);
+    
+    // Draw lead label
+    ctx.fillStyle = '#000000';
+    ctx.font = 'bold 18px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(ECG_LEADS[currentLead] || `Lead ${currentLead + 1}`, canvasWidth / 2, 30);
+    
+    // Draw ECG waveform
+    ctx.beginPath();
+    ctx.strokeStyle = '#000000'; // Black line exactly like real ECG
+    ctx.lineWidth = 2;
+    
+    let firstPoint = true;
+    
+    for (let i = 0; i < timeData.length; i++) {
+        const time = timeData[i];
+        const voltage = signalData[i];
+        
+        // Convert to canvas coordinates within plot area
+        const x = MARGIN_LEFT + ((time - timeStart) / displayDuration) * plotWidth;
+        const y = MARGIN_TOP + plotHeight - ((voltage - voltageStart) / displayVoltageRange) * plotHeight;
+        
+        // Only draw points within plot bounds
+        if (time >= timeStart && time <= timeEnd && voltage >= voltageStart && voltage <= voltageEnd) {
+            if (firstPoint) {
+                ctx.moveTo(x, y);
+                firstPoint = false;
+            } else {
+                ctx.lineTo(x, y);
+            }
+        }
+    }
+    
+    ctx.stroke();
+    
+    // Add interactive hover functionality
+    addCanvasInteractivity(canvas, timeStart, voltageStart, displayDuration, displayVoltageRange, MARGIN_LEFT, MARGIN_TOP, plotWidth, plotHeight);
+    
+    console.log(`ECG waveform updated for ${ECG_LEADS[currentLead]} with realistic scaling`);
+}
+
+/**
+ * Draw ECG grid exactly like real ECG paper
+ */
+function drawECGGrid(ctx, width, height, offsetX, offsetY) {
+    const SMALL_BOX = 4; // 1mm = 4 pixels
+    const LARGE_BOX = 20; // 5mm = 20 pixels
+    
+    // Save current transform
+    ctx.save();
+    ctx.translate(offsetX, offsetY);
+    
+    // Draw small grid lines (1mm squares)
+    ctx.strokeStyle = '#FF8C42'; // Light orange for small grid
+    ctx.lineWidth = 0.5;
+    
+    // Vertical small grid lines
+    for (let x = 0; x <= width; x += SMALL_BOX) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+    }
+    
+    // Horizontal small grid lines
+    for (let y = 0; y <= height; y += SMALL_BOX) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+    }
+    
+    // Draw large grid lines (5mm squares)
+    ctx.strokeStyle = '#FF6B35'; // Darker orange for large grid
+    ctx.lineWidth = 1.0;
+    
+    // Vertical large grid lines
+    for (let x = 0; x <= width; x += LARGE_BOX) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+    }
+    
+    // Horizontal large grid lines
+    for (let y = 0; y <= height; y += LARGE_BOX) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+    }
+    
+    // Restore transform
+    ctx.restore();
+}
+
+/**
+ * Draw axes and labels for the ECG chart
+ */
+function drawAxes(ctx, marginLeft, marginTop, plotWidth, plotHeight, timeStart, timeEnd, voltageStart, voltageEnd) {
+    ctx.fillStyle = '#000000';
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2;
+    
+    // Draw main axes
+    ctx.beginPath();
+    // Y-axis
+    ctx.moveTo(marginLeft, marginTop);
+    ctx.lineTo(marginLeft, marginTop + plotHeight);
+    // X-axis
+    ctx.moveTo(marginLeft, marginTop + plotHeight);
+    ctx.lineTo(marginLeft + plotWidth, marginTop + plotHeight);
+    ctx.stroke();
+    
+    // X-axis labels (Time in seconds)
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#000000';
+    
+    const timeRange = timeEnd - timeStart;
+    const timeStep = timeRange / 10; // 10 time divisions
+    
+    for (let i = 0; i <= 10; i++) {
+        const time = timeStart + (i * timeStep);
+        const x = marginLeft + (i * plotWidth / 10);
+        
+        // Draw tick mark
+        ctx.beginPath();
+        ctx.moveTo(x, marginTop + plotHeight);
+        ctx.lineTo(x, marginTop + plotHeight + 5);
+        ctx.stroke();
+        
+        // Draw label
+        ctx.fillText(time.toFixed(2) + 's', x, marginTop + plotHeight + 20);
+    }
+    
+    // X-axis title
+    ctx.font = 'bold 14px Arial';
+    ctx.fillText('Time (s)', marginLeft + plotWidth / 2, marginTop + plotHeight + 50);
+    
+    // Y-axis labels (Voltage in mV)
+    ctx.textAlign = 'right';
+    ctx.font = '12px Arial';
+    
+    const voltageRange = voltageEnd - voltageStart;
+    const voltageStep = voltageRange / 10; // 10 voltage divisions
+    
+    for (let i = 0; i <= 10; i++) {
+        const voltage = voltageStart + (i * voltageStep);
+        const y = marginTop + plotHeight - (i * plotHeight / 10);
+        
+        // Draw tick mark
+        ctx.beginPath();
+        ctx.moveTo(marginLeft - 5, y);
+        ctx.lineTo(marginLeft, y);
+        ctx.stroke();
+        
+        // Draw label
+        ctx.fillText(voltage.toFixed(1) + 'mV', marginLeft - 10, y + 4);
+    }
+    
+    // Y-axis title
+    ctx.save();
+    ctx.translate(20, marginTop + plotHeight / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Amplitude (mV)', 0, 0);
+    ctx.restore();
+}
+
+/**
+ * Add interactive hover functionality to canvas
+ */
+function addCanvasInteractivity(canvas, timeStart, voltageStart, displayDuration, displayVoltageRange, marginLeft, marginTop, plotWidth, plotHeight) {
+    const tooltip = document.createElement('div');
+    tooltip.style.position = 'absolute';
+    tooltip.style.background = 'rgba(0, 0, 0, 0.8)';
+    tooltip.style.color = 'white';
+    tooltip.style.padding = '8px 12px';
+    tooltip.style.borderRadius = '4px';
+    tooltip.style.fontSize = '12px';
+    tooltip.style.pointerEvents = 'none';
+    tooltip.style.display = 'none';
+    tooltip.style.zIndex = '1000';
+    document.body.appendChild(tooltip);
+    
+    canvas.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        // Check if mouse is within plot area
+        if (x >= marginLeft && x <= marginLeft + plotWidth && y >= marginTop && y <= marginTop + plotHeight) {
+            // Convert canvas coordinates back to time and voltage
+            const time = timeStart + ((x - marginLeft) / plotWidth) * displayDuration;
+            const voltage = voltageStart + ((marginTop + plotHeight - y) / plotHeight) * displayVoltageRange;
+            
+            // Show tooltip
+            tooltip.style.display = 'block';
+            tooltip.style.left = (e.clientX + 10) + 'px';
+            tooltip.style.top = (e.clientY - 10) + 'px';
+            tooltip.innerHTML = `
+                <div><strong>Time:</strong> ${time.toFixed(4)}s</div>
+                <div><strong>${ECG_LEADS[currentLead]}:</strong> ${voltage.toFixed(3)}mV</div>
+                <div><strong>Grid:</strong> ${Math.round(time/0.04)} × ${Math.round(voltage/0.1)} boxes</div>
+            `;
+        } else {
+            tooltip.style.display = 'none';
+        }
+    });
+    
+    canvas.addEventListener('mouseleave', () => {
+        tooltip.style.display = 'none';
+    });
+    
+    // Clean up previous tooltip if it exists
+    const existingTooltips = document.querySelectorAll('[data-ecg-tooltip]');
+    existingTooltips.forEach(t => t.remove());
+    tooltip.setAttribute('data-ecg-tooltip', 'true');
 }
 
 /**
