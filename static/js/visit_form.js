@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeMedicamentSearch();
     initializePatientSearch();
     initializePatientModal();
+    initializeFormSubmission();
 });
 
 /**
@@ -172,6 +173,170 @@ function validateForm() {
 }
 
 /**
+ * Initialize form submission with comprehensive logging
+ */
+function initializeFormSubmission() {
+    const form = document.querySelector('form[method="POST"]');
+    if (!form) {
+        console.error('Visit form not found');
+        return;
+    }
+    
+    console.log('Form submission handler initialized');
+    
+    form.addEventListener('submit', function(e) {
+        console.log('=== FORM SUBMISSION STARTED ===');
+        
+        // Log all form data before validation
+        logFormData();
+        
+        // Validate patient selection specifically
+        const isValid = validatePatientSelection();
+        
+        if (!isValid) {
+            console.log('=== FORM SUBMISSION BLOCKED - VALIDATION FAILED ===');
+            e.preventDefault();
+            return false;
+        }
+        
+        console.log('=== FORM VALIDATION PASSED - SUBMITTING ===');
+        // Let the form submit normally
+    });
+}
+
+/**
+ * Comprehensive form data logging for debugging
+ */
+function logFormData() {
+    console.log('--- FORM DATA DIAGNOSIS ---');
+    
+    // Patient data
+    const patientSearchBox = document.getElementById('patient-search');
+    const patientHiddenInput = document.getElementById('patient_id');
+    
+    console.log('Patient Selection:');
+    console.log('  Search box value:', patientSearchBox ? patientSearchBox.value : 'NOT FOUND');
+    console.log('  Hidden input value:', patientHiddenInput ? patientHiddenInput.value : 'NOT FOUND');
+    console.log('  Hidden input name:', patientHiddenInput ? patientHiddenInput.name : 'NOT FOUND');
+    console.log('  Hidden input type:', patientHiddenInput ? patientHiddenInput.type : 'NOT FOUND');
+    
+    // Check if there are any other patient_id fields
+    const allPatientFields = document.querySelectorAll('[name*="patient"]');
+    console.log('All patient-related fields:');
+    allPatientFields.forEach((field, index) => {
+        console.log(`  Field ${index}:`, {
+            name: field.name,
+            value: field.value,
+            type: field.type,
+            id: field.id,
+            required: field.required
+        });
+    });
+    
+    // Visit data
+    const visitDate = document.getElementById('visit_date');
+    console.log('Visit Date:');
+    console.log('  Value:', visitDate ? visitDate.value : 'NOT FOUND');
+    console.log('  Name:', visitDate ? visitDate.name : 'NOT FOUND');
+    
+    // Diagnosis
+    const diagnosis = document.getElementById('diagnosis');
+    console.log('Diagnosis:');
+    console.log('  Value:', diagnosis ? diagnosis.value : 'NOT FOUND');
+    
+    // All form fields with their values
+    const formData = new FormData(document.querySelector('form[method="POST"]'));
+    console.log('Complete FormData entries:');
+    for (let [key, value] of formData.entries()) {
+        console.log(`  ${key}: ${value}`);
+    }
+      // Check for any validation errors already present
+    const validationErrors = document.querySelectorAll('.invalid-feedback:not(:empty), .text-danger:not(:empty)');
+    if (validationErrors.length > 0) {
+        console.log('Existing validation errors found:');
+        validationErrors.forEach((error, index) => {
+            console.log(`  Error ${index}:`, error.textContent.trim());
+            console.log(`  Error element:`, error);
+            console.log(`  Parent element:`, error.parentElement);
+        });
+    }
+    
+    // Check medication selections specifically
+    const medicationFields = document.querySelectorAll('[name*="medicament_num_enr"]');
+    console.log('Medication fields:');
+    medicationFields.forEach((field, index) => {
+        console.log(`  Medication ${index}:`, {
+            name: field.name,
+            value: field.value,
+            type: field.type,
+            id: field.id
+        });
+    });
+    
+    console.log('--- END FORM DATA DIAGNOSIS ---');
+}
+
+/**
+ * Detailed patient selection validation
+ */
+function validatePatientSelection() {
+    console.log('--- PATIENT VALIDATION ---');
+    
+    const patientSearchBox = document.getElementById('patient-search');
+    const patientHiddenInput = document.getElementById('patient_id');
+    
+    if (!patientSearchBox) {
+        console.error('Patient search box not found!');
+        return false;
+    }
+    
+    if (!patientHiddenInput) {
+        console.error('Patient hidden input not found!');
+        return false;
+    }
+    
+    const searchValue = patientSearchBox.value.trim();
+    const hiddenValue = patientHiddenInput.value.trim();
+    
+    console.log('Patient validation details:');
+    console.log('  Search box has value:', searchValue !== '');
+    console.log('  Search box value:', `"${searchValue}"`);
+    console.log('  Hidden input has value:', hiddenValue !== '');
+    console.log('  Hidden input value:', `"${hiddenValue}"`);
+    console.log('  Hidden input is numeric:', /^\d+$/.test(hiddenValue));
+    
+    // Check if patient is selected
+    if (!hiddenValue || hiddenValue === '') {
+        console.error('VALIDATION FAILED: No patient selected (hidden input is empty)');
+        alert('Please select a patient from the dropdown');
+        patientSearchBox.focus();
+        return false;
+    }
+    
+    // Check if hidden value is numeric (should be patient ID)
+    if (!/^\d+$/.test(hiddenValue)) {
+        console.error('VALIDATION FAILED: Patient ID is not numeric:', hiddenValue);
+        alert('Invalid patient selection. Please select a patient from the dropdown.');
+        patientSearchBox.value = '';
+        patientHiddenInput.value = '';
+        patientSearchBox.focus();
+        return false;
+    }
+    
+    // Check if search box has text but no hidden value (incomplete selection)
+    if (searchValue && !hiddenValue) {
+        console.error('VALIDATION FAILED: Patient name entered but not selected from dropdown');
+        alert('Please select a patient from the dropdown list, don\'t just type the name');
+        patientSearchBox.focus();
+        return false;
+    }
+    
+    console.log('PATIENT VALIDATION PASSED ✓');
+    console.log('--- END PATIENT VALIDATION ---');
+    return true;
+}
+
+/**
  * Initialize medicament search functionality for a prescription row
  */
 function initializeMedSearch(rowElement) {
@@ -314,12 +479,18 @@ function initializeMedSearch(rowElement) {
                             if (dosageDisplay) {
                                 displayText += ` - ${dosageDisplay}`;
                             }
-                            
-                            searchBox.value = displayText;
+                              searchBox.value = displayText;
                             hiddenInput.value = item.id;
                             optionsList.style.display = 'none';
+                            
+                            console.log('=== MEDICATION SELECTED ===');
                             console.log('Selected medication:', item);
-                            console.log('Display text:', displayText);
+                            console.log('Display text set to search box:', displayText);
+                            console.log('Medication ID set to hidden input:', item.id);
+                            console.log('Hidden input element:', hiddenInput);
+                            console.log('Hidden input name attribute:', hiddenInput.name);
+                            console.log('Hidden input value after selection:', hiddenInput.value);
+                            console.log('=== END MEDICATION SELECTION ===');
                         });
                         
                         li.addEventListener('mouseenter', () => {
@@ -494,12 +665,19 @@ function initializePatientSearch() {
                                 ${contactInfo ? `<div style="font-size: 14px; color: #666; margin-top: 2px;">${contactInfo}</div>` : ''}
                             </div>
                         `;
-                        
-                        li.addEventListener('click', () => {
+                          li.addEventListener('click', () => {
                             searchBox.value = fullName;
                             hiddenInput.value = patient.id;
                             optionsList.style.display = 'none';
+                            
+                            console.log('=== PATIENT SELECTED ===');
                             console.log('Selected patient:', patient);
+                            console.log('Full name set to search box:', fullName);
+                            console.log('Patient ID set to hidden input:', patient.id);
+                            console.log('Hidden input element:', hiddenInput);
+                            console.log('Hidden input name attribute:', hiddenInput.name);
+                            console.log('Hidden input value after selection:', hiddenInput.value);
+                            console.log('=== END PATIENT SELECTION ===');
                         });
                         
                         li.addEventListener('mouseenter', () => {
@@ -640,14 +818,22 @@ function initializePatientModal() {
                 
                 // Show success message
                 showSuccessMessage(`Patient "${data.patient.text}" created successfully!`);
-                
-                // Update the patient search with the new patient
+                  // Update the patient search with the new patient
                 const searchBox = document.getElementById('patient-search');
                 const hiddenInput = document.getElementById('patient_id');
                 
                 if (searchBox && hiddenInput) {
                     searchBox.value = data.patient.text;
                     hiddenInput.value = data.patient.id;
+                    
+                    console.log('=== NEW PATIENT CREATED AND SELECTED ===');
+                    console.log('New patient data:', data.patient);
+                    console.log('Search box updated with:', data.patient.text);
+                    console.log('Hidden input updated with ID:', data.patient.id);
+                    console.log('Hidden input element:', hiddenInput);
+                    console.log('Hidden input name:', hiddenInput.name);
+                    console.log('Hidden input final value:', hiddenInput.value);
+                    console.log('=== END NEW PATIENT SELECTION ===');
                 }
                 
                 // Close modal after a short delay

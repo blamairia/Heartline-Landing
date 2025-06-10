@@ -39,6 +39,7 @@ from wtforms import (
     FormField,
     FileField,
     validators,
+    ValidationError,
 )
 from flask_wtf import FlaskForm
 
@@ -198,12 +199,35 @@ def basename_filter(path):
 # 3) WTForms DEFINITIONS
 # ----------------------------------------
 
+# Custom validator for medication field
+def validate_medicament(form, field):
+    """Custom validator to check if medicament exists in database"""
+    if field.data:
+        # Import here to avoid circular imports
+        from models import Medicament
+        med = Medicament.query.filter_by(num_enr=field.data).first()
+        if not med:
+            raise ValidationError(f'Invalid medication selection: {field.data}')
+
+# Custom validator for patient field
+def validate_patient(form, field):
+    """Custom validator to check if patient exists in database"""
+    if field.data:
+        # Import here to avoid circular imports
+        from models import Patient
+        try:
+            patient_id = int(field.data)
+            patient = Patient.query.filter_by(id=patient_id).first()
+            if not patient:
+                raise ValidationError(f'Invalid patient selection: {field.data}')
+        except (ValueError, TypeError):
+            raise ValidationError(f'Invalid patient ID format: {field.data}')
+
 # --- Subform for Prescriptions ---
 class PrescriptionForm(Form):
-    medicament_num_enr = SelectField(
+    medicament_num_enr = StringField(
         "Medicament (num_enr)",
-        choices=[],  # will populate in view
-        validators=[validators.DataRequired()],
+        validators=[validators.DataRequired(), validate_medicament],
     )
     dosage_instructions = TextAreaField("Dosage / Instructions", validators=[validators.DataRequired()])
     quantity = IntegerField("Quantity", validators=[validators.DataRequired(), validators.NumberRange(min=1)])
@@ -222,7 +246,10 @@ class VisitDocumentForm(Form):
 
 # --- Form for Visit (with nested prescriptions + documents) ---
 class VisitForm(FlaskForm):
-    patient_id = SelectField("Patient", choices=[], coerce=int, validators=[validators.DataRequired()])
+    patient_id = StringField(
+        "Patient", 
+        validators=[validators.DataRequired(), validate_patient],
+    )
     visit_date = DateTimeField(
         "Visit Date & Time",
         default=datetime.utcnow,
@@ -278,7 +305,7 @@ def coerce_int_or_none(value):
     return int(value)
 
 class AppointmentForm(FlaskForm):
-    patient_id = SelectField("Patient", choices=[], coerce=int, validators=[validators.DataRequired()])
+    patient_id = StringField("Patient", validators=[validators.DataRequired(), validate_patient])
     doctor_id = SelectField("Doctor", choices=[], coerce=coerce_int_or_none, validators=[validators.Optional()])
     date = DateTimeField(
         "Appointment Date & Time",
@@ -333,19 +360,24 @@ def create_visit():
     """
     form = VisitForm()
 
-    # Note: Patient selection now uses AJAX search, no need to populate choices
-    # The patient_id will be set by the searchable dropdown via JavaScript
+    # Note: Both patient and medication selection now use AJAX search
+    # No need to populate choices as we use custom validators
 
-    # Populate medicament choices for each PrescriptionForm
-    meds = Medicament.query.order_by(Medicament.nom_com).all()
-    med_choices = [(m.num_enr, f"{m.nom_com} ({m.dosage}{m.unite})") for m in meds]
-    for subform in form.prescriptions:
-        subform.medicament_num_enr.choices = med_choices
+    if request.method == "POST":
+        print("=== SERVER-SIDE FORM VALIDATION ===")
+        print(f"Form data received: {dict(request.form)}")
+        print(f"Form validation errors before processing: {form.errors}")
+        
+        if form.validate_on_submit():
+            print("Form validation PASSED")
+        else:
+            print("Form validation FAILED")
+            print(f"Form validation errors: {form.errors}")
 
     if request.method == "POST" and form.validate_on_submit():
         # 1) Save Visit itself
         v = Visit(
-            patient_id       = form.patient_id.data,
+            patient_id       = int(form.patient_id.data),  # Convert string to int
             visit_date       = form.visit_date.data,
             diagnosis        = form.diagnosis.data,
             follow_up_date   = form.follow_up_date.data,
