@@ -283,10 +283,8 @@
           <small class="text-danger">{{ err }}</small>
         {% endfor %}
       </div>
-    </div>
-
-    <!-- Enhanced ECG Analysis Results with Waveform Visualization -->
-    <div id="ecg-analysis-section">
+    </div>    <!-- Enhanced ECG Analysis Results with Waveform Visualization -->
+    <div id="ecg-analysis-section" {% if visit.ecg_prediction or (visit.ecg_mat and visit.ecg_hea) %}style="display: block;"{% else %}style="display: none;"{% endif %}>
       <div class="alert alert-info">
         <h5><i class="fa fa-heartbeat"></i> ECG Analysis Results</h5>
         <div id="ecg-analysis-loading" style="display: none;">
@@ -296,7 +294,7 @@
           Analyzing ECG data...
         </div>
         
-        <div id="ecg-analysis-results">
+        <div id="ecg-analysis-results" {% if visit.ecg_prediction %}style="display: block;"{% else %}style="display: none;"{% endif %}>
           <div class="row">
             <div class="col-md-6">
               <h6>Primary Diagnosis:</h6>
@@ -1000,26 +998,60 @@
   <!-- ECG Operations JavaScript -->
   <script src="{{ url_for('static', filename='js/ecg_operations.js') }}"></script>
   
-  <script>
-    // ─── ECG Enhancement for Edit Visit Form ───
+  <script>    // ─── ECG Enhancement for Edit Visit Form ───
     document.addEventListener('DOMContentLoaded', function() {
       console.log('Initializing ECG functionality for edit visit form');
       
-      // Initialize ECG file change listeners
-      const matFileInput = document.getElementById('ecg_mat_file');
-      const heaFileInput = document.getElementById('ecg_hea_file');
-      
-      if (matFileInput && heaFileInput) {
-        matFileInput.addEventListener('change', window.checkAndAnalyzeECG);
-        heaFileInput.addEventListener('change', window.checkAndAnalyzeECG);
-        console.log('ECG file input listeners attached');
+      // Wait for ECG operations to be available
+      function initializeECGFunctionality() {
+        if (typeof window.checkAndAnalyzeECG === 'function') {
+          // Initialize ECG file change listeners
+          const matFileInput = document.getElementById('ecg_mat_file');
+          const heaFileInput = document.getElementById('ecg_hea_file');
+          
+          if (matFileInput && heaFileInput) {
+            matFileInput.addEventListener('change', window.checkAndAnalyzeECG);
+            heaFileInput.addEventListener('change', window.checkAndAnalyzeECG);
+            console.log('ECG file input listeners attached');
+          }
+          
+          // Load existing ECG analysis if available - with delay to ensure DOM is ready
+          setTimeout(loadExistingECGAnalysis, 500);
+        } else {
+          // ECG operations not ready yet, try again
+          setTimeout(initializeECGFunctionality, 100);
+        }
       }
+        // Start initialization
+      initializeECGFunctionality();
       
-      // Load existing ECG analysis if available
-      loadExistingECGAnalysis();
+      // Add protection against accidental hiding of ECG section
+      const ecgSection = document.getElementById('ecg-analysis-section');
+      if (ecgSection) {
+        // Create a MutationObserver to watch for changes to the ECG section
+        const observer = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+              const target = mutation.target;
+              const hasData = {{ 'true' if visit.ecg_prediction else 'false' }};
+              const hasFiles = {{ 'true' if (visit.ecg_mat and visit.ecg_hea) else 'false' }};
+              
+              // If we have ECG data or files, prevent the section from being hidden
+              if ((hasData || hasFiles) && target.style.display === 'none') {
+                console.log('Preventing ECG section from being hidden - restoring visibility');
+                target.style.display = 'block';
+                target.style.visibility = 'visible';
+              }
+            }
+          });
+        });
+        
+        // Start observing
+        observer.observe(ecgSection, { attributes: true, attributeFilter: ['style'] });
+        console.log('ECG section protection initialized');
+      }
     });
-    
-    /**
+      /**
      * Load and display existing ECG analysis for this visit
      */
     function loadExistingECGAnalysis() {
@@ -1028,6 +1060,22 @@
       const hasECGFiles = {{ 'true' if (visit.ecg_mat and visit.ecg_hea) else 'false' }};
       
       console.log('Loading existing ECG analysis:', { visitId, hasECGData, hasECGFiles });
+      
+      // Ensure ECG section is visible if we have data or files
+      if (hasECGData || hasECGFiles) {
+        const ecgSection = document.getElementById('ecg-analysis-section');
+        const ecgResults = document.getElementById('ecg-analysis-results');
+        
+        if (ecgSection) {
+          ecgSection.style.display = 'block';
+          ecgSection.style.visibility = 'visible';
+        }
+        
+        if (hasECGData && ecgResults) {
+          ecgResults.style.display = 'block';
+          ecgResults.style.visibility = 'visible';
+        }
+      }
       
       if (hasECGData) {
         // Display existing ECG prediction data
@@ -1061,9 +1109,11 @@
         // Display the results
         displayExistingECGResults(primaryDiagnosis, ecgPrediction, classNames);
         
-        // Load ECG waveform if files exist
+        // Load ECG waveform if files exist (with a small delay to ensure DOM is ready)
         if (hasECGFiles) {
-          loadECGWaveform(visitId);
+          setTimeout(() => {
+            loadECGWaveform(visitId);
+          }, 100);
         }
       } else if (hasECGFiles) {
         // Files exist but no analysis - show message
@@ -1131,16 +1181,13 @@
         html += '</div>';
         detailedProbs.innerHTML = html;
       }
-    }
-    
-    /**
+    }    /**
      * Load ECG waveform for existing visit
      */
     function loadECGWaveform(visitId) {
       console.log('Loading ECG waveform for visit:', visitId);
       
       // Show loading state
-      const waveformContainer = document.getElementById('ecg-waveform-container');
       const loadingDiv = document.getElementById('ecg-waveform-loading');
       const errorDiv = document.getElementById('ecg-waveform-error');
       const canvas = document.getElementById('ecg-waveform-chart');
@@ -1152,16 +1199,51 @@
       // Create ECG controls dropdown
       createECGControls();
       
-      // For now, show a placeholder since we need to implement the backend endpoint
-      // to load ECG data from existing files
-      setTimeout(() => {
-        if (loadingDiv) loadingDiv.style.display = 'none';
-        if (canvas) {
-          canvas.style.display = 'block';
-          // Initialize with synthetic data or load from backend
-          initializeECGWaveform();
+      // Fetch ECG waveform data from the backend
+      fetch(`/visit/${visitId}/ecg_waveform`)
+        .then(response => response.json())
+        .then(data => {
+          if (loadingDiv) loadingDiv.style.display = 'none';
+          
+          if (data.success && data.ecg) {
+            console.log('ECG waveform data loaded successfully:', data.ecg);
+            
+            // Use the ECG operations module to display the waveform
+            if (typeof window.ECGOperations !== 'undefined' && window.ECGOperations.displayECGWaveform) {
+              window.ECGOperations.displayECGWaveform(data.ecg);
+            } else {
+              // Fallback: call the global function directly
+              if (typeof displayECGWaveform !== 'undefined') {
+                displayECGWaveform(data.ecg);
+              } else {
+                console.error('ECG waveform display function not available');
+                showWaveformError('ECG visualization functions not loaded');
+              }
+            }
+          } else {
+            console.error('Failed to load ECG waveform:', data.error);
+            showWaveformError(data.error || 'Failed to load waveform data');
+          }
+        })
+        .catch(error => {
+          console.error('Error loading ECG waveform:', error);
+          if (loadingDiv) loadingDiv.style.display = 'none';
+          showWaveformError('Network error: ' + error.message);
+        });
+    }
+    
+    /**
+     * Show waveform error message
+     */
+    function showWaveformError(message) {
+      const errorDiv = document.getElementById('ecg-waveform-error');
+      if (errorDiv) {
+        errorDiv.style.display = 'block';
+        const errorMsg = errorDiv.querySelector('p');
+        if (errorMsg) {
+          errorMsg.textContent = message;
         }
-      }, 1000);
+      }
     }
     
     /**
@@ -1202,19 +1284,7 @@
         }
       }
     }
-    
-    /**
-     * Initialize ECG waveform visualization
-     */
-    function initializeECGWaveform() {
-      if (window.ECGOperations && window.ECGOperations.initializeWaveform) {
-        window.ECGOperations.initializeWaveform();
-      } else {
-        console.warn('ECG Operations not available for waveform initialization');
-      }
-    }
-    
-    /**
+      /**
      * Analyze existing ECG files
      */
     function analyzeExistingECGFiles() {
