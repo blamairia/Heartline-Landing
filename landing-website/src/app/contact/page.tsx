@@ -7,8 +7,8 @@ import { ContactInfo } from '@/components/contact/contact-info'
 import { ContactFAQ } from '@/components/contact/contact-faq'
 
 export const metadata: Metadata = {
-  title: 'Contact Us | Hearline',
-  description: 'Get in touch with the Hearline team. We\'re here to help with questions about our AI-powered cardiac management platform.',
+  title: 'Contact Us | Heartline',
+  description: 'Get in touch with the Heartline team. We\'re here to help with questions about our AI-powered cardiac management platform.',
 }
 
 export default function ContactPage() {

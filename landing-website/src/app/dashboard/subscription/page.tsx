@@ -11,8 +11,8 @@ const SubscriptionContent = dynamic(
 )
 
 export const metadata: Metadata = {
-  title: 'Subscription | Hearline Dashboard',
-  description: 'Manage your Hearline subscription and billing.',
+  title: 'Subscription | Heartline Dashboard',
+  description: 'Manage your Heartline subscription and billing.',
 }
 
 export default async function SubscriptionPage() {

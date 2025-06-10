@@ -7,11 +7,11 @@ async function main() {
 
   // 1. ORGANIZATION
   let org = await prisma.organization.findFirst({
-    where: { name: 'Hearline Medical Center' },
+    where: { name: 'Heartline Medical Center' },
   })
   if (!org) {
     org = await prisma.organization.create({
-      data: { name: 'Hearline Medical Center' },
+      data: { name: 'Heartline Medical Center' },
     })
   }
 
@@ -164,22 +164,22 @@ async function main() {
 
   // 5. USERS
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@hearline.dz' },
+    where: { email: 'admin@Heartline.dz' },
     update: {},
     create: {
       name:           'System Administrator',
-      email:          'admin@hearline.dz',
+      email:          'admin@Heartline.dz',
       role:           'ADMIN',
       organizationId: org.id,
     },
   })
 
   const demo = await prisma.user.upsert({
-    where: { email: 'demo@hearline.dz' },
+    where: { email: 'demo@Heartline.dz' },
     update: {},
     create: {
       name:           'Dr. Ahmed Benaissa',
-      email:          'demo@hearline.dz',
+      email:          'demo@Heartline.dz',
       role:           'USER',
       organizationId: org.id,
     },
@@ -386,7 +386,7 @@ await prisma.notification.createMany({
       title:              'Payment Due Soon',
       message:            'Your subscription payment is due in 3 days',
       isRead:             false,
-      link:               'https://app.hearline.io/billing',
+      link:               'https://app.Heartline.io/billing',
       relatedEntityType:  'INVOICE',
       relatedEntityId:    invoice1.id,
     },

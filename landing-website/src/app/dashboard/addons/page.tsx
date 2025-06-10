@@ -6,8 +6,8 @@ import { DashboardHeader } from '@/components/dashboard/dashboard-header'
 import { AddonsManagement } from '@/components/dashboard/addons-management'
 
 export const metadata: Metadata = {
-  title: 'Add-ons | Hearline Dashboard',
-  description: 'Manage add-ons and additional features for your Hearline subscription.',
+  title: 'Add-ons | Heartline Dashboard',
+  description: 'Manage add-ons and additional features for your Heartline subscription.',
 }
 
 export default async function AddonsPage() {

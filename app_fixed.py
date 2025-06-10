@@ -48,7 +48,7 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = "replace-this-with-a-secure-random-string"
 # Use PostgreSQL for production - comment out SQLite line below if PostgreSQL is available
 app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql+psycopg2://postgres:root@localhost:5432/nv"
-# app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///hearline.db"  # Fallback for testing
+# app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///Heartline.db"  # Fallback for testing
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # Folders where uploads will be saved

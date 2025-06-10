@@ -129,7 +129,7 @@ export function FeaturesSection() {
           </h3>
           <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
             Join leading healthcare institutions that have already improved patient outcomes 
-            with Hearline's AI-powered cardiac management system.
+            with Heartline's AI-powered cardiac management system.
           </p>          <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/demo">
               <Button className="px-8 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium">

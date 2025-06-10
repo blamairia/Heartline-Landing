@@ -1,4 +1,4 @@
-# 🏥 Hearline Webapp - Complete Subscription Billing System v1.0
+# 🏥 Heartline Webapp - Complete Subscription Billing System v1.0
 
 **Production-Ready Healthcare Platform with Comprehensive Subscription Management**
 
@@ -6,7 +6,7 @@
 
 ## 🌟 System Overview
 
-Hearline v1.0 is a **fully functional** healthcare management platform featuring a complete subscription billing system with offline payment processing, invoice generation, and administrative oversight. This release represents a production-ready solution with end-to-end functionality from subscription creation to payment confirmation.
+Heartline v1.0 is a **fully functional** healthcare management platform featuring a complete subscription billing system with offline payment processing, invoice generation, and administrative oversight. This release represents a production-ready solution with end-to-end functionality from subscription creation to payment confirmation.
 
 ## ✅ **COMPLETED FEATURES - PRODUCTION READY**
 
@@ -334,7 +334,7 @@ const invoiceActions = {
 <div class="invoice-container">
   <header class="invoice-header">
     <div class="company-info">
-      <h1>Hearline Healthcare</h1>
+      <h1>Heartline Healthcare</h1>
       <p>Advanced Healthcare Management Platform</p>
     </div>
     <div class="invoice-details">
@@ -857,14 +857,14 @@ pnpm/npm/yarn package manager
 ### **Environment Configuration**
 ```env
 # Database Connection
-DATABASE_URL="postgresql://username:password@localhost:5432/hearline"
+DATABASE_URL="postgresql://username:password@localhost:5432/Heartline"
 
 # NextAuth Configuration
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="your-secure-secret-key"
 
 # Admin Account (for initial setup)
-ADMIN_EMAIL="admin@hearline.com"
+ADMIN_EMAIL="admin@Heartline.com"
 ADMIN_PASSWORD="secure-admin-password"
 
 # Application Settings
@@ -963,8 +963,8 @@ node test-subscription-flow.js
 ```sql
 -- Test user credentials
 INSERT INTO users (email, password, name, role) VALUES
-('test@hearline.com', '[hashed-password]', 'Test User', 'USER'),
-('admin@hearline.com', '[hashed-password]', 'Admin User', 'ADMIN');
+('test@Heartline.com', '[hashed-password]', 'Test User', 'USER'),
+('admin@Heartline.com', '[hashed-password]', 'Admin User', 'ADMIN');
 
 -- Verify subscription plans exist
 SELECT * FROM subscription_plans WHERE is_active = true;
@@ -1265,7 +1265,7 @@ await db.insert(activityLogs).values({
 - **Responsive Design**: Works seamlessly across desktop and mobile devices
 
 ### **🚀 Deployment Status**
-The Hearline Webapp v1.0 is **production-ready** and can be deployed immediately to handle real customer subscriptions. The system includes:
+The Heartline Webapp v1.0 is **production-ready** and can be deployed immediately to handle real customer subscriptions. The system includes:
 
 - ✅ All critical workflows tested and functional
 - ✅ Security measures implemented and verified  
@@ -1279,15 +1279,15 @@ The Hearline Webapp v1.0 is **production-ready** and can be deployed immediately
 ## 📞 **Support & Contact Information**
 
 ### **Technical Support**
-- **Email**: dev@hearline.com
+- **Email**: dev@Heartline.com
 - **Documentation**: Complete API and user guides included
 - **Training**: Video tutorials and setup instructions available
 - **Community**: Developer community and knowledge base
 
 ### **Business Inquiries**
-- **Sales**: sales@hearline.com  
-- **Billing**: billing@hearline.com
-- **General**: info@hearline.com
+- **Sales**: sales@Heartline.com  
+- **Billing**: billing@Heartline.com
+- **General**: info@Heartline.com
 - **Emergency**: 24/7 support for critical production issues
 
 ### **Development Team**
@@ -1301,7 +1301,7 @@ The Hearline Webapp v1.0 is **production-ready** and can be deployed immediately
 ## 📝 **License & Legal**
 
 ### **Software License**
-This software is proprietary and confidential. All rights reserved to Hearline Healthcare Platform.
+This software is proprietary and confidential. All rights reserved to Heartline Healthcare Platform.
 
 ### **Data Protection & Compliance**  
 - GDPR compliance for EU users
@@ -1311,9 +1311,9 @@ This software is proprietary and confidential. All rights reserved to Hearline H
 
 ### **Terms & Conditions**
 Complete terms of service, privacy policy, and billing terms available at:
-- https://hearline.com/terms
-- https://hearline.com/privacy  
-- https://hearline.com/billing-terms
+- https://Heartline.com/terms
+- https://Heartline.com/privacy  
+- https://Heartline.com/billing-terms
 
 ---
 
@@ -1321,7 +1321,7 @@ Complete terms of service, privacy policy, and billing terms available at:
 
 **📅 Last Updated**: January 2024  
 **🏷️ Version**: 1.0.0  
-**👥 Team**: Hearline Development Team  
+**👥 Team**: Heartline Development Team  
 **🌟 Status**: Complete subscription billing system with offline payment processing**
 
 ---

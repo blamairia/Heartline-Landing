@@ -1,4 +1,4 @@
-# 🏥 HEARLINE WEBAPP - STARTUP PRESENTATION
+# 🏥 Heartline WEBAPP - STARTUP PRESENTATION
 ## AI-Powered Cardiology Management System
 
 ---
@@ -11,7 +11,7 @@
 - **Local Market Gap**: No Algeria-specific medical management solutions
 - **Efficiency Bottlenecks**: Administrative overhead reducing patient care time
 
-### **Our Solution: HEARLINE**
+### **Our Solution: Heartline**
 Revolutionary AI-powered cardiology webapp combining:
 - **🧠 Instant ECG Analysis**: ResNet34 deep learning model
 - **💊 7000+ Algerian Medications**: Complete pharmaceutical database
@@ -233,7 +233,7 @@ Frontend:
 
 ### **🏗️ System Architecture**
 ```
-Hearline Webapp Architecture:
+Heartline Webapp Architecture:
 ├── app.py (Main Flask application)
 ├── models.py (Database schemas)
 ├── resnet.py (AI ECG analysis model)
@@ -295,7 +295,7 @@ Hearline Webapp Architecture:
 ## 📊 BUSINESS IMPACT & ROI
 
 ### **⏱️ Efficiency Gains**
-| Metric | Traditional Method | With Hearline | Improvement |
+| Metric | Traditional Method | With Heartline | Improvement |
 |--------|-------------------|---------------|-------------|
 | ECG Analysis Time | 2-4 hours | < 30 seconds | **95% reduction** |
 | Prescription Creation | 5-10 minutes | 1-2 minutes | **80% faster** |
@@ -313,7 +313,7 @@ Hearline Webapp Architecture:
 ## 🌟 CLIENT SUCCESS STORIES
 
 ### **🏥 Case Study: Algiers Cardiac Center**
-*"Hearline transformed our practice efficiency. ECG analysis that used to take hours now happens instantly, and our prescription accuracy improved dramatically with the Algerian medication database."*
+*"Heartline transformed our practice efficiency. ECG analysis that used to take hours now happens instantly, and our prescription accuracy improved dramatically with the Algerian medication database."*
 
 **Results:**
 - **50% increase** in daily patient capacity
@@ -377,7 +377,7 @@ Hearline Webapp Architecture:
 ### **🎯 Ready to Transform Cardiology?**
 
 #### **For Healthcare Practices:**
-1. **Schedule Demo**: See Hearline in action
+1. **Schedule Demo**: See Heartline in action
 2. **Pilot Program**: Risk-free trial period
 3. **Training & Onboarding**: Comprehensive support
 4. **Go Live**: Transform your practice
@@ -389,14 +389,14 @@ Hearline Webapp Architecture:
 4. **Growth Strategy**: Market expansion planning
 
 ### **📧 Contact Information**
-- **Email**: contact@hearline.dz
+- **Email**: contact@Heartline.dz
 - **Phone**: +213 XXX XXX XXX
-- **Demo Request**: www.hearline.dz/demo
-- **Investment Inquiry**: investors@hearline.dz
+- **Demo Request**: www.Heartline.dz/demo
+- **Investment Inquiry**: investors@Heartline.dz
 
 ---
 
-## 🏆 WHY HEARLINE WILL SUCCEED
+## 🏆 WHY Heartline WILL SUCCEED
 
 ### **✅ Proven Technology**
 - ResNet34 AI model with medical validation
@@ -420,10 +420,10 @@ Hearline Webapp Architecture:
 
 ---
 
-**🚀 HEARLINE: Where Artificial Intelligence Meets Compassionate Cardiology Care**
+**🚀 Heartline: Where Artificial Intelligence Meets Compassionate Cardiology Care**
 
 *Join us in revolutionizing cardiovascular healthcare in Algeria and beyond!*
 
 ---
 
-*© 2024 Hearline. All rights reserved.*
+*© 2024 Heartline. All rights reserved.*

@@ -4,8 +4,8 @@ import { Heart } from 'lucide-react'
 import { LoginForm } from '@/components/auth/login-form'
 
 export const metadata: Metadata = {
-  title: 'Sign In | Hearline',
-  description: 'Sign in to your Hearline account to access AI-powered cardiac management tools.',
+  title: 'Sign In | Heartline',
+  description: 'Sign in to your Heartline account to access AI-powered cardiac management tools.',
 }
 
 export default function LoginPage() {
@@ -19,7 +19,7 @@ export default function LoginPage() {
               <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
                 <Heart className="w-6 h-6 text-white" />
               </div>
-              <span className="text-2xl font-bold text-gray-900">Hearline</span>
+              <span className="text-2xl font-bold text-gray-900">Heartline</span>
             </Link>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome back</h1>
             <p className="text-gray-600">Sign in to your account to continue</p>

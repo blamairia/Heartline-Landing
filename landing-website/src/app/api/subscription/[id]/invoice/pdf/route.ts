@@ -176,10 +176,10 @@ export async function GET(
       <body>
         <div class="header">
           <div class="company-info">
-            <h1>Hearline</h1>
+            <h1>Heartline</h1>
             <p>Advanced Healthcare Solutions<br>
             Algiers, Algeria<br>
-            contact@hearline.com</p>
+            contact@Heartline.com</p>
           </div>
           <div class="invoice-info">
             <div class="invoice-number">INVOICE</div>

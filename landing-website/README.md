@@ -1,8 +1,8 @@
-# 🏥 Hearline - Landing Website & Subscription Platform
+# 🏥 Heartline - Landing Website & Subscription Platform
 
 ## 🌟 Professional Marketing Website with Subscription Management
 
-This is the **marketing and subscription management platform** for Hearline, our AI-powered cardiology management system. This website is **separate from the main Flask application** and serves as:
+This is the **marketing and subscription management platform** for Heartline, our AI-powered cardiology management system. This website is **separate from the main Flask application** and serves as:
 
 - **🎯 Marketing Hub** - Client acquisition and lead generation
 - **📊 Product Showcase** - Features and benefits presentation  
@@ -277,8 +277,8 @@ enum BillingCycle {
 
 ### **1. Initialize Next.js Project**
 ```bash
-npx create-next-app@latest hearline-landing --typescript --tailwind --eslint --app
-cd hearline-landing
+npx create-next-app@latest Heartline-landing --typescript --tailwind --eslint --app
+cd Heartline-landing
 ```
 
 ### **2. Install Dependencies**
@@ -321,7 +321,7 @@ npx prisma generate
 ### **5. Environment Setup**
 ```env
 # Database
-DATABASE_URL="postgresql://username:password@localhost:5432/hearline_landing"
+DATABASE_URL="postgresql://username:password@localhost:5432/Heartline_landing"
 
 # NextAuth
 NEXTAUTH_URL="http://localhost:3000"
@@ -332,7 +332,7 @@ EMAIL_SERVER_USER="your-email@gmail.com"
 EMAIL_SERVER_PASSWORD="your-app-password"
 EMAIL_SERVER_HOST="smtp.gmail.com"
 EMAIL_SERVER_PORT=587
-EMAIL_FROM="noreply@hearline.dz"
+EMAIL_FROM="noreply@Heartline.dz"
 ```
 
 ## 📱 Features Implementation Plan
@@ -518,7 +518,7 @@ components/
 ```bash
 # Clone and setup
 git clone <repository>
-cd hearline-landing
+cd Heartline-landing
 npm install
 
 # Database setup
@@ -593,13 +593,13 @@ npm run test:watch
 ### **Staging Environment**
 - **Platform** - Vercel/Netlify staging
 - **Database** - Staging PostgreSQL
-- **Domain** - staging.hearline.dz
+- **Domain** - staging.Heartline.dz
 
 ### **Production Environment**
 - **Platform** - Vercel/Netlify
 - **Database** - Production PostgreSQL
 - **CDN** - Global content delivery
-- **Domain** - hearline.dz
+- **Domain** - Heartline.dz
 
 ## 🎯 Target Audience & User Journey
 
@@ -647,6 +647,6 @@ npm run test:watch
 ## 📞 Development Team Contact
 
 - **Lead Developer**: [Your Name]
-- **Email**: dev@hearline.dz
+- **Email**: dev@Heartline.dz
 - **Project Repository**: [GitHub Link]
 - **Documentation**: [Docs Link]

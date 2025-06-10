@@ -16,19 +16,19 @@ export function ContactHero() {
           </h1>
           
           <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-            Have questions about Hearline? Need technical support? Want to schedule a demo? 
+            Have questions about Heartline? Need technical support? Want to schedule a demo? 
             We're here to help and typically respond within 24 hours.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <div className="flex items-center gap-2 text-gray-600">
               <Phone className="w-5 h-5 text-blue-600" />
-              <span>+1 (555) HEARLINE</span>
+              <span>+1 (555) Heartline</span>
             </div>
             <div className="hidden sm:block w-px h-6 bg-gray-300"></div>
             <div className="flex items-center gap-2 text-gray-600">
               <Mail className="w-5 h-5 text-blue-600" />
-              <span>hello@hearline.ai</span>
+              <span>hello@Heartline.ai</span>
             </div>
             <div className="hidden sm:block w-px h-6 bg-gray-300"></div>
             <div className="flex items-center gap-2 text-gray-600">

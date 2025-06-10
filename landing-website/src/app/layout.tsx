@@ -11,8 +11,8 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Hearline - AI-Powered Cardiology Management System',
-    template: '%s | Hearline'
+    default: 'Heartline - AI-Powered Cardiology Management System',
+    template: '%s | Heartline'
   },
   description: 'Revolutionary AI-powered cardiology management system for Algerian healthcare providers. Instant ECG analysis, 7000+ medication database, and comprehensive patient management.',
   keywords: [
@@ -25,29 +25,29 @@ export const metadata: Metadata = {
     'ResNet34',
     'cardiovascular care'
   ],
-  authors: [{ name: 'Hearline Team' }],
-  creator: 'Hearline',
-  publisher: 'Hearline',
+  authors: [{ name: 'Heartline Team' }],
+  creator: 'Heartline',
+  publisher: 'Heartline',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   openGraph: {
     type: 'website',
     locale: 'en_US',
     url: '/',
-    title: 'Hearline - AI-Powered Cardiology Management System',
+    title: 'Heartline - AI-Powered Cardiology Management System',
     description: 'Revolutionizing cardiovascular care with AI-driven ECG analysis and comprehensive practice management.',
-    siteName: 'Hearline',
+    siteName: 'Heartline',
     images: [
       {
         url: '/images/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: 'Hearline AI-Powered Cardiology Management System'
+        alt: 'Heartline AI-Powered Cardiology Management System'
       }
     ]
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Hearline - AI-Powered Cardiology Management System',
+    title: 'Heartline - AI-Powered Cardiology Management System',
     description: 'Revolutionizing cardiovascular care with AI-driven ECG analysis and comprehensive practice management.',
     images: ['/images/og-image.jpg']
   },

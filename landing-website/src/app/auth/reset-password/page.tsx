@@ -3,8 +3,8 @@ import { Metadata } from 'next'
 import { ResetPasswordForm } from '@/components/auth/reset-password-form'
 
 export const metadata: Metadata = {
-  title: 'Reset Password - Hearline AI',
-  description: 'Create a new password for your Hearline AI account',
+  title: 'Reset Password - Heartline AI',
+  description: 'Create a new password for your Heartline AI account',
 }
 
 export default function ResetPasswordPage() {

@@ -73,7 +73,7 @@ export function AIInnovationSection() {
               </span>
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Powered by cutting-edge artificial intelligence, Hearline transforms cardiac diagnosis 
+              Powered by cutting-edge artificial intelligence, Heartline transforms cardiac diagnosis 
               and monitoring with unprecedented accuracy and speed.
             </p>
           </motion.div>

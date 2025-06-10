@@ -17,7 +17,7 @@ const contactMethods = [
     icon: Phone,
     title: 'Phone Support',
     description: 'Speak directly with our team',
-    details: '+1 (555) HEARLINE',
+    details: '+1 (555) Heartline',
     available: 'Mon-Fri, 8AM-6PM EST',
     action: 'Call Now',
     color: 'bg-green-100 text-green-600'
@@ -26,7 +26,7 @@ const contactMethods = [
     icon: Mail,
     title: 'Email Support',
     description: '24-hour response guarantee',
-    details: 'hello@hearline.ai',
+    details: 'hello@Heartline.ai',
     available: 'We respond within 24 hours',
     action: 'Send Email',
     color: 'bg-blue-100 text-blue-600'
@@ -44,7 +44,7 @@ const contactMethods = [
     icon: Headphones,
     title: 'Technical Support',
     description: 'For existing customers',
-    details: 'support@hearline.ai',
+    details: 'support@Heartline.ai',
     available: '24/7 for critical issues',
     action: 'Get Help',
     color: 'bg-orange-100 text-orange-600'

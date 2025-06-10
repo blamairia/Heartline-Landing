@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Settings | Hearline Medical Clinic{% endblock %}
+{% block title %}Settings | Heartline Medical Clinic{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -52,7 +52,7 @@
                     <div class="form-group mb-3">
                       <label for="clinic-name" class="form-label">Clinic Name</label>
                       <input type="text" class="form-control" id="clinic-name" 
-                             value="{{ clinic_info.name if clinic_info else 'Hearline Medical Clinic' }}">
+                             value="{{ clinic_info.name if clinic_info else 'Heartline Medical Clinic' }}">
                     </div>
                   </div>
                   <div class="col-md-6">
@@ -729,7 +729,7 @@ function createBackup() {
         const a = document.createElement('a');
         a.style.display = 'none';
         a.href = url;
-        a.download = `hearline_backup_${new Date().toISOString().split('T')[0]}.sql`;
+        a.download = `Heartline_backup_${new Date().toISOString().split('T')[0]}.sql`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -784,7 +784,7 @@ function exportData(type) {
         const a = document.createElement('a');
         a.style.display = 'none';
         a.href = url;
-        a.download = `hearline_${type}_${new Date().toISOString().split('T')[0]}.csv`;
+        a.download = `Heartline_${type}_${new Date().toISOString().split('T')[0]}.csv`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);

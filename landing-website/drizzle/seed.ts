@@ -28,10 +28,10 @@ async function main() {
 
   // 1. ORGANIZATION
   const [org] = await db.insert(organizations).values({
-    name: 'Hearline Medical Center',
+    name: 'Heartline Medical Center',
   }).onConflictDoUpdate({
     target: organizations.name, // Assuming name is unique or you have a unique constraint for upsert
-    set: { name: 'Hearline Medical Center' }, // No actual change, just for upsert behavior
+    set: { name: 'Heartline Medical Center' }, // No actual change, just for upsert behavior
   }).returning();
   console.log('Organization seeded');
 
@@ -181,7 +181,7 @@ async function main() {
   // 5. USERS
   const [admin] = await db.insert(users).values({
     name: 'System Administrator',
-    email: 'admin@hearline.dz',
+    email: 'admin@Heartline.dz',
     role: 'ADMIN',
     organizationId: org.id,
   }).onConflictDoUpdate({
@@ -191,7 +191,7 @@ async function main() {
 
   const [demo] = await db.insert(users).values({
     name: 'Dr. Ahmed Benaissa',
-    email: 'demo@hearline.dz',
+    email: 'demo@Heartline.dz',
     role: 'USER',
     organizationId: org.id,
   }).onConflictDoUpdate({
@@ -436,7 +436,7 @@ async function main() {
       title:              'Payment Due Soon',
       message:            'Your subscription payment is due in 3 days',
       isRead:             false,
-      link:               'https://app.hearline.io/billing',
+      link:               'https://app.Heartline.io/billing',
       relatedEntityType:  'INVOICE',
       relatedEntityId:    invoice1.id,
     },

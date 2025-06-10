@@ -52,7 +52,7 @@ async function testSubscriptionCreation() {
     console.log('\n🎉 Subscription Creation Test Complete!');
     console.log('\nTo test with authentication:');
     console.log('1. Go to http://localhost:3000/auth/login');
-    console.log('2. Login with: demo@hearline.com / demo123');
+    console.log('2. Login with: demo@Heartline.com / demo123');
     console.log('3. Go to http://localhost:3000/dashboard/pricing');
     console.log('4. Select a plan and fill in billing details');
 

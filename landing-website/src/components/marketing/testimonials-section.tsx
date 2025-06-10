@@ -13,7 +13,7 @@ const testimonials = [
     hospital: 'Stanford Medical Center',
     image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=400&fit=crop&crop=face',
     rating: 5,
-    text: "Hearline has revolutionized our cardiac care workflow. The AI accuracy is remarkable - it caught a subtle MI that we initially missed. Our diagnosis time has decreased by 60%, and patient outcomes have significantly improved.",
+    text: "Heartline has revolutionized our cardiac care workflow. The AI accuracy is remarkable - it caught a subtle MI that we initially missed. Our diagnosis time has decreased by 60%, and patient outcomes have significantly improved.",
     highlight: 'Decreased diagnosis time by 60%'
   },
   {
@@ -40,7 +40,7 @@ const testimonials = [
     hospital: 'Cleveland Clinic',
     image: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&h=400&fit=crop&crop=face',
     rating: 5,
-    text: "Implementing Hearline across our network was seamless. The ROI has been exceptional - reduced readmissions, faster diagnoses, and improved patient satisfaction. Our cardiac mortality rates have dropped by 18%.",
+    text: "Implementing Heartline across our network was seamless. The ROI has been exceptional - reduced readmissions, faster diagnoses, and improved patient satisfaction. Our cardiac mortality rates have dropped by 18%.",
     highlight: '18% reduction in cardiac mortality'
   },
   {
@@ -92,7 +92,7 @@ export function TestimonialsSection() {
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Join hundreds of healthcare professionals who have transformed their 
-              cardiac care with Hearline's AI-powered platform.
+              cardiac care with Heartline's AI-powered platform.
             </p>
           </motion.div>
         </div>
@@ -188,7 +188,7 @@ export function TestimonialsSection() {
             Join the Revolution in Cardiac Care
           </h3>
           <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-            See why leading cardiologists trust Hearline to deliver exceptional patient outcomes. 
+            See why leading cardiologists trust Heartline to deliver exceptional patient outcomes. 
             Start your free trial today and experience the difference.
           </p>          <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/auth/register">

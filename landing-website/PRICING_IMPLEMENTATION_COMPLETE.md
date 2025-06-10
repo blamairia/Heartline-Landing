@@ -120,7 +120,7 @@ The pricing page is now fully functional at:
 ### Test Flow:
 1. Start dev server: `npm run dev`
 2. Visit `http://localhost:3000/pricing`
-3. Login with demo account: `demo@hearline.com` / `demo123`
+3. Login with demo account: `demo@Heartline.com` / `demo123`
 4. Select a subscription plan
 5. Fill out billing form
 6. Submit to create subscription

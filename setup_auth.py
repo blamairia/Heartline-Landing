@@ -36,7 +36,7 @@ def create_admin_user():
         # Create admin user with assistant role
         admin_user = User(
             username='admin',
-            email='admin@hearline.clinic',
+            email='admin@Heartline.clinic',
             first_name='System',
             last_name='Administrator',
             role='assistant',
@@ -51,7 +51,7 @@ def create_admin_user():
         print("  Username: admin")
         print("  Password: admin123")
         print("  Role: assistant")
-        print("  Email: admin@hearline.clinic")
+        print("  Email: admin@Heartline.clinic")
         print("  NOTE: Please change the password after first login!")
         
     except Exception as e:
@@ -67,7 +67,7 @@ def create_sample_doctor():
             last_name='Smith',
             specialty='Cardiology',
             phone='(555) 123-4567',
-            email='dr.smith@hearline.clinic',
+            email='dr.smith@Heartline.clinic',
             bio='Experienced cardiologist specializing in ECG analysis and heart conditions.'
         )
         
@@ -77,7 +77,7 @@ def create_sample_doctor():
         # Create user account for the doctor
         doctor_user = User(
             username='dr.smith',
-            email='dr.smith@hearline.clinic',
+            email='dr.smith@Heartline.clinic',
             first_name='John',
             last_name='Smith',
             role='doctor',
@@ -93,7 +93,7 @@ def create_sample_doctor():
         print("  Username: dr.smith")
         print("  Password: doctor123")
         print("  Role: doctor")
-        print("  Email: dr.smith@hearline.clinic")
+        print("  Email: dr.smith@Heartline.clinic")
         print("  Specialty: Cardiology")
         
     except Exception as e:
@@ -115,7 +115,7 @@ def list_users():
         print(f"✗ Error listing users: {e}")
 
 if __name__ == "__main__":
-    print("🏥 Setting up Hearline Medical Clinic Authentication System")
+    print("🏥 Setting up Heartline Medical Clinic Authentication System")
     print("=" * 60)
     
     if setup_database():

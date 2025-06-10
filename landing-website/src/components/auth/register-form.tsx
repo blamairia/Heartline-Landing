@@ -86,7 +86,7 @@ export function RegisterForm() {
           <CheckCircle className="w-8 h-8 text-green-600" />
         </div>        <h3 className="text-2xl font-semibold text-gray-900 mb-4">Account Created!</h3>
         <p className="text-gray-600 mb-6">
-          Your account has been created successfully. You can now sign in and start using Hearline.
+          Your account has been created successfully. You can now sign in and start using Heartline.
         </p>
         <div className="bg-blue-50 p-4 rounded-lg mb-6">
           <h4 className="font-medium text-blue-900 mb-2">Next steps:</h4>

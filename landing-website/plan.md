@@ -1,12 +1,12 @@
-# Hearline Dashboard Database Integration Plan
+# Heartline Dashboard Database Integration Plan
 
 **Created:** June 8, 2025  
-**Project:** Hearline Subscription Management Platform  
+**Project:** Heartline Subscription Management Platform  
 **Status:** Template to Database Integration  
 
 ## 📋 Executive Summary
 
-This plan outlines the complete transformation of the Hearline dashboard from hardcoded template data to a fully functional database-integrated subscription management system. All dashboard components currently use mock data arrays and need to be connected to the existing Prisma database schema.
+This plan outlines the complete transformation of the Heartline dashboard from hardcoded template data to a fully functional database-integrated subscription management system. All dashboard components currently use mock data arrays and need to be connected to the existing Prisma database schema.
 
 ## 🎯 Current State Analysis
 

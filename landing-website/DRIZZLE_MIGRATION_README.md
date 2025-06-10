@@ -2,7 +2,7 @@
 
 ## 🎯 Project Overview
 
-This document comprehensively covers the complete migration from **Prisma ORM** to **Drizzle ORM** for the Hearline Landing Website, a TypeScript/Next.js application with PostgreSQL database. The migration includes implementation of a real subscription billing system with invoices, payments, and cash payment processing.
+This document comprehensively covers the complete migration from **Prisma ORM** to **Drizzle ORM** for the Heartline Landing Website, a TypeScript/Next.js application with PostgreSQL database. The migration includes implementation of a real subscription billing system with invoices, payments, and cash payment processing.
 
 ## 📋 Migration Summary
 

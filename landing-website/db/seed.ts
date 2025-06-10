@@ -17,12 +17,12 @@ async function main() {
 
   try {
     // 1. ORGANIZATION
-    let org = await db.select().from(organizations).where(eq(organizations.name, 'Hearline Medical Center'));
+    let org = await db.select().from(organizations).where(eq(organizations.name, 'Heartline Medical Center'));
     
     if (org.length === 0) {
       const [newOrg] = await db.insert(organizations).values({
         id: createId(),
-        name: 'Hearline Medical Center',
+        name: 'Heartline Medical Center',
         createdAt: new Date(),
         updatedAt: new Date(),
       }).returning();
@@ -172,7 +172,7 @@ async function main() {
     console.log('✅ Subscription addons seeded');
 
     // 4. ADMIN USER
-    const adminEmail = 'admin@hearline.com';
+    const adminEmail = 'admin@Heartline.com';
     const existingAdmin = await db.select().from(users).where(eq(users.email, adminEmail));
     
     if (existingAdmin.length === 0) {
@@ -194,7 +194,7 @@ async function main() {
     }
 
     // 5. DEMO USER
-    const demoEmail = 'demo@hearline.com';
+    const demoEmail = 'demo@Heartline.com';
     const existingDemo = await db.select().from(users).where(eq(users.email, demoEmail));
     
     if (existingDemo.length === 0) {
@@ -229,8 +229,8 @@ async function main() {
     console.log('🎉 Database seeding completed successfully!');
     console.log('');
     console.log('Test credentials:');
-    console.log('📧 Admin: admin@hearline.com / admin123');
-    console.log('📧 Demo: demo@hearline.com / demo123');
+    console.log('📧 Admin: admin@Heartline.com / admin123');
+    console.log('📧 Demo: demo@Heartline.com / demo123');
     
   } catch (error) {
     console.error('❌ Error seeding database:', error);

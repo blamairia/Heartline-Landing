@@ -97,7 +97,7 @@ export function ContactForm() {
               <li>• Confirmation email sent to your address</li>
               <li>• Our team will review your inquiry</li>
               <li>• You'll receive a personalized response within 24 hours</li>
-              <li>• For urgent matters, call +1 (555) HEARLINE</li>
+              <li>• For urgent matters, call +1 (555) Heartline</li>
             </ul>
           </div>
           <Button onClick={() => setIsSubmitted(false)} variant="outline">

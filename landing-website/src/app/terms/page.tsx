@@ -3,8 +3,8 @@ import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 
 export const metadata: Metadata = {
-  title: 'Terms of Service | Hearline',
-  description: 'Terms of Service and User Agreement for Hearline AI-powered cardiac management platform.',
+  title: 'Terms of Service | Heartline',
+  description: 'Terms of Service and User Agreement for Heartline AI-powered cardiac management platform.',
 }
 
 export default function TermsPage() {
@@ -25,19 +25,19 @@ export default function TermsPage() {
             <section className="mb-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">1. Acceptance of Terms</h2>
               <p className="text-gray-600 mb-4">
-                By accessing and using Hearline's AI-powered cardiac management platform ("Service"), 
+                By accessing and using Heartline's AI-powered cardiac management platform ("Service"), 
                 you accept and agree to be bound by the terms and provision of this agreement.
               </p>
               <p className="text-gray-600">
                 These Terms of Service ("Terms") govern your use of our website and software platform 
-                operated by Hearline, Inc. ("us", "we", or "our").
+                operated by Heartline, Inc. ("us", "we", or "our").
               </p>
             </section>
 
             <section className="mb-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">2. Description of Service</h2>
               <p className="text-gray-600 mb-4">
-                Hearline provides an AI-powered platform for cardiac care management, including:
+                Heartline provides an AI-powered platform for cardiac care management, including:
               </p>
               <ul className="list-disc list-inside text-gray-600 mb-4 space-y-2">
                 <li>ECG analysis and interpretation using artificial intelligence</li>
@@ -57,7 +57,7 @@ export default function TermsPage() {
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-4">
                 <p className="text-gray-800 font-medium mb-2">Important Medical Disclaimer:</p>
                 <p className="text-gray-700">
-                  Hearline's AI analysis and recommendations are intended to support, not replace, 
+                  Heartline's AI analysis and recommendations are intended to support, not replace, 
                   clinical judgment. Healthcare professionals must exercise their own clinical 
                   judgment and expertise when making diagnostic and treatment decisions.
                 </p>
@@ -125,7 +125,7 @@ export default function TermsPage() {
               <h2 className="text-2xl font-bold text-gray-900 mb-4">7. Intellectual Property</h2>
               <p className="text-gray-600 mb-4">
                 All intellectual property rights in the Service, including AI algorithms, 
-                software, documentation, and trademarks, remain the property of Hearline, Inc.
+                software, documentation, and trademarks, remain the property of Heartline, Inc.
               </p>
               <p className="text-gray-600">
                 Patient data uploaded to the Service remains the property of the healthcare 
@@ -152,7 +152,7 @@ export default function TermsPage() {
               <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-4">
                 <p className="text-red-800 font-medium mb-2">Important Liability Limitation:</p>
                 <p className="text-red-700">
-                  To the maximum extent permitted by law, Hearline's liability is limited to 
+                  To the maximum extent permitted by law, Heartline's liability is limited to 
                   the amount paid for the Service in the 12 months preceding the claim.
                 </p>
               </div>
@@ -192,10 +192,10 @@ export default function TermsPage() {
               </p>
               <div className="bg-gray-50 rounded-lg p-4">
                 <p className="text-gray-700">
-                  <strong>Hearline, Inc.</strong><br />
+                  <strong>Heartline, Inc.</strong><br />
                   123 Innovation Drive<br />
-                  San Francisco, CA 94107<br />                  Email: legal@hearline.ai<br />
-                  Phone: +1 (555) HEARLINE
+                  San Francisco, CA 94107<br />                  Email: legal@Heartline.ai<br />
+                  Phone: +1 (555) Heartline
                 </p>              </div>
             </section>
           </div>

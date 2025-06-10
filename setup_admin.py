@@ -30,7 +30,7 @@ def create_admin_user():
             last_name="User",
             specialty="General Medicine",
             phone="000-000-0000",
-            email="admin@hearlineclinic.com",
+            email="admin@Heartlineclinic.com",
             bio="System Administrator"
         )
         
@@ -40,7 +40,7 @@ def create_admin_user():
         # Create admin user
         admin_user = User(
             username="admin",
-            email="admin@hearlineclinic.com",
+            email="admin@Heartlineclinic.com",
             password_hash=bcrypt.generate_password_hash("admin123").decode('utf-8'),
             role="doctor",
             doctor_id=admin_doctor.id
@@ -53,7 +53,7 @@ def create_admin_user():
         print(f"Username: admin")
         print(f"Password: admin123")
         print(f"Role: doctor")
-        print(f"Email: admin@hearlineclinic.com")
+        print(f"Email: admin@Heartlineclinic.com")
         print("\n⚠️  Please change the password after first login!")
 
 def create_test_users():
@@ -67,7 +67,7 @@ def create_test_users():
             last_name="Johnson",
             specialty="Cardiology",
             phone="555-123-4567",
-            email="sarah.johnson@hearlineclinic.com",
+            email="sarah.johnson@Heartlineclinic.com",
             bio="Experienced cardiologist specializing in ECG analysis and heart disease prevention."
         )
         
@@ -76,7 +76,7 @@ def create_test_users():
         
         doctor_user = User(
             username="dr.johnson",
-            email="sarah.johnson@hearlineclinic.com",
+            email="sarah.johnson@Heartlineclinic.com",
             password_hash=bcrypt.generate_password_hash("doctor123").decode('utf-8'),
             role="doctor",
             doctor_id=test_doctor.id
@@ -85,7 +85,7 @@ def create_test_users():
         # Create a test assistant
         assistant_user = User(
             username="assistant",
-            email="assistant@hearlineclinic.com",
+            email="assistant@Heartlineclinic.com",
             password_hash=bcrypt.generate_password_hash("assistant123").decode('utf-8'),
             role="assistant"
         )
@@ -100,7 +100,7 @@ def create_test_users():
 
 def main():
     """Main setup function."""
-    print("🏥 Hearline Medical Clinic - Authentication Setup")
+    print("🏥 Heartline Medical Clinic - Authentication Setup")
     print("=" * 50)
     
     # Setup database

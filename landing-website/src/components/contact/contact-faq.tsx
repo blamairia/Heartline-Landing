@@ -11,15 +11,15 @@ const faqs = [
     category: 'General',
     questions: [
       {
-        question: 'What is Hearline and how does it work?',
-        answer: 'Hearline is an AI-powered cardiac management platform that analyzes ECGs, automates workflows, and provides intelligent insights to healthcare providers. Our deep learning algorithms analyze cardiac rhythms with 99.2% accuracy, helping clinicians make faster, more accurate diagnoses.'
+        question: 'What is Heartline and how does it work?',
+        answer: 'Heartline is an AI-powered cardiac management platform that analyzes ECGs, automates workflows, and provides intelligent insights to healthcare providers. Our deep learning algorithms analyze cardiac rhythms with 99.2% accuracy, helping clinicians make faster, more accurate diagnoses.'
       },
       {
-        question: 'Who can use Hearline?',
-        answer: 'Hearline is designed for hospitals, clinics, cardiology practices, and healthcare systems of all sizes. Our platform serves cardiologists, cardiac nurses, ECG technicians, and healthcare administrators worldwide.'
+        question: 'Who can use Heartline?',
+        answer: 'Heartline is designed for hospitals, clinics, cardiology practices, and healthcare systems of all sizes. Our platform serves cardiologists, cardiac nurses, ECG technicians, and healthcare administrators worldwide.'
       },
       {
-        question: 'How quickly can I get started with Hearline?',
+        question: 'How quickly can I get started with Heartline?',
         answer: 'Implementation typically takes 2-4 weeks depending on your setup. We provide full onboarding support, training, and integration assistance to ensure a smooth transition.'
       }
     ]
@@ -28,16 +28,16 @@ const faqs = [
     category: 'Technical',
     questions: [
       {
-        question: 'Does Hearline integrate with existing EHR systems?',
-        answer: 'Yes, Hearline integrates with major EHR systems including Epic, Cerner, AllScripts, and many others. We also offer API integration for custom systems.'
+        question: 'Does Heartline integrate with existing EHR systems?',
+        answer: 'Yes, Heartline integrates with major EHR systems including Epic, Cerner, AllScripts, and many others. We also offer API integration for custom systems.'
       },
       {
         question: 'What are the system requirements?',
-        answer: 'Hearline is a cloud-based platform accessible through any modern web browser. For ECG devices, we support most major manufacturers and can integrate with existing equipment.'
+        answer: 'Heartline is a cloud-based platform accessible through any modern web browser. For ECG devices, we support most major manufacturers and can integrate with existing equipment.'
       },
       {
         question: 'Is my data secure and HIPAA compliant?',
-        answer: 'Absolutely. Hearline is fully HIPAA compliant with end-to-end encryption, secure data centers, and comprehensive audit trails. We maintain SOC 2 Type II certification and undergo regular security audits.'
+        answer: 'Absolutely. Heartline is fully HIPAA compliant with end-to-end encryption, secure data centers, and comprehensive audit trails. We maintain SOC 2 Type II certification and undergo regular security audits.'
       }
     ]
   },
@@ -45,7 +45,7 @@ const faqs = [
     category: 'Pricing & Support',
     questions: [
       {
-        question: 'How is Hearline priced?',
+        question: 'How is Heartline priced?',
         answer: 'We offer flexible subscription plans based on your patient volume and feature needs. Plans start at $299/month for small practices, with enterprise solutions available. Contact us for a custom quote.'
       },
       {
@@ -71,7 +71,7 @@ const faqs = [
       },
       {
         question: 'Can you help migrate our existing data?',
-        answer: 'Yes, our implementation team assists with data migration from existing systems, ensuring historical ECG data and patient records are properly transferred and accessible in Hearline.'
+        answer: 'Yes, our implementation team assists with data migration from existing systems, ensuring historical ECG data and patient records are properly transferred and accessible in Heartline.'
       }
     ]
   }

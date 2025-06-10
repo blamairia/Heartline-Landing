@@ -20,16 +20,14 @@ export function DashboardHeader() {
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <Heart className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-900">Hearline</span>
-          </Link>          {/* Navigation */}          <nav className="hidden md:flex items-center space-x-8">
+            <span className="text-xl font-bold text-gray-900">Heartline</span>
+          </Link>          {/* Navigation */}
+          <nav className="hidden md:flex items-center space-x-8">
             <Link href="/dashboard" className="text-gray-900 font-medium">
               Dashboard
             </Link>
             <Link href="/dashboard/subscription" className="text-gray-600 hover:text-gray-900">
               Subscription
-            </Link>
-            <Link href="/pricing" className="text-gray-600 hover:text-gray-900">
-              Pricing
             </Link>
             <Link href="/dashboard/users" className="text-gray-600 hover:text-gray-900">
               Users

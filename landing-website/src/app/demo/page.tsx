@@ -5,8 +5,8 @@ import { DemoForm } from '@/components/demo/demo-form'
 import { DemoFeatures } from '@/components/demo/demo-features'
 
 export const metadata: Metadata = {
-  title: 'Request Demo | Hearline',
-  description: 'See Hearline AI-powered cardiac management system in action. Schedule a personalized demo.',
+  title: 'Request Demo | Heartline',
+  description: 'See Heartline AI-powered cardiac management system in action. Schedule a personalized demo.',
 }
 
 export default function DemoPage() {
@@ -20,7 +20,7 @@ export default function DemoPage() {
           <div className="container mx-auto px-4 py-8">
             <div className="text-center">
               <h1 className="text-4xl font-bold text-gray-900 mb-4">
-                See Hearline in Action
+                See Heartline in Action
               </h1>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto">
                 Schedule a personalized demo and discover how our AI-powered platform 

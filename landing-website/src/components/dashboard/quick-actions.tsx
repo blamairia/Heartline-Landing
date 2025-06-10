@@ -6,12 +6,12 @@ import { Button } from '@/components/ui/button'
 
 const actions = [
   {
-    title: 'Access Hearline App',
+    title: 'Access Heartline App',
     description: 'Open the cardiac analysis platform',
     icon: ExternalLink,
     color: 'text-blue-500',
     bgColor: 'bg-blue-50',
-    href: 'https://app.hearline.ai',
+    href: 'https://app.Heartline.ai',
     external: true
   },
   {

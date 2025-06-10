@@ -102,7 +102,7 @@ export function HeroSection() {
               variants={itemVariants}
               className="text-xl text-gray-600 mb-8 leading-relaxed max-w-2xl mx-auto lg:mx-0"
             >
-              Hearline combines cutting-edge AI ECG analysis with comprehensive patient management, 
+              Heartline combines cutting-edge AI ECG analysis with comprehensive patient management, 
               featuring 7000+ Algerian medications and real-time diagnostics to revolutionize 
               cardiovascular care.
             </motion.p>

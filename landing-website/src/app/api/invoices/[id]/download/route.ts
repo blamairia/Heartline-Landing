@@ -82,13 +82,13 @@ async function generateInvoicePDF(invoice: any, user: any): Promise<Buffer> {
       doc.on('error', reject);
 
       // Header
-      doc.fontSize(20).text('HEARLINE WEBAPP', 50, 50);
+      doc.fontSize(20).text('Heartline WEBAPP', 50, 50);
       doc.fontSize(10).text('Professional Health Monitoring Solutions', 50, 75);
       
       // Company Info
       doc.text('Address: Algiers, Algeria', 50, 95);
       doc.text('Phone: +213 XXX XXX XXX', 50, 110);
-      doc.text('Email: billing@hearline.dz', 50, 125);
+      doc.text('Email: billing@Heartline.dz', 50, 125);
 
       // Invoice Title
       doc.fontSize(16).text('INVOICE', 400, 50);
@@ -161,7 +161,7 @@ async function generateInvoicePDF(invoice: any, user: any): Promise<Buffer> {
       
       doc.fontSize(8)
          .text('Thank you for your business!', 50, footerTop + 10)
-         .text('For support, contact us at support@hearline.dz', 50, footerTop + 25)
+         .text('For support, contact us at support@Heartline.dz', 50, footerTop + 25)
          .text('This is a computer-generated invoice.', 50, footerTop + 40)
          .text(`Generated on: ${new Date().toLocaleString()}`, 400, footerTop + 40);
 

@@ -15,7 +15,7 @@ export function AboutHero() {
       <div className="container mx-auto px-4">
         <div className="text-center max-w-4xl mx-auto">
           <Badge variant="secondary" className="mb-4">
-            About Hearline
+            About Heartline
           </Badge>
           
           <h1 className="text-5xl font-bold text-gray-900 mb-6">
@@ -24,7 +24,7 @@ export function AboutHero() {
           </h1>
           
           <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-            Founded by cardiologists and AI researchers, Hearline combines deep medical expertise 
+            Founded by cardiologists and AI researchers, Heartline combines deep medical expertise 
             with cutting-edge artificial intelligence to transform how cardiac conditions are 
             diagnosed, monitored, and treated worldwide.
           </p>

@@ -12,7 +12,7 @@ const leadership = [
     specialties: ['Interventional Cardiology', 'Medical AI', 'Clinical Research'],
     linkedin: '#',
     twitter: '#',
-    email: 'sarah.chen@hearline.ai'
+    email: 'sarah.chen@Heartline.ai'
   },
   {
     name: 'Dr. Michael Rodriguez',
@@ -22,7 +22,7 @@ const leadership = [
     specialties: ['Machine Learning', 'Medical Imaging', 'Neural Networks'],
     linkedin: '#',
     twitter: '#',
-    email: 'michael.rodriguez@hearline.ai'
+    email: 'michael.rodriguez@Heartline.ai'
   },
   {
     name: 'Dr. Emily Thompson',
@@ -32,7 +32,7 @@ const leadership = [
     specialties: ['Electrophysiology', 'Arrhythmia Management', 'Clinical Validation'],
     linkedin: '#',
     twitter: '#',
-    email: 'emily.thompson@hearline.ai'
+    email: 'emily.thompson@Heartline.ai'
   },
   {
     name: 'James Park',
@@ -42,7 +42,7 @@ const leadership = [
     specialties: ['Healthcare Tech', 'Platform Architecture', 'Mobile Health'],
     linkedin: '#',
     twitter: '#',
-    email: 'james.park@hearline.ai'
+    email: 'james.park@Heartline.ai'
   }
 ]
 

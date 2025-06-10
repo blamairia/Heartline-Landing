@@ -65,7 +65,7 @@ export function AboutMission() {
                 <h3 className="text-3xl font-bold text-gray-900 mb-6">Our Story</h3>
                 <div className="space-y-4 text-gray-600">
                   <p>
-                    Hearline was born from a simple observation: while AI was transforming 
+                    Heartline was born from a simple observation: while AI was transforming 
                     many industries, healthcare providers still struggled with manual, 
                     time-intensive cardiac diagnosis processes.
                   </p>

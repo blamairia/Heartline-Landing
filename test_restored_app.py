@@ -42,7 +42,7 @@ def test_app_routes():
         return False
 
 def main():
-    print("Testing restored Hearline Webapp...")
+    print("Testing restored Heartline Webapp...")
     print("=" * 40)
     
     success = True

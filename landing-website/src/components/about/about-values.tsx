@@ -48,7 +48,7 @@ export function AboutValues() {
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-6">Our Values</h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              The principles that guide everything we do at Hearline, from product 
+              The principles that guide everything we do at Heartline, from product 
               development to customer relationships.
             </p>
           </div>

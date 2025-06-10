@@ -6,7 +6,7 @@ const timelineEvents = [
     year: '2020',
     quarter: 'Q1',
     title: 'Company Founded',
-    description: 'Hearline established by leading cardiologists and AI researchers from Stanford and MIT.',
+    description: 'Heartline established by leading cardiologists and AI researchers from Stanford and MIT.',
     icon: Users,
     type: 'founding'
   },
@@ -30,7 +30,7 @@ const timelineEvents = [
     year: '2021',
     quarter: 'Q4',
     title: 'Product Launch',
-    description: 'Launched Hearline platform to first 50 healthcare partners across North America.',
+    description: 'Launched Heartline platform to first 50 healthcare partners across North America.',
     icon: Calendar,
     type: 'product'
   },

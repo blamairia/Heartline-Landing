@@ -3,8 +3,8 @@ import Link from 'next/link'
 import { ForgotPasswordForm } from '@/components/auth/forgot-password-form'
 
 export const metadata: Metadata = {
-  title: 'Forgot Password - Hearline AI',
-  description: 'Reset your Hearline AI account password',
+  title: 'Forgot Password - Heartline AI',
+  description: 'Reset your Heartline AI account password',
 }
 
 export default function ForgotPasswordPage() {

@@ -23,9 +23,9 @@ export async function POST(request: NextRequest) {
     
     // Send test email
     const result = await transporter.sendMail({
-      from: `"Hearline AI API Test" <${process.env.SMTP_USER}>`,
+      from: `"Heartline AI API Test" <${process.env.SMTP_USER}>`,
       to: 'blamairia@gmail.com',
-      subject: 'SMTP API Test - Hearline AI',
+      subject: 'SMTP API Test - Heartline AI',
       text: 'This is a test email sent from the Next.js API endpoint to verify SMTP is working.',
       html: '<p>This is a test email sent from the Next.js API endpoint to verify SMTP is working.</p>'
     })

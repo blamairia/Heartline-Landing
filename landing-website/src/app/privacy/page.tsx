@@ -3,8 +3,8 @@ import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy | Hearline',
-  description: 'Privacy Policy for Hearline AI-powered cardiac management platform. Learn how we protect your data.',
+  title: 'Privacy Policy | Heartline',
+  description: 'Privacy Policy for Heartline AI-powered cardiac management platform. Learn how we protect your data.',
 }
 
 export default function PrivacyPage() {
@@ -25,7 +25,7 @@ export default function PrivacyPage() {
             <section className="mb-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">1. Introduction</h2>
               <p className="text-gray-600 mb-4">
-                At Hearline, Inc. ("we," "our," or "us"), we are committed to protecting the privacy 
+                At Heartline, Inc. ("we," "our," or "us"), we are committed to protecting the privacy 
                 and security of personal and health information. This Privacy Policy explains how we 
                 collect, use, disclose, and safeguard information when you use our AI-powered cardiac 
                 management platform.
@@ -230,13 +230,13 @@ export default function PrivacyPage() {
               <div className="bg-gray-50 rounded-lg p-6">
                 <p className="text-gray-700 mb-4">
                   <strong>Data Protection Officer</strong><br />
-                  Hearline, Inc.<br />
+                  Heartline, Inc.<br />
                   123 Innovation Drive<br />
                   San Francisco, CA 94107
                 </p>
                 <p className="text-gray-700">
-                  <strong>Email:</strong> privacy@hearline.ai<br />
-                  <strong>Phone:</strong> +1 (555) HEARLINE<br />                  <strong>Privacy Portal:</strong> privacy.hearline.ai
+                  <strong>Email:</strong> privacy@Heartline.ai<br />
+                  <strong>Phone:</strong> +1 (555) Heartline<br />                  <strong>Privacy Portal:</strong> privacy.Heartline.ai
                 </p>              </div>
             </section>
           </div>

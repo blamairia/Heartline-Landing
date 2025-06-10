@@ -70,7 +70,7 @@ const benefits = [
 ]
 
 const testimonialPreview = {
-  quote: "The demo showed us exactly how Hearline could transform our cardiology department. The AI accuracy was impressive and the workflow integration was seamless.",
+  quote: "The demo showed us exactly how Heartline could transform our cardiology department. The AI accuracy was impressive and the workflow integration was seamless.",
   author: "Dr. Sarah Chen",
   role: "Chief of Cardiology",
   organization: "Metro General Hospital"
@@ -87,7 +87,7 @@ export function DemoFeatures() {
             What You'll See in the Demo
           </CardTitle>
           <CardDescription>
-            A comprehensive 30-minute walkthrough of Hearline's key capabilities
+            A comprehensive 30-minute walkthrough of Heartline's key capabilities
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -206,12 +206,12 @@ export function DemoFeatures() {
             Our team is here to help you prepare for the most valuable demo experience.
           </p>
           <div className="flex flex-col sm:flex-row gap-2 justify-center text-sm">
-            <a href="mailto:demo@hearline.ai" className="text-blue-600 hover:underline">
-              demo@hearline.ai
+            <a href="mailto:demo@Heartline.ai" className="text-blue-600 hover:underline">
+              demo@Heartline.ai
             </a>
             <span className="hidden sm:inline text-gray-400">|</span>
-            <a href="tel:+1-555-HEARLINE" className="text-blue-600 hover:underline">
-              +1 (555) HEARLINE
+            <a href="tel:+1-555-Heartline" className="text-blue-600 hover:underline">
+              +1 (555) Heartline
             </a>
           </div>
         </CardContent>

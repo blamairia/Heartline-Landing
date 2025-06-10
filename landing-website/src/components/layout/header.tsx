@@ -53,7 +53,7 @@ export function Header() {
             <div className="p-2 bg-primary/10 rounded-lg">
               <Heart className="w-6 h-6 text-primary" />
             </div>
-            <span>Hearline</span>
+            <span>Heartline</span>
           </Link>
 
           {/* Desktop Navigation */}

@@ -80,7 +80,7 @@ export function AddonsManagement() {
           Add-ons & Extensions
         </h1>
         <p className="text-gray-600">
-          Enhance your Hearline experience with powerful add-ons and integrations.
+          Enhance your Heartline experience with powerful add-ons and integrations.
         </p>
       </div>      {/* Active Add-ons */}
       {addonsData.activeAddons.length > 0 && (

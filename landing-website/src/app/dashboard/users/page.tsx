@@ -7,8 +7,8 @@ import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Users Management | Hearline Dashboard',
-  description: 'Manage users in the Hearline system.',
+  title: 'Users Management | Heartline Dashboard',
+  description: 'Manage users in the Heartline system.',
 };
 
 async function getUsers() {

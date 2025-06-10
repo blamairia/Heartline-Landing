@@ -15,7 +15,7 @@ with app.app_context():
         print("Creating admin user...")
         admin_user = User(
             username='admin',
-            email='admin@hearline.clinic',
+            email='admin@Heartline.clinic',
             first_name='System',
             last_name='Administrator',
             role='assistant',

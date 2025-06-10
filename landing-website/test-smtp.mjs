@@ -37,13 +37,13 @@ async function testSMTP() {
     // Send test email
     console.log('📤 Sending test email...');
     const info = await transporter.sendMail({
-      from: `"Hearline AI Test" <${process.env.SMTP_USER}>`,
+      from: `"Heartline AI Test" <${process.env.SMTP_USER}>`,
       to: 'blamairia@gmail.com',
-      subject: 'SMTP Test - Hearline AI',
+      subject: 'SMTP Test - Heartline AI',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
           <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #2563eb; margin: 0;">🏥 Hearline AI</h1>
+            <h1 style="color: #2563eb; margin: 0;">🏥 Heartline AI</h1>
             <p style="color: #666; margin: 5px 0;">SMTP Test Email</p>
           </div>
           
@@ -63,20 +63,20 @@ async function testSMTP() {
           </div>
           
           <p style="color: #666; font-size: 14px; margin-top: 30px;">
-            This email was sent automatically to test the Hearline AI SMTP configuration.
+            This email was sent automatically to test the Heartline AI SMTP configuration.
             If you received this email, the email system is working correctly! 🎉
           </p>
           
           <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e9ecef;">
             <p style="color: #6c757d; font-size: 12px; margin: 0;">
-              Hearline AI - Advanced Cardiac AI Solutions<br>
+              Heartline AI - Advanced Cardiac AI Solutions<br>
               Powered by AI for Better Healthcare
             </p>
           </div>
         </div>
       `,
       text: `
-SMTP Test - Hearline AI
+SMTP Test - Heartline AI
 
 ✅ SMTP is working correctly!
 
@@ -87,10 +87,10 @@ Test Details:
 - From: ${process.env.SMTP_USER}
 - To: blamairia@gmail.com
 
-This email was sent automatically to test the Hearline AI SMTP configuration.
+This email was sent automatically to test the Heartline AI SMTP configuration.
 If you received this email, the email system is working correctly! 🎉
 
-Hearline AI - Advanced Cardiac AI Solutions
+Heartline AI - Advanced Cardiac AI Solutions
 Powered by AI for Better Healthcare
       `
     });

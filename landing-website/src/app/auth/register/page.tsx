@@ -2,8 +2,8 @@ import { Metadata } from 'next'
 import { RegisterForm } from '@/components/auth/register-form'
 
 export const metadata: Metadata = {
-  title: 'Create Account | Hearline',
-  description: 'Create your Hearline account to access AI-powered cardiac management tools.',
+  title: 'Create Account | Heartline',
+  description: 'Create your Heartline account to access AI-powered cardiac management tools.',
 }
 
 export default function RegisterPage() {
@@ -13,7 +13,7 @@ export default function RegisterPage() {
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900">Create Account</h1>
           <p className="mt-2 text-gray-600">
-            Join thousands of healthcare professionals using Hearline
+            Join thousands of healthcare professionals using Heartline
           </p>
         </div>
       </div>

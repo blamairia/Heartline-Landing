@@ -101,7 +101,7 @@ export function DemoForm() {
           </div>
           <h3 className="text-2xl font-semibold text-gray-900 mb-2">Demo Request Submitted!</h3>
           <p className="text-gray-600 mb-6">
-            Thank you for your interest in Hearline. Our team will contact you within 24 hours to schedule your personalized demo.
+            Thank you for your interest in Heartline. Our team will contact you within 24 hours to schedule your personalized demo.
           </p>
           <div className="bg-blue-50 p-4 rounded-lg mb-6">
             <h4 className="font-medium text-blue-900 mb-2">What happens next?</h4>

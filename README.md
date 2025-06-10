@@ -1,8 +1,8 @@
-# 🏥 Hearline Webapp - AI-Powered Cardiology Management System
+# 🏥 Heartline Webapp - AI-Powered Cardiology Management System
 
-## 🚀 About Hearline
+## 🚀 About Heartline
 
-**Hearline** is a cutting-edge medical webapp designed specifically for cardiologists, featuring **revolutionary AI-powered ECG analysis** as our core innovation. Built for the Algerian healthcare market, Hearline combines advanced machine learning with comprehensive patient management to deliver a complete digital cardiology solution.
+**Heartline** is a cutting-edge medical webapp designed specifically for cardiologists, featuring **revolutionary AI-powered ECG analysis** as our core innovation. Built for the Algerian healthcare market, Heartline combines advanced machine learning with comprehensive patient management to deliver a complete digital cardiology solution.
 
 ### 🎯 Mission Statement
 Transforming cardiovascular care in Algeria through intelligent automation, comprehensive patient management, and seamless integration of AI-driven diagnostics.
@@ -296,7 +296,7 @@ Our system integrates a **complete database of 7000+ medications** available in 
 
 #### **🔧 Key Components:**
 ```
-Hearline Webapp/
+Heartline Webapp/
 ├── app.py                 # Main Flask application
 ├── models.py              # Database models
 ├── resnet.py             # AI ECG analysis model
@@ -489,8 +489,8 @@ Hearline Webapp/
 #### **🔧 Installation:**
 ```bash
 # Quick Setup for Development
-git clone https://github.com/hearline/webapp.git
-cd hearline-webapp
+git clone https://github.com/Heartline/webapp.git
+cd Heartline-webapp
 pip install -r requirements.txt
 python app.py
 ```
@@ -505,9 +505,9 @@ python app.py
 
 ## 📝 **CONCLUSION**
 
-**Hearline** represents a revolutionary leap forward in cardiovascular care management, combining cutting-edge AI technology with comprehensive practice management tools. Our **ResNet34-based ECG analysis system** delivers instant, accurate cardiac diagnoses, while our **7000+ Algerian medication database** ensures precise prescription management.
+**Heartline** represents a revolutionary leap forward in cardiovascular care management, combining cutting-edge AI technology with comprehensive practice management tools. Our **ResNet34-based ECG analysis system** delivers instant, accurate cardiac diagnoses, while our **7000+ Algerian medication database** ensures precise prescription management.
 
-### **🎯 Why Choose Hearline?**
+### **🎯 Why Choose Heartline?**
 
 1. **🧠 AI Innovation**: First-in-market AI ECG analysis for Algeria
 2. **🇩🇿 Local Expertise**: Built specifically for Algerian healthcare
@@ -516,14 +516,14 @@ python app.py
 5. **🔒 Security First**: HIPAA-compliant data protection
 6. **📈 Growth Ready**: Scalable for practices of all sizes
 
-Join the future of cardiology with **Hearline** - where artificial intelligence meets compassionate care.
+Join the future of cardiology with **Heartline** - where artificial intelligence meets compassionate care.
 
 ---
 
 ## 📧 **Contact Information**
 
-- **Website**: [www.hearline.dz](http://www.hearline.dz)
-- **Email**: contact@hearline.dz
+- **Website**: [www.Heartline.dz](http://www.Heartline.dz)
+- **Email**: contact@Heartline.dz
 - **Phone**: +213 XXX XXX XXX
 - **Address**: Algiers, Algeria
 
@@ -531,4 +531,4 @@ Join the future of cardiology with **Hearline** - where artificial intelligence 
 
 ---
 
-*© 2024 Hearline. All rights reserved. Revolutionizing cardiovascular care through artificial intelligence.*
+*© 2024 Heartline. All rights reserved. Revolutionizing cardiovascular care through artificial intelligence.*

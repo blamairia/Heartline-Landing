@@ -132,7 +132,7 @@ The migration from Prisma ORM to Drizzle ORM has been **successfully completed**
 
 ## 🎊 SUCCESS SUMMARY
 
-**The Hearline Webapp landing website has been successfully migrated from Prisma to Drizzle ORM with a complete real subscription billing system!**
+**The Heartline Webapp landing website has been successfully migrated from Prisma to Drizzle ORM with a complete real subscription billing system!**
 
 ### Key Achievements:
 - ✅ **100% Migration Complete** - All Prisma code converted to Drizzle
