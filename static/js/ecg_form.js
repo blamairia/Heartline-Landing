@@ -54,6 +54,7 @@ class ECGFormSubmissionHandler {
 
     this.analysisResults = document.getElementById('ecg-analysis-results');
     this.analysisLoading = document.getElementById('ecg-analysis-loading');
+    
     this.analysisError   = document.getElementById('ecg-analysis-error');
 
     // Waveform specific elements from static HTML
@@ -70,16 +71,19 @@ class ECGFormSubmissionHandler {
         // For now, we'll allow it to proceed, but waveform features will not work.
     }
 
-    // Ensure analysis spinner & error are hidden initially
-    if (this.analysisLoading) this.analysisLoading.style.display = 'none';
-    if (this.analysisError) this.analysisError.style.display   = 'none';
+     // 1) Always keep the ECG panel visible
+  this.analysisSection.style.display = 'block';
 
-    // Hide the entire waveform display area initially
-    this.hideWaveformDisplay(); 
+  // 2) Hide only the spinners & errors — but do NOT hide the waveform area or canvas
+  if (this.analysisLoading) this.analysisLoading.style.display = 'none';
+  if (this.analysisError)   this.analysisError.style.display   = 'none';
+  if (this.waveformLoading) this.waveformLoading.style.display   = 'none';
+  if (this.waveformError)   this.waveformError.style.display     = 'none';
+  // *** Remove any this.hideWaveformDisplay() here ***
 
-    this.showInstructionMessage();
-    this.attachEventListeners();
-    console.log('ECG Form Submission handler initialized');
+  this.showInstructionMessage();
+  this.attachEventListeners();
+  console.log('ECG Form Submission handler initialized');
   }
 
   attachEventListeners() {
@@ -103,17 +107,10 @@ class ECGFormSubmissionHandler {
   }
 
   showAnalysisSection() {
-  // un-hide the container
   this.analysisSection.style.display = 'block';
-
-  // un-hide the top‐level alert
-  const banner = this.analysisSection.querySelector('.alert.alert-info');
-  if (banner) banner.style.display = 'block';
-
-  // un-hide the nested instruction/results banner
-  const inner = document.querySelector('#ecg-analysis-results .alert');
-  if (inner) inner.style.display = 'block';
+  this.analysisSection.querySelectorAll('*').forEach(el => el.style.removeProperty('display'));
 }
+
 
   showWaitingForBothFiles() {
     this.clearError();
@@ -254,6 +251,164 @@ class ECGFormSubmissionHandler {
     this.analysisError.style.display = 'block';
   }
 
+  // === In your ECGFormSubmissionHandler class, replace displayECGWaveform: ===
+
+  displayECGWaveform() {
+    const data   = this.currentECGData;
+    const canvas = this.waveformChartCanvas;
+    if (!data || !canvas) {
+      this.showWaveformError('No ECG waveform data or canvas available.');
+      return;
+    }
+
+    // 1 mm = 4 px
+    const PX_PER_MM  = 4;
+    const SMALL_BOX  = PX_PER_MM;       // 1 mm
+    const LARGE_BOX  = PX_PER_MM * 5;   // 5 mm
+
+    // Increased margins for labels and breathing room
+    const MARGIN_LEFT   = LARGE_BOX * 4;   // was 3
+    const MARGIN_RIGHT  = LARGE_BOX * 2;  
+    const MARGIN_TOP    = LARGE_BOX * 2;   // was 1.5
+    const MARGIN_BOTTOM = LARGE_BOX * 4;   // was 3
+
+    // Plot dimensions based on time
+    const totalSec    = data.duration;
+    const boxesAcross = totalSec / 0.04;
+    const plotWidth   = boxesAcross * SMALL_BOX;
+
+    // Voltage range ±1.5 mV → 30 small boxes
+    const plotHeight = 30 * SMALL_BOX;
+
+    // Set canvas internal resolution
+    canvas.width  = MARGIN_LEFT + plotWidth + MARGIN_RIGHT;
+    canvas.height = MARGIN_TOP  + plotHeight + MARGIN_BOTTOM;
+
+    const ctx = canvas.getContext('2d');
+
+    // Background
+    ctx.fillStyle = '#FFF8DC';
+    ctx.fillRect(MARGIN_LEFT, MARGIN_TOP, plotWidth, plotHeight);
+
+    // Grid
+    this.drawGrid(ctx, plotWidth, plotHeight, MARGIN_LEFT, MARGIN_TOP, SMALL_BOX, LARGE_BOX);
+
+    // Axes
+    this.drawAxes(ctx, plotWidth, plotHeight, MARGIN_LEFT, MARGIN_TOP, SMALL_BOX, MARGIN_BOTTOM);
+
+    // ECG trace
+    const signal     = data.signals[this.currentLead];
+    const timeVector = data.time;
+    const minV       = -1.5, maxV = +1.5;
+    ctx.beginPath();
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth   = 1.5;
+
+    for (let i = 0; i < signal.length; i++) {
+      const x = MARGIN_LEFT + (timeVector[i] / totalSec) * plotWidth;
+      const y = MARGIN_TOP + plotHeight - ((signal[i] - minV) / (maxV - minV)) * plotHeight;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // Show canvas
+    canvas.style.display = 'block';
+  }
+
+  // drawAxes with updated bottom margin for axis labels
+  drawAxes(ctx, width, height, offsetX, offsetY, small, bottomMargin) {
+    ctx.save();
+    ctx.translate(offsetX, offsetY);
+
+    ctx.fillStyle   = '#000';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth   = 1.5;
+    ctx.font        = '12px Arial';
+
+    // X-axis ticks
+    const stepBoxes = 5, stepSec = 0.2;
+    const stepPx    = small * stepBoxes;
+    for (let x = 0; x <= width; x += stepPx) {
+      ctx.beginPath();
+      ctx.moveTo(x, height);
+      ctx.lineTo(x, height + 6);
+      ctx.stroke();
+      ctx.textAlign = 'center';
+      ctx.fillText((x / stepPx * stepSec).toFixed(1) + ' s', x, height + bottomMargin - 10);
+    }
+
+    // Y-axis ticks
+    const stepYPx = small * 5, stepVolt = 0.5;
+    ctx.textAlign = 'right';
+    const labelX = -8;
+    const rows   = Math.floor(height / stepYPx) + 1;
+    for (let j = 0; j < rows; j++) {
+      const y = height - j * stepYPx;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(-6, y);
+      ctx.stroke();
+      const volt = (j * stepVolt) - ((rows - 1) * stepVolt / 2);
+      ctx.fillText(volt.toFixed(1) + ' mV', labelX, y + 4);
+    }
+
+    // Axis titles
+    ctx.textAlign = 'center';
+    ctx.fillText('Time (s)', width / 2, height + bottomMargin / 2 + 10);
+    ctx.save();
+    ctx.translate(-50, height / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Voltage (mV)', 0, 0);
+    ctx.restore();
+
+    ctx.restore();
+  }
+
+// === drawGrid: small & large ECG boxes ===
+
+drawGrid(ctx, width, height, offsetX, offsetY, small, large) {
+  ctx.save();
+  ctx.translate(offsetX, offsetY);
+
+  // Small boxes
+  ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+  ctx.lineWidth   = 0.5;
+  for (let x = 0; x <= width; x += small) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, height);
+    ctx.stroke();
+  }
+  for (let y = 0; y <= height; y += small) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+    ctx.stroke();
+  }
+
+  // Large boxes
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+  ctx.lineWidth   = 1;
+  for (let x = 0; x <= width; x += large) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, height);
+    ctx.stroke();
+  }
+  for (let y = 0; y <= height; y += large) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+// === drawAxes: time & voltage labels ===
+
+
+
   fetchAndDisplayWaveform(matFile, heaFile) {
     console.log('Fetching ECG waveform data...');
     this.showWaveformLoading();
@@ -324,81 +479,7 @@ class ECGFormSubmissionHandler {
     }
   }
 
-  displayECGWaveform() {
-    if (!this.currentECGData || !this.waveformChartCanvas) {
-      this.showWaveformError('ECG data or chart canvas not available.');
-      return;
-    }
-    if (this.waveformError) this.waveformError.style.display = 'none';
-    this.waveformChartCanvas.style.display = 'block';
-
-    const { time, signals, lead_names, sampling_rate } = this.currentECGData;
-    const currentSignal = signals[this.currentLead];
-
-    if (this.ecgChart) {
-      this.ecgChart.destroy();
-    }
-
-    const ctx = this.waveformChartCanvas.getContext('2d');
-    this.ecgChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: time,
-        datasets: [{
-          label: lead_names[this.currentLead],
-          data: currentSignal,
-          borderColor: 'rgba(0, 123, 255, 1)',
-          borderWidth: 1,
-          fill: false,
-          pointRadius: 0, // No points for cleaner line
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          x: {
-            title: {
-              display: true,
-              text: 'Time (s)'
-            },
-            ticks: {
-                maxTicksLimit: 20 // Limit number of X-axis ticks for readability
-            }
-          },
-          y: {
-            title: {
-              display: true,
-              text: 'Amplitude (mV)'
-            }
-          }
-        },
-        plugins: {
-          tooltip: {
-            enabled: true,
-            mode: 'index',
-            intersect: false,
-          },
-          zoom: { // Basic zoom and pan, if Chart.js zoom plugin is available
-            pan: {
-              enabled: true,
-              mode: 'xy',
-            },
-            zoom: {
-              wheel: {
-                enabled: true,
-              },
-              pinch: {
-                enabled: true
-              },
-              mode: 'xy',
-            }
-          }
-        }
-      }
-    });
-    console.log(`Displaying waveform for lead: ${lead_names[this.currentLead]}`);
-  }
+  
 
   createLeadControls(numberOfLeads, leadNames) {
     if (!this.waveformControls) return;
