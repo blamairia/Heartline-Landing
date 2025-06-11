@@ -226,13 +226,13 @@ class VisitForm(FlaskForm):
     visit_date = DateTimeField(
         "Visit Date & Time",
         default=datetime.utcnow,
-        format="%Y-%m-%d %H:%M",
+        format="%Y-%m-%dT%H:%M",  # Changed from "%Y-%m-%d %H:%M"
         validators=[validators.DataRequired()],
     )
     diagnosis = TextAreaField("Diagnosis", validators=[validators.Optional()])
     follow_up_date = DateTimeField(
         "Follow-up Date & Time",
-        format="%Y-%m-%d %H:%M",
+        format="%Y-%m-%dT%H:%M",  # Changed from "%Y-%m-%d %H:%M"
         validators=[validators.Optional()],
     )
     ecg_mat = FileField("Upload .mat File", validators=[validators.Optional()])
@@ -2046,6 +2046,9 @@ def edit_profile():
         return redirect(url_for('profile'))
     
     return render_template('auth/edit_profile.html', form=form)
+
+
+
 
 
 @app.route("/change-password", methods=["GET", "POST"])
