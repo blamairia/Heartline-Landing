@@ -222,7 +222,7 @@ class VisitDocumentForm(Form):
 
 # --- Form for Visit (with nested prescriptions + documents) ---
 class VisitForm(FlaskForm):
-    patient_id = SelectField("Patient", choices=[], coerce=int, validators=[validators.DataRequired()])
+    patient_id = IntegerField("Patient", validators=[validators.DataRequired()])
     visit_date = DateTimeField(
         "Visit Date & Time",
         default=datetime.utcnow,
@@ -2668,6 +2668,184 @@ def reset_user_password(user_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+@app.route('/analyze_ecg_by_visit/<int:visit_id>')
+def analyze_ecg_by_visit(visit_id):
+    try:
+        visit = Visit.query.get_or_404(visit_id)
+        
+        class_abbrs = ["SNR", "AF", "IAVB", "LBBB", "RBBB", "PAC", "PVC", "STD", "STE"]
+        class_names = {
+            "SNR": "Sinus Rhythm", "AF": "Atrial Fibrillation", "IAVB": "AV Block",
+            "LBBB": "Left Bundle Branch Block", "RBBB": "Right Bundle Branch Block", 
+            "PAC": "Premature Atrial Contraction", "PVC": "Premature Ventricular Contraction",
+            "STD": "ST Depression", "STE": "ST Elevation"
+        }
+
+        if visit.ecg_prediction and isinstance(visit.ecg_prediction, dict) and visit.ecg_prediction:
+            stored_probs = visit.ecg_prediction
+            valid_prediction = all(abbr in stored_probs for abbr in class_abbrs)
+            
+            if valid_prediction:
+                # Ensure max_prob_abbr is one of the expected class_abbrs
+                # Filter keys to only include class_abbrs before finding max
+                filtered_probs = {k: v for k, v in stored_probs.items() if k in class_abbrs}
+                if not filtered_probs: # Should not happen if valid_prediction was true based on class_abbrs
+                    pass # Fall through to live analysis
+                else:
+                    max_prob_abbr_stored = max(filtered_probs, key=filtered_probs.get)
+                    max_prob_value_stored = filtered_probs[max_prob_abbr_stored]
+                    response = {
+                        "success": True,
+                        "probabilities": stored_probs, # Return original stored_probs
+                        "primary_diagnosis": {
+                            "abbreviation": max_prob_abbr_stored,
+                            "name": class_names.get(max_prob_abbr_stored, max_prob_abbr_stored),
+                            "probability": max_prob_value_stored
+                        },
+                        "summary": f"Primary finding: {class_names.get(max_prob_abbr_stored, max_prob_abbr_stored)} ({max_prob_value_stored:.1%} confidence) (cached)"
+                    }
+                    return jsonify(response)
+
+        if not visit.ecg_mat or not visit.ecg_hea:
+            return jsonify({"success": False, "error": "No ECG files found for this visit to perform live analysis"}), 400
+        
+        mat_path = visit.ecg_mat
+        hea_path = visit.ecg_hea
+
+        if not os.path.exists(mat_path) or not os.path.exists(hea_path):
+            return jsonify({"success": False, "error": "ECG files not found on disk for live analysis"}), 400
+        
+        if not NET:
+            return jsonify({"success": False, "error": "ECG analysis model not available"}), 500
+
+        rec_basename = os.path.splitext(os.path.basename(hea_path))[0]
+        rec_dir = os.path.dirname(hea_path)
+        record_path = os.path.join(rec_dir, rec_basename)
+        
+        record = wfdb.rdrecord(record_path)
+        sig_all = record.p_signal
+        nsteps, nleads = sig_all.shape
+
+        if nleads != 12:
+             return jsonify({"success": False, "error": f"ECG record has {nleads} leads, but model expects 12."}), 400
+
+        if nsteps >= 15000:
+            clipped = sig_all[-15000:, :]
+        else:
+            clipped = sig_all
+        
+        buffered = np.zeros((15000, nleads), dtype=np.float32)
+        buffered[-clipped.shape[0]:, :] = clipped
+        
+        x_np = buffered.T
+        x_tensor = torch.from_numpy(x_np).unsqueeze(0).to(DEVICE).float()
+        
+        with torch.no_grad():
+            logits = NET(x_tensor)
+            probs_tensor = torch.sigmoid(logits)[0].cpu().numpy()
+        
+        prob_dict_live = {abbr: float(probs_tensor[i]) for i, abbr in enumerate(class_abbrs)}
+        max_prob_abbr_live = max(prob_dict_live, key=prob_dict_live.get)
+        max_prob_value_live = prob_dict_live[max_prob_abbr_live]
+        
+        response = {
+            "success": True,
+            "probabilities": prob_dict_live,
+            "primary_diagnosis": {
+                "abbreviation": max_prob_abbr_live,
+                "name": class_names.get(max_prob_abbr_live, max_prob_abbr_live),
+                "probability": max_prob_value_live
+            },
+            "summary": f"Primary finding: {class_names.get(max_prob_abbr_live, max_prob_abbr_live)} ({max_prob_value_live:.1%} confidence) (live analysis)"
+        }
+        return jsonify(response)
+
+    except wfdb.WFDBError as wfdbe:
+        current_app.logger.error(f"WFDBError in /analyze_ecg_by_visit/{visit_id}: {wfdbe}", exc_info=True)
+        record_path_for_error = "unknown"
+        try:
+            # Try to get record_path for better error logging if it was defined
+            if 'rec_basename' in locals() and 'rec_dir' in locals():
+                 record_path_for_error = os.path.join(rec_dir, rec_basename)
+        except NameError:
+            pass # Keep it as unknown
+        if ".dat" in str(wfdbe).lower() and ("cannot be found" in str(wfdbe).lower() or "no such file" in str(wfdbe).lower()):
+             return jsonify({"success": False, "error": f"WFDB error: Associated .dat file missing or unreadable for record {record_path_for_error}. Details: {str(wfdbe)}"}), 404
+        return jsonify({"success": False, "error": f"WFDB processing error: {str(wfdbe)}"}), 500
+    except FileNotFoundError:
+        current_app.logger.error(f"FileNotFoundError in /analyze_ecg_by_visit/{visit_id}", exc_info=True)
+        return jsonify({"success": False, "error": "ECG record file not found. Check paths and file integrity."}), 404
+    except Exception as e:
+        current_app.logger.error(f"Error in /analyze_ecg_by_visit/{visit_id}: {e}", exc_info=True)
+        if "Expected input channel size" in str(e) or "expects 12 input channels" in str(e):
+            return jsonify({"success": False, "error": f"Model input error: Check number of ECG leads. Details: {str(e)}"}), 400
+        return jsonify({"success": False, "error": f"ECG analysis failed: {str(e)}"}), 500
+
+@app.route('/ecg_waveform_by_visit/<int:visit_id>')
+def ecg_waveform_by_visit(visit_id):
+    try:
+        visit = Visit.query.get_or_404(visit_id)
+
+        if not visit.ecg_mat or not visit.ecg_hea:
+            return jsonify({"success": False, "error": "No ECG files found for this visit"}), 404
+        
+        mat_path = visit.ecg_mat
+        hea_path = visit.ecg_hea
+
+        if not os.path.exists(mat_path) or not os.path.exists(hea_path):
+            return jsonify({"success": False, "error": "ECG files not found on disk"}), 404
+
+        rec_basename = os.path.splitext(os.path.basename(hea_path))[0]
+        rec_dir = os.path.dirname(hea_path)
+        record_path = os.path.join(rec_dir, rec_basename)
+        
+        record = wfdb.rdrecord(record_path)
+        sig_all = record.p_signal
+        nsteps, nleads = sig_all.shape
+        
+        fs = float(record.fs) if hasattr(record, 'fs') and record.fs else 250.0
+        time_duration = nsteps / fs
+        time_data = np.linspace(0, time_duration, nsteps).tolist()
+        
+        signals_list = [] # Renamed from signals_mv to avoid implying units not explicitly set
+        lead_names = record.sig_name if hasattr(record, 'sig_name') and record.sig_name else [f"Lead {i+1}" for i in range(nleads)]
+
+        for lead_idx in range(nleads):
+            lead_signal = sig_all[:, lead_idx]
+            signals_list.append(lead_signal.tolist())
+
+        ecg_data = {
+            "time": time_data,
+            "signals": signals_list,
+            "sampling_rate": fs,
+            "duration": time_duration,
+            "lead_names": lead_names,
+            "n_leads": nleads
+        }
+        
+        return jsonify({
+            "success": True,
+            "ecg_data": ecg_data
+        })
+
+    except wfdb.WFDBError as wfdbe:
+        current_app.logger.error(f"WFDBError in /ecg_waveform_by_visit/{visit_id}: {wfdbe}", exc_info=True)
+        record_path_for_error = "unknown"
+        try:
+            if 'rec_basename' in locals() and 'rec_dir' in locals():
+                 record_path_for_error = os.path.join(rec_dir, rec_basename)
+        except NameError:
+            pass
+        if ".dat" in str(wfdbe).lower() and ("cannot be found" in str(wfdbe).lower() or "no such file" in str(wfdbe).lower()):
+             return jsonify({"success": False, "error": f"WFDB error: Associated .dat file missing or unreadable for record {record_path_for_error}. Details: {str(wfdbe)}"}), 404
+        return jsonify({"success": False, "error": f"WFDB processing error: {str(wfdbe)}"}), 500
+    except FileNotFoundError:
+        current_app.logger.error(f"FileNotFoundError in /ecg_waveform_by_visit/{visit_id}", exc_info=True)
+        return jsonify({"success": False, "error": "ECG record file not found. Check paths and file integrity."}), 404
+    except Exception as e:
+        current_app.logger.error(f"Error in /ecg_waveform_by_visit/{visit_id}: {e}", exc_info=True)
+        return jsonify({"success": False, "error": f"Failed to load ECG waveform: {str(e)}"}), 500
 
 # ----------------------------------------
 # 5) INITIALIZE DATABASE & RUN
