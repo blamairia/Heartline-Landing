@@ -206,7 +206,7 @@
       </div>
       
       <!-- Real-time ECG Analysis Results -->
-      <div id="ecg-analysis-section" style="display: none;">
+      <div id="ecg-analysis-section" >
         <div class="alert alert-info">
           <h5><i class="fa fa-heartbeat"></i> ECG Analysis Results</h5>
           <div id="ecg-analysis-loading" style="display: none;">
@@ -214,7 +214,8 @@
               <span class="sr-only">Analyzing...</span>
             </div>
             Analyzing ECG data...
-          </div>          <div id="ecg-analysis-results" style="display: none;">
+          </div>
+          <div id="ecg-analysis-results" >
             <div class="row">
               <div class="col-md-6">
                 <h6>Primary Diagnosis:</h6>
@@ -227,40 +228,7 @@
             </div>
             <div class="mt-3">
               <h6>Detailed Probabilities:</h6>
-              <div id="detailed-probabilities"></div>
-            </div>            <div class="mt-4">
-              <h6>ECG Waveform:</h6>
-              <div id="ecg-controls"></div>
-              <div id="ecg-waveform-container" 
-                   class="border rounded p-3 d-block" 
-                   style="background-color: #f8f9fa; 
-                          border: 2px solid #007bff !important; 
-                          overflow-x: auto; 
-                          text-align: center;
-                          width: 100%;
-                          position: relative;
-                          z-index: 1;">
-                <div id="ecg-waveform-loading" style="display: none; text-align: center; padding: 2rem;">
-                  <div class="spinner-border spinner-border-sm" role="status">
-                    <span class="sr-only">Loading waveform...</span>
-                  </div>
-                  <p class="mt-2 mb-0">Rendering ECG waveform...</p>
-                </div>
-                <div id="ecg-waveform-error" class="text-danger text-center" style="display: none; padding: 2rem;">
-                  <i class="fas fa-exclamation-triangle"></i>
-                  <p class="mt-2 mb-0">Unable to display waveform</p>
-                </div>
-                <div style="position: relative; display: inline-block;">
-                  <canvas id="ecg-waveform-chart" style="display: block; border: 1px solid #ccc;"></canvas>
-                </div>
-                <div class="mt-2 text-center">
-                  <small class="text-muted">
-                    <strong>Medical Scale:</strong> 25mm/s × 10mm/mV | Each small box = 40ms × 0.1mV
-                    <br><strong>Controls:</strong> Hover for exact values, select different leads from dropdown above
-                  </small>
-                </div>
-              </div>
-            </div>
+              <div id="detailed-probabilities"></div>            </div>
           </div>
           <div id="ecg-analysis-error" class="text-danger" style="display: none;"></div>
         </div>
@@ -527,14 +495,9 @@
     </div>
   </div>  <!-- Scripts -->
   <script src="{{ url_for('static', filename='js/visit_form.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/ecg_operations.js') }}"></script>
+  <!-- ECG Form Submission Script - ONLY for new visit forms -->
+  <script src="{{ url_for('static', filename='js/ecg_form.js') }}"></script>
   <script>
-    // Initialize ECG operations after DOM content is loaded
-    document.addEventListener('DOMContentLoaded', function() {
-      // Initialize ECG analysis functionality
-      if (typeof window.ECGOperations !== 'undefined') {
-        window.ECGOperations.initializeECGAnalysis();
-      }
-    });
+    console.log('Visit form scripts loaded - ECG form submission handler will auto-initialize');
   </script>
 {% endblock %}

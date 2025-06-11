@@ -39,7 +39,6 @@ from wtforms import (
     FormField,
     FileField,
     validators,
-    ValidationError,
 )
 from flask_wtf import FlaskForm
 
@@ -199,35 +198,12 @@ def basename_filter(path):
 # 3) WTForms DEFINITIONS
 # ----------------------------------------
 
-# Custom validator for medication field
-def validate_medicament(form, field):
-    """Custom validator to check if medicament exists in database"""
-    if field.data:
-        # Import here to avoid circular imports
-        from models import Medicament
-        med = Medicament.query.filter_by(num_enr=field.data).first()
-        if not med:
-            raise ValidationError(f'Invalid medication selection: {field.data}')
-
-# Custom validator for patient field
-def validate_patient(form, field):
-    """Custom validator to check if patient exists in database"""
-    if field.data:
-        # Import here to avoid circular imports
-        from models import Patient
-        try:
-            patient_id = int(field.data)
-            patient = Patient.query.filter_by(id=patient_id).first()
-            if not patient:
-                raise ValidationError(f'Invalid patient selection: {field.data}')
-        except (ValueError, TypeError):
-            raise ValidationError(f'Invalid patient ID format: {field.data}')
-
 # --- Subform for Prescriptions ---
 class PrescriptionForm(Form):
-    medicament_num_enr = StringField(
+    medicament_num_enr = SelectField(
         "Medicament (num_enr)",
-        validators=[validators.DataRequired(), validate_medicament],
+        choices=[],  # will populate in view
+        validators=[validators.DataRequired()],
     )
     dosage_instructions = TextAreaField("Dosage / Instructions", validators=[validators.DataRequired()])
     quantity = IntegerField("Quantity", validators=[validators.DataRequired(), validators.NumberRange(min=1)])
@@ -246,10 +222,7 @@ class VisitDocumentForm(Form):
 
 # --- Form for Visit (with nested prescriptions + documents) ---
 class VisitForm(FlaskForm):
-    patient_id = StringField(
-        "Patient", 
-        validators=[validators.DataRequired(), validate_patient],
-    )
+    patient_id = SelectField("Patient", choices=[], coerce=int, validators=[validators.DataRequired()])
     visit_date = DateTimeField(
         "Visit Date & Time",
         default=datetime.utcnow,
@@ -305,7 +278,7 @@ def coerce_int_or_none(value):
     return int(value)
 
 class AppointmentForm(FlaskForm):
-    patient_id = StringField("Patient", validators=[validators.DataRequired(), validate_patient])
+    patient_id = SelectField("Patient", choices=[], coerce=int, validators=[validators.DataRequired()])
     doctor_id = SelectField("Doctor", choices=[], coerce=coerce_int_or_none, validators=[validators.Optional()])
     date = DateTimeField(
         "Appointment Date & Time",
@@ -360,24 +333,19 @@ def create_visit():
     """
     form = VisitForm()
 
-    # Note: Both patient and medication selection now use AJAX search
-    # No need to populate choices as we use custom validators
+    # Note: Patient selection now uses AJAX search, no need to populate choices
+    # The patient_id will be set by the searchable dropdown via JavaScript
 
-    if request.method == "POST":
-        print("=== SERVER-SIDE FORM VALIDATION ===")
-        print(f"Form data received: {dict(request.form)}")
-        print(f"Form validation errors before processing: {form.errors}")
-        
-        if form.validate_on_submit():
-            print("Form validation PASSED")
-        else:
-            print("Form validation FAILED")
-            print(f"Form validation errors: {form.errors}")
+    # Populate medicament choices for each PrescriptionForm
+    meds = Medicament.query.order_by(Medicament.nom_com).all()
+    med_choices = [(m.num_enr, f"{m.nom_com} ({m.dosage}{m.unite})") for m in meds]
+    for subform in form.prescriptions:
+        subform.medicament_num_enr.choices = med_choices
 
     if request.method == "POST" and form.validate_on_submit():
         # 1) Save Visit itself
         v = Visit(
-            patient_id       = int(form.patient_id.data),  # Convert string to int
+            patient_id       = form.patient_id.data,
             visit_date       = form.visit_date.data,
             diagnosis        = form.diagnosis.data,
             follow_up_date   = form.follow_up_date.data,
@@ -864,6 +832,101 @@ def get_visit_ecg_waveform(visit_id):
     except Exception as e:
         return jsonify({"success": False, "error": f"Failed to load ECG waveform: {str(e)}"}), 500
 
+@app.route("/analyze_ecg", methods=["POST"])
+def analyze_ecg():
+    """
+    Real-time ECG analysis endpoint.
+    Expects two files: mat_file and hea_file
+    Returns JSON with ECG diagnosis probabilities.
+    """
+    try:
+        if not NET:
+            return jsonify({"error": "ECG model not loaded"}), 500
+        
+        mat_file = request.files.get('mat_file')
+        hea_file = request.files.get('hea_file')
+        
+        if not mat_file or not hea_file:
+            return jsonify({"error": "Both .mat and .hea files are required"}), 400
+        
+        # Save files temporarily
+        import tempfile
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Save the files
+            mat_filename = secure_filename(mat_file.filename)
+            hea_filename = secure_filename(hea_file.filename)
+            
+            # Check if basenames match
+            mat_base = os.path.splitext(mat_filename)[0]
+            hea_base = os.path.splitext(hea_filename)[0]
+            
+            if mat_base != hea_base:
+                return jsonify({"error": "MAT and HEA files must have the same basename"}), 400
+            
+            mat_path = os.path.join(temp_dir, mat_filename)
+            hea_path = os.path.join(temp_dir, hea_filename)
+            
+            mat_file.save(mat_path)
+            hea_file.save(hea_path)
+            
+            # Read ECG data using wfdb
+            record_path = os.path.join(temp_dir, mat_base)
+            record = wfdb.rdrecord(record_path)
+            sig_all = record.p_signal  # shape [n_samples, n_leads]
+            nsteps, nleads = sig_all.shape
+            
+            # Prepare data for inference (same as in create_visit)
+            if nsteps >= 15000:
+                clipped = sig_all[-15000:, :]
+            else:
+                clipped = sig_all
+            buffered = np.zeros((15000, nleads), dtype=np.float32)
+            buffered[-clipped.shape[0]:, :] = clipped
+            
+            x_np = buffered.T  # shape [12, 15000]
+            x_tensor = torch.from_numpy(x_np).unsqueeze(0).to(DEVICE).float()
+            
+            # Run inference
+            with torch.no_grad():
+                logits = NET(x_tensor)
+                probs = torch.sigmoid(logits)[0].cpu().numpy()
+            
+            # Map probabilities to class names
+            class_abbrs = ["SNR", "AF", "IAVB", "LBBB", "RBBB", "PAC", "PVC", "STD", "STE"]
+            class_names = {
+                "SNR": "Sinus Rhythm",
+                "AF": "Atrial Fibrillation", 
+                "IAVB": "AV Block",
+                "LBBB": "Left Bundle Branch Block",
+                "RBBB": "Right Bundle Branch Block", 
+                "PAC": "Premature Atrial Contraction",
+                "PVC": "Premature Ventricular Contraction",
+                "STD": "ST Depression",
+                "STE": "ST Elevation"
+            }
+            
+            prob_dict = {abbr: float(probs[i]) for i, abbr in enumerate(class_abbrs)}
+            
+            # Find the most likely condition (highest probability)
+            max_prob_abbr = max(prob_dict, key=prob_dict.get)
+            max_prob_value = prob_dict[max_prob_abbr]
+            
+            # Prepare response
+            response = {
+                "success": True,
+                "probabilities": prob_dict,
+                "primary_diagnosis": {
+                    "abbreviation": max_prob_abbr,
+                    "name": class_names.get(max_prob_abbr, max_prob_abbr),
+                    "probability": max_prob_value
+                },
+                "summary": f"Primary finding: {class_names.get(max_prob_abbr, max_prob_abbr)} ({max_prob_value:.1%} confidence)"
+            }
+            
+            return jsonify(response)
+            
+    except Exception as e:
+        return jsonify({"error": f"ECG analysis failed: {str(e)}"}), 500
 
 
 
