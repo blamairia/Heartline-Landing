@@ -560,7 +560,8 @@
       </div>
     </template>
 
-    <div class="mt-4">      <button type="submit" id="submit-btn" class="btn btn-success" disabled>Update Visit</button>
+    <div class="mt-4">
+      <button type="submit" id="submit-btn" class="btn btn-success">Update Visit</button>
       <a href="{{ url_for('visit_details', visit_id=visit.id) }}" class="btn btn-secondary">
         Cancel
       </a>
@@ -594,5 +595,21 @@
   <script>
 
     console.log('Visit edit form scripts loaded - ECG edit handler will auto-initialize');
+    document.addEventListener('DOMContentLoaded', function() {
+      const ecgMeta = document.getElementById('ecg-edit-meta');
+      if (ecgMeta) {
+        const visitId = ecgMeta.dataset.visitId;
+        const hasExistingECG = ecgMeta.dataset.hasExistingEcg === 'true'; 
+        
+        console.log(`Instantiating ECGEditFormHandler with visitId: ${visitId}, hasExistingECG: ${hasExistingECG}`);
+        
+        if (!window.ecgEditFormHandlerInstance) {
+           window.ecgEditFormHandlerInstance = new ECGEditFormHandler('edit-visit-form', visitId, hasExistingECG);
+           console.log("ECGEditFormHandler instance created for edit page.");
+        }
+      } else {
+        console.error('ECG metadata element (ecg-edit-meta) not found. Cannot initialize ECGEditFormHandler.');
+      }
+    });
   </script>
 {% endblock %}
