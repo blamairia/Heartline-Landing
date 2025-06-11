@@ -48,7 +48,7 @@ class ECGFormSubmissionHandler {
     this.analysisSection = document.getElementById('ecg-analysis-section');
 
     if (!this.matFileInput || !this.heaFileInput || !this.analysisSection) {
-      console.warn('ECG Form Submission: Required elements not found');
+      console.warn('ECG Form Submission: Required elements for analysis not found');
       return;
     }
 
@@ -56,56 +56,30 @@ class ECGFormSubmissionHandler {
     this.analysisLoading = document.getElementById('ecg-analysis-loading');
     this.analysisError   = document.getElementById('ecg-analysis-error');
 
-    // Ensure spinner & error are hidden initially
-    this.analysisLoading.style.display = 'none';
-    this.analysisError.style.display   = 'none';
+    // Waveform specific elements from static HTML
+    this.waveformDisplayArea = document.getElementById('ecg-waveform-display-area');
+    this.waveformLoading = document.getElementById('ecg-waveform-loading');
+    this.waveformError = document.getElementById('ecg-waveform-error');
+    this.waveformControls = document.getElementById('ecg-controls');
+    this.waveformChartCanvas = document.getElementById('ecg-waveform-chart');
+    this.ecgChart = null; // For Chart.js instance
 
-    // Build waveform area if needed
-    this.createWaveformContainer();
+    if (!this.waveformDisplayArea || !this.waveformLoading || !this.waveformError || !this.waveformControls || !this.waveformChartCanvas) {
+        console.warn('ECG Form Submission: Required elements for waveform display not found. Ensure they exist in visit_form.html.');
+        // Decide if this is a fatal error for the class or if it can proceed without waveform functionality.
+        // For now, we'll allow it to proceed, but waveform features will not work.
+    }
 
-    // Grab waveform sub-elements
-    this.waveformLoading   = document.getElementById('ecg-waveform-loading');
-    this.waveformError     = document.getElementById('ecg-waveform-error');
-    this.waveformControls  = document.getElementById('ecg-controls');
-    this.waveformChart     = document.getElementById('ecg-waveform-chart');
+    // Ensure analysis spinner & error are hidden initially
+    if (this.analysisLoading) this.analysisLoading.style.display = 'none';
+    if (this.analysisError) this.analysisError.style.display   = 'none';
 
-    // Hide waveform parts initially
-    this.waveformLoading.style.display   = 'none';
-    this.waveformError.style.display     = 'none';
-    this.waveformControls.style.display  = 'none';
-    this.waveformChart.style.display     = 'none';
+    // Hide the entire waveform display area initially
+    this.hideWaveformDisplay(); 
 
-    // Kick off with the instruction message
     this.showInstructionMessage();
     this.attachEventListeners();
     console.log('ECG Form Submission handler initialized');
-  }
-
-  createWaveformContainer() {
-    if (document.getElementById('ecg-waveform-container')) return;
-
-    const waveformHTML = `
-      <div id="ecg-waveform-container" class="mt-3">
-        <div class="card">
-          <div class="card-header">
-            <h6><i class="fas fa-chart-line"></i> ECG Waveform</h6>
-          </div>
-          <div class="card-body">
-            <div id="ecg-waveform-loading">
-              <div class="text-center">
-                <div class="spinner-border spinner-border-sm" role="status"></div>
-                Loading waveform...
-              </div>
-            </div>
-            <div id="ecg-waveform-error" class="alert alert-danger"></div>
-            <div id="ecg-controls"></div>
-            <canvas id="ecg-waveform-chart" style="max-width: 100%; border: 1px solid #ddd;"></canvas>
-          </div>
-        </div>
-      </div>
-    `;
-    this.analysisSection.insertAdjacentHTML('afterend', waveformHTML);
-    this.waveformContainer = document.getElementById('ecg-waveform-container');
   }
 
   attachEventListeners() {
@@ -179,8 +153,8 @@ class ECGFormSubmissionHandler {
   analyzeECGFiles(matFile, heaFile) {
     console.log('Sending ECG files for analysis…');
     this.showLoading();
-    // Clear previous results display before showing loading and making new request
-    this.analysisResults.innerHTML = ''; // Clear out old messages or results
+    this.analysisResults.innerHTML = ''; 
+    this.hideWaveformDisplay(); // Hide waveform display during analysis
 
     const formData = new FormData();
     formData.append('mat_file', matFile);
@@ -202,9 +176,8 @@ class ECGFormSubmissionHandler {
         this.hideLoading();
         if (data.success) {
           this.displayAnalysisResults(data);
-          // Since /analyze_ecg doesn't return waveform, we show a message.
-          // If you expect waveform data from this endpoint in the future, this logic would change.
-          this.showWaveformError('Waveform visualization not available for real-time analysis via this endpoint.');
+          // Now, also fetch and display the waveform
+          this.fetchAndDisplayWaveform(matFile, heaFile);
         } else {
           throw new Error(data.error || 'Unknown analysis error');
         }
@@ -281,13 +254,186 @@ class ECGFormSubmissionHandler {
     this.analysisError.style.display = 'block';
   }
 
-  showWaveformError(msg) {
+  fetchAndDisplayWaveform(matFile, heaFile) {
+    console.log('Fetching ECG waveform data...');
+    this.showWaveformLoading();
+    this.waveformDisplayArea.style.display = 'block'; // Show the area
+
+    const formData = new FormData();
+    formData.append('mat_file', matFile);
+    formData.append('hea_file', heaFile);
+
+    fetch('/ecg_waveform_data', { method: 'POST', body: formData })
+      .then(response => {
+        if (!response.ok) {
+          return response.json().then(errData => {
+            throw new Error(errData.error || `Server returned ${response.status} for waveform`);
+          }).catch(() => {
+            throw new Error(`Server returned ${response.status} for waveform`);
+          });
+        }
+        return response.json();
+      })
+      .then(data => {
+        this.hideWaveformLoading();
+        if (data.success && data.ecg_data) {
+          this.currentECGData = data.ecg_data;
+          this.currentLead = 0; // Default to first lead
+          this.createLeadControls(this.currentECGData.n_leads, this.currentECGData.lead_names);
+          this.displayECGWaveform();
+        } else {
+          throw new Error(data.error || 'Unknown error fetching waveform data');
+        }
+      })
+      .catch(err => {
+        console.error('Waveform data error:', err);
+        this.hideWaveformLoading();
+        this.showWaveformError(err.message);
+      });
+  }
+
+  showWaveformLoading() {
+    if (this.waveformLoading) this.waveformLoading.style.display = 'block';
+    if (this.waveformError) this.waveformError.style.display = 'none';
+    if (this.waveformChartCanvas) this.waveformChartCanvas.style.display = 'none';
+    if (this.waveformControls) this.waveformControls.innerHTML = '';
+  }
+
+  hideWaveformLoading() {
     if (this.waveformLoading) this.waveformLoading.style.display = 'none';
+  }
+
+  showWaveformError(msg) {
     if (this.waveformError) {
-      this.waveformError.textContent = msg;
+      this.waveformError.textContent = 'Error loading waveform: ' + msg;
       this.waveformError.style.display = 'block';
     }
+    if (this.waveformChartCanvas) this.waveformChartCanvas.style.display = 'none';
+    if (this.waveformControls) this.waveformControls.innerHTML = '';
   }
+  
+  hideWaveformDisplay() {
+    if (this.waveformDisplayArea) this.waveformDisplayArea.style.display = 'none';
+    if (this.waveformError) this.waveformError.style.display = 'none';
+    if (this.waveformLoading) this.waveformLoading.style.display = 'none';
+    if (this.waveformChartCanvas) this.waveformChartCanvas.style.display = 'none';
+    if (this.waveformControls) this.waveformControls.innerHTML = '';
+     if (this.ecgChart) {
+        this.ecgChart.destroy();
+        this.ecgChart = null;
+    }
+  }
+
+  displayECGWaveform() {
+    if (!this.currentECGData || !this.waveformChartCanvas) {
+      this.showWaveformError('ECG data or chart canvas not available.');
+      return;
+    }
+    if (this.waveformError) this.waveformError.style.display = 'none';
+    this.waveformChartCanvas.style.display = 'block';
+
+    const { time, signals, lead_names, sampling_rate } = this.currentECGData;
+    const currentSignal = signals[this.currentLead];
+
+    if (this.ecgChart) {
+      this.ecgChart.destroy();
+    }
+
+    const ctx = this.waveformChartCanvas.getContext('2d');
+    this.ecgChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: time,
+        datasets: [{
+          label: lead_names[this.currentLead],
+          data: currentSignal,
+          borderColor: 'rgba(0, 123, 255, 1)',
+          borderWidth: 1,
+          fill: false,
+          pointRadius: 0, // No points for cleaner line
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: 'Time (s)'
+            },
+            ticks: {
+                maxTicksLimit: 20 // Limit number of X-axis ticks for readability
+            }
+          },
+          y: {
+            title: {
+              display: true,
+              text: 'Amplitude (mV)'
+            }
+          }
+        },
+        plugins: {
+          tooltip: {
+            enabled: true,
+            mode: 'index',
+            intersect: false,
+          },
+          zoom: { // Basic zoom and pan, if Chart.js zoom plugin is available
+            pan: {
+              enabled: true,
+              mode: 'xy',
+            },
+            zoom: {
+              wheel: {
+                enabled: true,
+              },
+              pinch: {
+                enabled: true
+              },
+              mode: 'xy',
+            }
+          }
+        }
+      }
+    });
+    console.log(`Displaying waveform for lead: ${lead_names[this.currentLead]}`);
+  }
+
+  createLeadControls(numberOfLeads, leadNames) {
+    if (!this.waveformControls) return;
+    
+    let controlsHTML = `
+      <div class="row align-items-center">
+        <div class="col-md-4">
+          <label for="lead-selector" class="form-label mb-1"><strong>Select ECG Lead:</strong></label>
+          <select id="lead-selector" class="form-control form-control-sm">
+    `;
+    
+    for (let i = 0; i < numberOfLeads; i++) {
+      const leadName = leadNames[i] || `Lead ${i + 1}`;
+      controlsHTML += `<option value="${i}" ${this.currentLead === i ? 'selected' : ''}> ${leadName}</option>`;
+    }
+    
+    controlsHTML += `
+          </select>
+        </div>
+      </div>
+    `;
+    
+    this.waveformControls.innerHTML = controlsHTML;
+    
+    const leadSelector = document.getElementById('lead-selector');
+    if (leadSelector) {
+      leadSelector.addEventListener('change', (event) => {
+        this.currentLead = parseInt(event.target.value, 10);
+        this.displayECGWaveform();
+      });
+    }
+  }
+
+  // Make sure to call hideWaveformDisplay in initializeElements or constructor if it should be hidden initially
+  // ... (rest of the class) ...
 }
 
 // Auto-initialize

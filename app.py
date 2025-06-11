@@ -13,7 +13,7 @@ import wfdb
 import tempfile
 import csv
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, current_app # Modified import
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_bcrypt import Bcrypt
@@ -929,7 +929,73 @@ def analyze_ecg():
         return jsonify({"error": f"ECG analysis failed: {str(e)}"}), 500
 
 
+@app.route("/ecg_waveform_data", methods=["POST"])
+@login_required 
+@any_role_required
+def ecg_waveform_data():
+    """
+    Provides ECG waveform data from .mat and .hea files.
+    Expects 'mat_file' and 'hea_file' in the request.
+    """
+    try:
+        mat_file = request.files.get('mat_file')
+        hea_file = request.files.get('hea_file')
 
+        if not mat_file or not hea_file:
+            return jsonify({"success": False, "error": "Both .mat and .hea files are required"}), 400
+
+        # Secure filenames and check basenames
+        mat_filename = secure_filename(mat_file.filename)
+        hea_filename = secure_filename(hea_file.filename)
+        mat_base = os.path.splitext(mat_filename)[0]
+        hea_base = os.path.splitext(hea_filename)[0]
+
+        if mat_base != hea_base:
+            return jsonify({"success": False, "error": "MAT and HEA files must have the same basename"}), 400
+
+        # Use a temporary directory to save and read files
+        with tempfile.TemporaryDirectory() as temp_dir:
+            mat_path = os.path.join(temp_dir, mat_filename)
+            hea_path = os.path.join(temp_dir, hea_filename)
+            
+            mat_file.save(mat_path)
+            hea_file.save(hea_path)
+            
+            record_path = os.path.join(temp_dir, mat_base)
+            # Ensure files are closed before wfdb tries to read them, by seeking to start after saving
+            mat_file.seek(0)
+            hea_file.seek(0)
+            record = wfdb.rdrecord(record_path) 
+            
+            sig_all = record.p_signal  # [n_samples, n_leads]
+            nsteps, nleads = sig_all.shape
+            
+            fs = float(record.fs) if hasattr(record, 'fs') and record.fs else 250.0
+            time_duration = nsteps / fs
+            time_data = np.linspace(0, time_duration, nsteps).tolist()
+            
+            signals_mv = []
+            for lead_idx in range(nleads): # Use all available leads
+                lead_signal = sig_all[:, lead_idx]
+                signals_mv.append(lead_signal.tolist())
+            
+            ecg_data = {
+                "time": time_data,
+                "signals": signals_mv,
+                "sampling_rate": fs,
+                "duration": time_duration,
+                "lead_names": record.sig_name, 
+                "n_leads": nleads
+            }
+            
+            return jsonify({
+                "success": True,
+                "ecg_data": ecg_data
+            })
+
+    except Exception as e:
+        current_app.logger.error(f"Error processing ECG waveform data: {e}", exc_info=True)
+        return jsonify({"success": False, "error": f"Failed to load ECG waveform: {str(e)}"}), 500
 
 @app.route("/visit/<int:visit_id>/edit", methods=["GET", "POST"])
 @login_required
