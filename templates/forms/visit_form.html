@@ -4,16 +4,32 @@
 {% block extra_css %}
 
   <style>
-    /* â”€â”€â”€ Basic Bootstrap overrides (optional) â”€â”€â”€ */
-    .ecg-analysis-card {
-      border-left: 4px solid #007bff;
-    }
-    .progress {
-      background-color: #e9ecef;
-    }
-    .progress-bar {
-      background-color: #007bff;
-    }
+
+    /* Ensure the ECG SVG never overflows the content area: */
+.content-wrapper,
+#ecg-waveform-display-area .card-body {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* The SVG is fixed at its intrinsic size (1 mm=4 px). */
+#ecg-waveform-display-area svg {
+  display: block;
+  width: auto;   /* use the SVG’s own width */
+  height: auto;  /* use the SVG’s own height */
+}
+
+
+/* ───── Basic Bootstrap overrides (optional) ───── */
+.ecg-analysis-card {
+  border-left: 4px solid #007bff;
+}
+.progress {
+  background-color: #e9ecef;
+}
+.progress-bar {
+  background-color: #007bff;
+}
     .spinner-border-sm {
       width: 1rem;
       height: 1rem;
@@ -233,7 +249,7 @@
               </div>
               <div id="ecg-waveform-error" class="text-danger"></div>
               <div id="ecg-controls" class="mb-2"></div>
-              <canvas id="ecg-waveform-chart"></canvas>
+              <div id="ecg-waveform-chart"></div>
             </div>
           </div>
         </div>

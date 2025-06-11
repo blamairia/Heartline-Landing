@@ -253,116 +253,159 @@ class ECGFormSubmissionHandler {
 
   // === In your ECGFormSubmissionHandler class, replace displayECGWaveform: ===
 
-  displayECGWaveform() {
-    const data   = this.currentECGData;
-    const canvas = this.waveformChartCanvas;
-    if (!data || !canvas) {
-      this.showWaveformError('No ECG waveform data or canvas available.');
-      return;
-    }
-
-    // 1 mm = 4 px
-    const PX_PER_MM  = 4;
-    const SMALL_BOX  = PX_PER_MM;       // 1 mm
-    const LARGE_BOX  = PX_PER_MM * 5;   // 5 mm
-
-    // Increased margins for labels and breathing room
-    const MARGIN_LEFT   = LARGE_BOX * 4;   // was 3
-    const MARGIN_RIGHT  = LARGE_BOX * 2;  
-    const MARGIN_TOP    = LARGE_BOX * 2;   // was 1.5
-    const MARGIN_BOTTOM = LARGE_BOX * 4;   // was 3
-
-    // Plot dimensions based on time
-    const totalSec    = data.duration;
-    const boxesAcross = totalSec / 0.04;
-    const plotWidth   = boxesAcross * SMALL_BOX;
-
-    // Voltage range ±1.5 mV → 30 small boxes
-    const plotHeight = 30 * SMALL_BOX;
-
-    // Set canvas internal resolution
-    canvas.width  = MARGIN_LEFT + plotWidth + MARGIN_RIGHT;
-    canvas.height = MARGIN_TOP  + plotHeight + MARGIN_BOTTOM;
-
-    const ctx = canvas.getContext('2d');
-
-    // Background
-    ctx.fillStyle = '#FFF8DC';
-    ctx.fillRect(MARGIN_LEFT, MARGIN_TOP, plotWidth, plotHeight);
-
-    // Grid
-    this.drawGrid(ctx, plotWidth, plotHeight, MARGIN_LEFT, MARGIN_TOP, SMALL_BOX, LARGE_BOX);
-
-    // Axes
-    this.drawAxes(ctx, plotWidth, plotHeight, MARGIN_LEFT, MARGIN_TOP, SMALL_BOX, MARGIN_BOTTOM);
-
-    // ECG trace
-    const signal     = data.signals[this.currentLead];
-    const timeVector = data.time;
-    const minV       = -1.5, maxV = +1.5;
-    ctx.beginPath();
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth   = 1.5;
-
-    for (let i = 0; i < signal.length; i++) {
-      const x = MARGIN_LEFT + (timeVector[i] / totalSec) * plotWidth;
-      const y = MARGIN_TOP + plotHeight - ((signal[i] - minV) / (maxV - minV)) * plotHeight;
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-
-    // Show canvas
-    canvas.style.display = 'block';
+displayECGWaveform() {
+  const data      = this.currentECGData;
+  const container = this.waveformDisplayArea;
+  if (!data || !container) {
+    this.showWaveformError('No ECG data or container available.');
+    return;
   }
 
-  // drawAxes with updated bottom margin for axis labels
-  drawAxes(ctx, width, height, offsetX, offsetY, small, bottomMargin) {
-    ctx.save();
-    ctx.translate(offsetX, offsetY);
+  // 1 mm = 4 px
+  const PX_PER_MM  = 4;
+  const SMALL_BOX  = PX_PER_MM;        // 1 mm
+  const LARGE_BOX  = PX_PER_MM * 5;    // 5 mm
 
-    ctx.fillStyle   = '#000';
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth   = 1.5;
-    ctx.font        = '12px Arial';
+  // Margins (px) for labels
+  const M_LEFT   = LARGE_BOX * 4;
+  const M_RIGHT  = LARGE_BOX * 1.5;
+  const M_TOP    = LARGE_BOX * 1.5;
+  const M_BOTTOM = LARGE_BOX * 3;
 
-    // X-axis ticks
-    const stepBoxes = 5, stepSec = 0.2;
-    const stepPx    = small * stepBoxes;
-    for (let x = 0; x <= width; x += stepPx) {
-      ctx.beginPath();
-      ctx.moveTo(x, height);
-      ctx.lineTo(x, height + 6);
-      ctx.stroke();
-      ctx.textAlign = 'center';
-      ctx.fillText((x / stepPx * stepSec).toFixed(1) + ' s', x, height + bottomMargin - 10);
-    }
+  // Plot dimensions (px)
+  const totalSec  = data.duration;             // e.g. 15.0 s
+  const boxesHorz = totalSec / 0.04;           // small boxes across
+  const plotW     = boxesHorz * SMALL_BOX;     // px width
+  const plotH     = 30 * SMALL_BOX;            // ±1.5 mV => 30 mm
 
-    // Y-axis ticks
-    const stepYPx = small * 5, stepVolt = 0.5;
-    ctx.textAlign = 'right';
-    const labelX = -8;
-    const rows   = Math.floor(height / stepYPx) + 1;
-    for (let j = 0; j < rows; j++) {
-      const y = height - j * stepYPx;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(-6, y);
-      ctx.stroke();
-      const volt = (j * stepVolt) - ((rows - 1) * stepVolt / 2);
-      ctx.fillText(volt.toFixed(1) + ' mV', labelX, y + 4);
-    }
+  // Overall SVG size
+  const svgW = M_LEFT + plotW + M_RIGHT;
+  const svgH = M_TOP  + plotH + M_BOTTOM;
 
-    // Axis titles
-    ctx.textAlign = 'center';
-    ctx.fillText('Time (s)', width / 2, height + bottomMargin / 2 + 10);
-    ctx.save();
-    ctx.translate(-50, height / 2);
-    ctx.rotate(-Math.PI / 2);
-    ctx.fillText('Voltage (mV)', 0, 0);
-    ctx.restore();
+  // Clear prior content
+  container.innerHTML = '';
 
-    ctx.restore();
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+
+  // FIXED size on SVG
+  svg.setAttribute('width',  svgW);
+  svg.setAttribute('height', svgH);
+  svg.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
+
+  // 1) Background
+  const bg = document.createElementNS(NS, 'rect');
+  bg.setAttribute('x',      M_LEFT);
+  bg.setAttribute('y',      M_TOP);
+  bg.setAttribute('width',  plotW);
+  bg.setAttribute('height', plotH);
+  bg.setAttribute('fill',   '#FFF8DC');
+  svg.appendChild(bg);
+
+  // 2) Grid (small & large)
+  // small lines
+  for (let i = 0; i <= plotW/SMALL_BOX; i++) {
+    const x = M_LEFT + i * SMALL_BOX;
+    [ [x, M_TOP, x, M_TOP+plotH], [M_LEFT, M_TOP + i*SMALL_BOX, M_LEFT+plotW, M_TOP + i*SMALL_BOX] ]
+      .forEach(coords => {
+        const line = document.createElementNS(NS, 'line');
+        line.setAttribute('x1', coords[0]);
+        line.setAttribute('y1', coords[1]);
+        line.setAttribute('x2', coords[2]);
+        line.setAttribute('y2', coords[3]);
+        line.setAttribute('stroke','black');
+        line.setAttribute('stroke-width','0.5');
+        line.setAttribute('stroke-opacity','0.1');
+        svg.appendChild(line);
+      });
   }
+  // large lines
+  for (let i = 0; i <= plotW/LARGE_BOX; i++) {
+    const x = M_LEFT + i * LARGE_BOX;
+    [ [x, M_TOP, x, M_TOP+plotH], [M_LEFT, M_TOP + i*LARGE_BOX, M_LEFT+plotW, M_TOP + i*LARGE_BOX] ]
+      .forEach(coords => {
+        const line = document.createElementNS(NS, 'line');
+        line.setAttribute('x1', coords[0]);
+        line.setAttribute('y1', coords[1]);
+        line.setAttribute('x2', coords[2]);
+        line.setAttribute('y2', coords[3]);
+        line.setAttribute('stroke','black');
+        line.setAttribute('stroke-width','1');
+        line.setAttribute('stroke-opacity','0.25');
+        svg.appendChild(line);
+      });
+  }
+
+  // 3) ECG trace
+  const pts = data.time.map((t,i) => {
+    const x = M_LEFT + (t/totalSec) * plotW;
+    const y = M_TOP + plotH - ((data.signals[this.currentLead][i] + 1.5)/3) * plotH;
+    return `${x},${y}`;
+  }).join(' ');
+  const trace = document.createElementNS(NS,'polyline');
+  trace.setAttribute('points', pts);
+  trace.setAttribute('fill',   'none');
+  trace.setAttribute('stroke', 'black');
+  trace.setAttribute('stroke-width','1.5');
+  svg.appendChild(trace);
+
+  // 4) X-axis ticks & labels (0.2 s steps)
+  for (let i = 0; i <= boxesHorz; i += 5) {
+    const x = M_LEFT + i * SMALL_BOX;
+    const tick = document.createElementNS(NS,'line');
+    tick.setAttribute('x1', x); tick.setAttribute('y1', M_TOP+plotH);
+    tick.setAttribute('x2', x); tick.setAttribute('y2', M_TOP+plotH+8);
+    tick.setAttribute('stroke','black');
+    svg.appendChild(tick);
+    const text = document.createElementNS(NS,'text');
+    text.setAttribute('x', x); 
+    text.setAttribute('y', M_TOP+plotH+25);
+    text.setAttribute('font-size','10');
+    text.setAttribute('text-anchor','middle');
+    text.textContent = ((i/5)*0.2).toFixed(1);
+    svg.appendChild(text);
+  }
+
+  // 5) Y-axis ticks & labels (0.5 mV steps)
+  const rows = Math.ceil(plotH / LARGE_BOX);
+  for (let j = 0; j <= rows; j++) {
+    const y = M_TOP + plotH - j * LARGE_BOX;
+    const tick = document.createElementNS(NS,'line');
+    tick.setAttribute('x1', M_LEFT); tick.setAttribute('y1', y);
+    tick.setAttribute('x2', M_LEFT-8); tick.setAttribute('y2', y);
+    tick.setAttribute('stroke','black');
+    svg.appendChild(tick);
+    const text = document.createElementNS(NS,'text');
+    text.setAttribute('x', M_LEFT-12);
+    text.setAttribute('y', y+4);
+    text.setAttribute('font-size','10');
+    text.setAttribute('text-anchor','end');
+    text.textContent = ( (j*0.5) - (rows*0.5)/2 ).toFixed(1) + ' mV';
+    svg.appendChild(text);
+  }
+
+  // 6) Axis titles
+  const xlabel = document.createElementNS(NS,'text');
+  xlabel.setAttribute('x', M_LEFT + plotW/2);
+  xlabel.setAttribute('y', M_TOP + plotH + 40);
+  xlabel.setAttribute('font-size','14');
+  xlabel.setAttribute('text-anchor','middle');
+  xlabel.textContent = 'Time (s)';
+  svg.appendChild(xlabel);
+
+  const ylabel = document.createElementNS(NS,'text');
+  ylabel.setAttribute('x', M_LEFT-60);
+  ylabel.setAttribute('y', M_TOP + plotH/2);
+  ylabel.setAttribute('font-size','14');
+  ylabel.setAttribute('text-anchor','middle');
+  ylabel.setAttribute('transform', `rotate(-90 ${M_LEFT-60},${M_TOP+plotH/2})`);
+  ylabel.textContent = 'Voltage (mV)';
+  svg.appendChild(ylabel);
+
+  // 7) Inject SVG
+  container.appendChild(svg);
+}
+
 
 // === drawGrid: small & large ECG boxes ===
 
