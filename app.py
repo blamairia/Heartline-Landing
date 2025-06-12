@@ -6,8 +6,7 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-import torch
-import torch.nn as nn
+import onnxruntime as ort
 import numpy as np
 import wfdb
 import tempfile
@@ -42,12 +41,7 @@ from wtforms import (
 )
 from flask_wtf import FlaskForm
 
-import torch
-import numpy as np
-import wfdb
-
-# IMPORT YOUR RESNET ARCHITECTURE
-from resnet import resnet34
+# ONNX Runtime for ECG inference
 
 from models import (
     db,
@@ -109,35 +103,68 @@ login_manager.login_message_category = 'info'
 bcrypt.init_app(app)
 
 # ----------------------------------------
-# 2) PYTORCH MODEL LOADING (ECG)
+# 2) ONNX MODEL LOADING (ECG) - Replaces PyTorch
 # ----------------------------------------
-MODEL_PATH = os.path.join(BASE_DIR, "resnet34_model.pth")
-DEVICE = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
-NET = None
+MODEL_PATH = os.path.join(BASE_DIR, "resnet34_model.onnx")
+ort_session = None
 
-def load_model():
-    global NET
+def load_onnx_model():
+    """Load ONNX model for ECG inference"""
+    global ort_session
     try:
-        # 2a) Instantiate the ResNet34 architecture (12 input channels, 9 classes)
-        model = resnet34(input_channels=12, num_classes=9)
-        # 2b) Load the saved state_dict
         if os.path.exists(MODEL_PATH):
-            state_dict = torch.load(MODEL_PATH, map_location=DEVICE)
-            model.load_state_dict(state_dict)
-            # 2c) Move to device and switch to eval mode
-            model.to(DEVICE)
-            model.eval()
-            NET = model
-            print(f"Model loaded successfully from {MODEL_PATH}")
+            ort_session = ort.InferenceSession(MODEL_PATH)
+            print(f"ONNX model loaded successfully from {MODEL_PATH}")
+            print(f"Input name: {ort_session.get_inputs()[0].name}")
+            print(f"Input shape: {ort_session.get_inputs()[0].shape}")
         else:
-            print(f"Model file not found at {MODEL_PATH}. ECG inference will be disabled.")
-            NET = None
+            print(f"ONNX model file not found at {MODEL_PATH}. ECG inference will be disabled.")
+            ort_session = None
     except Exception as e:
-        print(f"Error loading model: {e}. ECG inference will be disabled.")
-        NET = None
+        print(f"Error loading ONNX model: {e}. ECG inference will be disabled.")
+        ort_session = None
 
-# Load the model when the app starts
-load_model()
+def predict_ecg_onnx(ecg_signal):
+    """
+    Run ECG inference using ONNX Runtime
+    Args:
+        ecg_signal: numpy array of shape [12, 15000]
+    Returns:
+        dict: probabilities for each class
+    """
+    global ort_session
+    
+    if ort_session is None:
+        raise ValueError("ONNX model not loaded")
+    
+    try:
+        # Prepare input (add batch dimension)
+        input_data = ecg_signal.astype(np.float32)
+        if len(input_data.shape) == 2:
+            input_data = np.expand_dims(input_data, axis=0)  # Add batch dimension
+        
+        # Get input name
+        input_name = ort_session.get_inputs()[0].name
+        
+        # Run inference
+        ort_inputs = {input_name: input_data}
+        ort_outputs = ort_session.run(None, ort_inputs)
+        
+        # Apply sigmoid to get probabilities
+        logits = ort_outputs[0][0]  # Remove batch dimension
+        probs = 1 / (1 + np.exp(-logits))  # Sigmoid activation
+        
+        # Map to class names
+        class_abbrs = ["SNR", "AF", "IAVB", "LBBB", "RBBB", "PAC", "PVC", "STD", "STE"]
+        prob_dict = {abbr: float(probs[i]) for i, abbr in enumerate(class_abbrs)}
+        
+        return prob_dict
+        
+    except Exception as e:
+        raise RuntimeError(f"ECG inference failed: {e}")
+
+# Load the ONNX model when the app starts
+load_onnx_model()
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -402,10 +429,8 @@ def create_visit():
                 )
                 db.session.add(vd)
 
-        db.session.commit()
-
-        # 5) OPTIONAL: Run ECG inference immediately after saving if both files exist
-        if v.ecg_mat and v.ecg_hea and NET:
+        db.session.commit()        # 5) OPTIONAL: Run ECG inference immediately after saving if both files exist
+        if v.ecg_mat and v.ecg_hea and ort_session:
             try:
                 rec_basename = os.path.splitext(os.path.basename(v.ecg_hea))[0]
                 rec_dir = os.path.dirname(v.ecg_hea)
@@ -422,14 +447,9 @@ def create_visit():
                 buffered[-clipped.shape[0]:, :] = clipped
 
                 x_np = buffered.T  # shape [12, 15000]
-                x_tensor = torch.from_numpy(x_np).unsqueeze(0).to(DEVICE).float()
-
-                with torch.no_grad():
-                    logits = NET(x_tensor)
-                    probs = torch.sigmoid(logits)[0].cpu().numpy()
-
-                class_abbrs = ["SNR", "AF", "IAVB", "LBBB", "RBBB", "PAC", "PVC", "STD", "STE"]
-                v.ecg_prediction = {abbr: float(probs[i]) for i, abbr in enumerate(class_abbrs)}
+                
+                # Use ONNX inference instead of PyTorch
+                v.ecg_prediction = predict_ecg_onnx(x_np)
                 db.session.commit()
                 flash("ECG inference completed automatically.", "info")
             except Exception as e:
@@ -688,9 +708,8 @@ def analyze_existing_ecg(visit_id):
         # Check if files actually exist on disk
         if not os.path.exists(visit.ecg_mat) or not os.path.exists(visit.ecg_hea):
             return jsonify({"success": False, "error": "ECG files not found on disk"}), 400
-        
-        # Check if model is loaded
-        if not NET:
+          # Check if model is loaded
+        if not ort_session:
             return jsonify({"success": False, "error": "ECG analysis model not available"}), 500
         
         # Read ECG data using the existing file paths
@@ -713,15 +732,15 @@ def analyze_existing_ecg(visit_id):
         
         # Transpose for the model
         x_np = buffered.T  # shape [12, 15000]
-        x_tensor = torch.from_numpy(x_np).unsqueeze(0).to(DEVICE).float()
         
-        # Run inference
-        with torch.no_grad():
-            logits = NET(x_tensor)
-            probs = torch.sigmoid(logits)[0].cpu().numpy()
+        # Run ONNX inference
+        prob_dict = predict_ecg_onnx(x_np)
         
-        # Map probabilities to class names
-        class_abbrs = ["SNR", "AF", "IAVB", "LBBB", "RBBB", "PAC", "PVC", "STD", "STE"]
+        # Find the most likely condition (highest probability)
+        max_prob_abbr = max(prob_dict, key=prob_dict.get)
+        max_prob_value = prob_dict[max_prob_abbr]
+        
+        # Class names for response
         class_names = {
             "SNR": "Sinus Rhythm",
             "AF": "Atrial Fibrillation", 
@@ -733,8 +752,6 @@ def analyze_existing_ecg(visit_id):
             "STD": "ST Depression",
             "STE": "ST Elevation"
         }
-        
-        prob_dict = {abbr: float(probs[i]) for i, abbr in enumerate(class_abbrs)}
         
         # Find the most likely condition (highest probability)
         max_prob_abbr = max(prob_dict, key=prob_dict.get)
@@ -840,7 +857,7 @@ def analyze_ecg():
     Returns JSON with ECG diagnosis probabilities.
     """
     try:
-        if not NET:
+        if not ort_session:
             return jsonify({"error": "ECG model not loaded"}), 500
         
         mat_file = request.files.get('mat_file')
@@ -884,15 +901,15 @@ def analyze_ecg():
             buffered[-clipped.shape[0]:, :] = clipped
             
             x_np = buffered.T  # shape [12, 15000]
-            x_tensor = torch.from_numpy(x_np).unsqueeze(0).to(DEVICE).float()
             
-            # Run inference
-            with torch.no_grad():
-                logits = NET(x_tensor)
-                probs = torch.sigmoid(logits)[0].cpu().numpy()
+            # Run ONNX inference
+            prob_dict = predict_ecg_onnx(x_np)
             
-            # Map probabilities to class names
-            class_abbrs = ["SNR", "AF", "IAVB", "LBBB", "RBBB", "PAC", "PVC", "STD", "STE"]
+            # Find the most likely condition (highest probability)
+            max_prob_abbr = max(prob_dict, key=prob_dict.get)
+            max_prob_value = prob_dict[max_prob_abbr]
+            
+            # Class names for response
             class_names = {
                 "SNR": "Sinus Rhythm",
                 "AF": "Atrial Fibrillation", 
@@ -904,8 +921,6 @@ def analyze_ecg():
                 "STD": "ST Depression",
                 "STE": "ST Elevation"
             }
-            
-            prob_dict = {abbr: float(probs[i]) for i, abbr in enumerate(class_abbrs)}
             
             # Find the most likely condition (highest probability)
             max_prob_abbr = max(prob_dict, key=prob_dict.get)
@@ -1117,10 +1132,8 @@ def edit_visit(visit_id):
                 )
                 db.session.add(vd)
 
-        db.session.commit()
-
-        # 5e) (Optional) Re-run ECG inference if both .mat and .hea were uploaded
-        if (mat_file or hea_file) and visit.ecg_mat and visit.ecg_hea and NET:
+        db.session.commit()        # 5e) (Optional) Re-run ECG inference if both .mat and .hea were uploaded
+        if (mat_file or hea_file) and visit.ecg_mat and visit.ecg_hea and ort_session:
             try:
                 rec_basename = os.path.splitext(os.path.basename(visit.ecg_hea))[0]
                 rec_dir      = os.path.dirname(visit.ecg_hea)
@@ -1136,14 +1149,10 @@ def edit_visit(visit_id):
                 buffered = np.zeros((15000, nleads), dtype=np.float32)
                 buffered[-clipped.shape[0]:, :] = clipped
 
-                x_np     = buffered.T
-                x_tensor = torch.from_numpy(x_np).unsqueeze(0).to(DEVICE).float()
-                with torch.no_grad():
-                    logits = NET(x_tensor)
-                    probs  = torch.sigmoid(logits)[0].cpu().numpy()
-
-                class_abbrs = ["SNR", "AF", "IAVB", "LBBB", "RBBB", "PAC", "PVC", "STD", "STE"]
-                visit.ecg_prediction = {abbr: float(probs[i]) for i, abbr in enumerate(class_abbrs)}
+                x_np = buffered.T
+                
+                # Run ONNX inference
+                visit.ecg_prediction = predict_ecg_onnx(x_np)
                 db.session.commit()
                 flash("ECG analysis updated successfully.", "info")
             except Exception as e:
@@ -2706,8 +2715,7 @@ def analyze_ecg_by_visit(visit_id):
                             "name": class_names.get(max_prob_abbr_stored, max_prob_abbr_stored),
                             "probability": max_prob_value_stored
                         },
-                        "summary": f"Primary finding: {class_names.get(max_prob_abbr_stored, max_prob_abbr_stored)} ({max_prob_value_stored:.1%} confidence) (cached)"
-                    }
+                        "summary": f"Primary finding: {class_names.get(max_prob_abbr_stored, max_prob_abbr_stored)} ({max_prob_value_stored:.1%} confidence) (cached)"                    }
                     return jsonify(response)
 
         if not visit.ecg_mat or not visit.ecg_hea:
@@ -2719,7 +2727,7 @@ def analyze_ecg_by_visit(visit_id):
         if not os.path.exists(mat_path) or not os.path.exists(hea_path):
             return jsonify({"success": False, "error": "ECG files not found on disk for live analysis"}), 400
         
-        if not NET:
+        if not ort_session:
             return jsonify({"success": False, "error": "ECG analysis model not available"}), 500
 
         rec_basename = os.path.splitext(os.path.basename(hea_path))[0]
@@ -2742,13 +2750,9 @@ def analyze_ecg_by_visit(visit_id):
         buffered[-clipped.shape[0]:, :] = clipped
         
         x_np = buffered.T
-        x_tensor = torch.from_numpy(x_np).unsqueeze(0).to(DEVICE).float()
         
-        with torch.no_grad():
-            logits = NET(x_tensor)
-            probs_tensor = torch.sigmoid(logits)[0].cpu().numpy()
-        
-        prob_dict_live = {abbr: float(probs_tensor[i]) for i, abbr in enumerate(class_abbrs)}
+        # Run ONNX inference
+        prob_dict_live = predict_ecg_onnx(x_np)
         max_prob_abbr_live = max(prob_dict_live, key=prob_dict_live.get)
         max_prob_value_live = prob_dict_live[max_prob_abbr_live]
         
@@ -2861,6 +2865,6 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"Database error: {e}")
         
-        load_model()      # instantiate and load state_dict, then .eval()
+        load_onnx_model()      # load ONNX model for ECG inference
     
     app.run(host='0.0.0.0',debug=False)
