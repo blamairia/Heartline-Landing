@@ -228,3 +228,4 @@ phi_data/
 deployment_notes.txt
 server_config.txt
 database_schema_with_data.sql
+.vercel
