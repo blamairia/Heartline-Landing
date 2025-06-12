@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import Image from 'next/image'; // Import the Next.js Image component
 import { 
   Heart, 
   Brain, 
@@ -171,13 +172,16 @@ export function HeroSection() {
             <div className="relative">
               {/* Main Dashboard Preview */}
               <div className="relative z-10 bg-white rounded-2xl shadow-2xl overflow-hidden">
-                <div className="h-64 md:h-80 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-                  <div className="text-center">
-                    <Heart className="w-16 h-16 text-primary mx-auto mb-4" />
-                    <p className="text-gray-600 font-medium">Dashboard Preview</p>
-                    <p className="text-sm text-gray-500">Coming Soon</p>
-                  </div>
-                </div>
+                {/* Replace the placeholder div with the Image component */}
+                <Image
+                  src="/preview.png" // Path relative to the 'public' directory
+                  alt="Hearline Dashboard Preview"
+                  width={600} // Adjust width as needed for your layout
+                  height={375} // Adjust height to maintain aspect ratio or fit layout
+                  layout="responsive" // Makes the image scale with the container
+                  priority // Consider adding priority if this image is above the fold
+                  className="object-cover" // Ensures the image covers the area, might crop
+                />
               </div>
 
               {/* Floating Cards */}
