@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma as db } from '@/lib/prisma'
 import { contactSubmissions } from '../../../../db/schema'
-import { sendDemoRequestConfirmation, sendDemoRequestNotification } from '@/lib/smtp-email'
+import { sendDemoRequestConfirmation, sendDemoRequestNotification } from '@/lib/email'
 
 const demoSchema = z.object({
   firstName: z.string().min(1),
@@ -54,12 +54,11 @@ Preferred Demo Type: ${validatedData.preferredDemoType}
 Country: ${validatedData.country}
 ${validatedData.additionalRequirements ? `Additional Requirements: ${validatedData.additionalRequirements}` : ''}`,
     }).returning()
-    console.log('Database record created successfully:', demoRequest.id)
-
-    // Send emails
+    console.log('Database record created successfully:', demoRequest.id)    // Send emails
     console.log('=== EMAIL SENDING START ===')
     try {
-      console.log('Sending confirmation email to:', validatedData.email)      // Send confirmation email to customer
+      console.log('Sending confirmation email to:', validatedData.email)
+      // Send confirmation email to customer
       const confirmationResult = await sendDemoRequestConfirmation({
         firstName: validatedData.firstName,
         lastName: validatedData.lastName,
@@ -69,9 +68,9 @@ ${validatedData.additionalRequirements ? `Additional Requirements: ${validatedDa
         timeframe: validatedData.timeframe,
         interestedFeatures: validatedData.interestedFeatures,
       })
-      console.log('Confirmation email sent successfully:', confirmationResult.messageId)
+      console.log('Confirmation email sent successfully:', confirmationResult.id)
 
-      console.log('Sending notification email to admin:', process.env.SMTP_USER)
+      console.log('Sending notification email to admin:', process.env.ADMIN_EMAIL)
       // Send notification email to admin/sales team
       const notificationResult = await sendDemoRequestNotification({
         firstName: validatedData.firstName,
@@ -88,9 +87,8 @@ ${validatedData.additionalRequirements ? `Additional Requirements: ${validatedDa
         timeframe: validatedData.timeframe,
         preferredDemoType: validatedData.preferredDemoType,
         additionalRequirements: validatedData.additionalRequirements,
-        country: validatedData.country,
-      })
-      console.log('Notification email sent successfully:', notificationResult.messageId)    } catch (emailError: any) {
+        country: validatedData.country,      })
+      console.log('Notification email sent successfully:', notificationResult.id)    } catch (emailError: any) {
       console.error('Email sending error:', emailError)
       console.error('Email error details:', {
         message: emailError?.message || 'Unknown error',
